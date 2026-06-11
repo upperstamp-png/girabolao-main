@@ -1,14 +1,16 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin } from "../_shared/supabase.ts";
+import {
+  extractGrupoLetter, fetchWithTimeout, JogoSync, log,
+  mapFase, mapStatus, normalizeTeamName,
+} from "../_shared/fetch.ts";
+import * as FootballData from "../_shared/apis/football-data.ts";
+import * as ApiFootball from "../_shared/apis/api-football.ts";
+import * as TheSportsDB from "../_shared/apis/thesportsdb.ts";
+import * as StatsBomb from "../_shared/apis/statsbomb.ts";
 
-// ====== CONSTANTES ======
-const PRIMARY_URL = "https://api.football-data.org/v4/competitions/WC/matches";
 const FALLBACK_URL = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
-const TIMEOUT_MS = 30000;
 
-const API_TOKEN = Deno.env.get("FOOTBALL_DATA_API_TOKEN") || "1e1c9809ca0f483980e91aac5cd134a3";
-
-// Dados estáticos de emergência — grupos e seleções confirmados para Copa 2026
 const STATIC_GRUPOS: Record<string, string[]> = {
   A: ["USA","Panama","Canada","Honduras"],
   B: ["Mexico","Jamaica","Uruguay","Bolivia"],
@@ -24,131 +26,27 @@ const STATIC_GRUPOS: Record<string, string[]> = {
   L: ["Venezuela","Chile","Iraq","Qatar"],
 };
 
-// ====== TYPES ======
-type Jogo = {
-  api_jogo_id: number;
-  time_casa: string;
-  time_fora: string;
-  placar_casa: number | null;
-  placar_fora: number | null;
-  status_raw: string;
-  data_hora: string;
-  round: string;
-  stadium: string | null;
-  grupo: string | null;
-};
+type Supa = ReturnType<typeof admin>;
 
-// ====== HELPERS ======
-function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }));
-}
-
-function normalizeTeamName(name: string): string {
-  const n = (name || "").trim();
-  if (n === "United States") return "USA";
-  if (n === "Brasil") return "Brazil";
-  return n;
-}
-
-function mapStatus(s: string): string {
-  const x = (s || "").toUpperCase();
-  if (x === "FINISHED") return "encerrado";
-  if (x === "LIVE" || x === "IN_PLAY" || x === "PAUSED") return "ao_vivo";
-  return "pendente";
-}
-
-function mapStageToRound(stage: string, matchday: number): string {
-  const s = (stage || "").toUpperCase();
-  if (s === "GROUP_STAGE") return `Group Stage - Matchday ${matchday}`;
-  if (s === "LAST_16" || s === "ROUND_OF_16") return "Round of 16";
-  if (s === "QUARTER_FINALS") return "Quarter-finals";
-  if (s === "SEMI_FINALS") return "Semi-finals";
-  if (s === "THIRD_PLACE") return "Third place play-off";
-  if (s === "FINAL") return "Final";
-  return `Matchday ${matchday}`;
-}
-
-function mapFase(round: string): string {
-  const r = (round || "").toLowerCase();
-  if (r.includes("group") || r.includes("grupo") || r.includes("matchday") || r.includes("jornada")) return "grupos";
-  if (r.includes("round of 16") || r.includes("oitava") || r.includes("16") || r.includes("last 16")) return "oitavas";
-  if (r.includes("quarter") || r.includes("quarta") || r.includes("8")) return "quartas";
-  if (r.includes("semi")) return "semis";
-  if (r.includes("third") || r.includes("terceiro") || r.includes("3rd")) return "terceiro";
-  if (r.includes("final")) return "final";
-  return "grupos";
-}
-
-function extractGrupoLetter(groupStr: string | null | undefined): string | null {
-  if (!groupStr) return null;
-  const m = groupStr.match(/GROUP_([A-L])/i) || groupStr.match(/grupo\s*([A-L])/i);
-  return m ? m[1].toUpperCase() : null;
-}
-
-async function fetchWithTimeout(url: string, opts: RequestInit = {}, ms = TIMEOUT_MS): Promise<Response> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const res = await fetch(url, { ...opts, signal: ctrl.signal });
-    return res;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// ====== PARSERS ======
-async function fetchPrimary(): Promise<Jogo[]> {
-  log("INFO", "Tentando API primária football-data.org", { url: PRIMARY_URL });
-  const r = await fetchWithTimeout(PRIMARY_URL, {
-    headers: {
-      "X-Auth-Token": API_TOKEN,
-      "Accept": "application/json"
-    },
+async function logSync(
+  supabase: Supa,
+  fonte: string,
+  status: string,
+  registros: number,
+  detalhes: unknown,
+  duracao_ms: number,
+) {
+  await supabase.from("bolao_sync_log").insert({
+    fonte, status, registros, detalhes, duracao_ms,
   });
-  if (!r.ok) {
-    const errText = await r.text().catch(() => "");
-    throw new Error(`Primary HTTP ${r.status}: ${errText}`);
-  }
-  const data = await r.json();
-  const arr: any[] = data.matches || [];
-  if (!arr.length) throw new Error("Primary retornou array de jogos vazio");
-
-  const jogos = arr.map((g: any): Jogo | null => {
-    const id = Number(g.id ?? 0);
-    const casa = normalizeTeamName(String(g.homeTeam?.name ?? g.homeTeam?.shortName ?? "").trim());
-    const fora = normalizeTeamName(String(g.awayTeam?.name ?? g.awayTeam?.shortName ?? "").trim());
-    const dataHora = g.utcDate;
-    const stage = String(g.stage ?? "").trim();
-    const matchday = Number(g.matchday ?? 1);
-    
-    if (!id || !casa || !fora || !dataHora) return null;
-    
-    const round = mapStageToRound(stage, matchday);
-    
-    return {
-      api_jogo_id: id,
-      time_casa: casa,
-      time_fora: fora,
-      placar_casa: g.score?.fullTime?.home ?? null,
-      placar_fora: g.score?.fullTime?.away ?? null,
-      status_raw: String(g.status ?? ""),
-      data_hora: dataHora,
-      round,
-      stadium: g.venue ?? null,
-      grupo: extractGrupoLetter(g.group),
-    };
-  }).filter((g): g is Jogo => g !== null);
-
-  log("INFO", `API primária: ${jogos.length} jogos extraídos`);
-  return jogos;
 }
 
-async function fetchFallback(): Promise<Jogo[]> {
-  log("WARN", "Usando fallback GitHub", { url: FALLBACK_URL });
+async function fetchFallback(): Promise<JogoSync[]> {
+  log("WARN", "Fallback GitHub worldcup.json");
   const r = await fetchWithTimeout(FALLBACK_URL, {}, 20000);
   if (!r.ok) throw new Error(`Fallback HTTP ${r.status}`);
   const data = await r.json();
-  const out: Jogo[] = [];
+  const out: JogoSync[] = [];
   let counter = 1000;
   for (const round of data.rounds || []) {
     for (const m of round.matches || []) {
@@ -166,263 +64,384 @@ async function fetchFallback(): Promise<Jogo[]> {
         round: round.name || "Group",
         stadium: m.stadium?.name ?? m.stadium ?? null,
         grupo: extractGrupoLetter(round.name || ""),
+        fonte: "github-fallback",
       });
     }
   }
-  log("INFO", `Fallback: ${out.length} jogos extraídos`);
   return out;
 }
 
-// ====== PERSISTÊNCIA ======
-async function upsertGruposESelecoes(supabase: ReturnType<typeof import("../_shared/supabase.ts").admin>) {
-  log("INFO", "Sincronizando grupos e seleções estáticas");
+async function upsertGruposEstaticos(supabase: Supa) {
   for (const [codigo, selecoes] of Object.entries(STATIC_GRUPOS)) {
-    // Upsert grupo
-    const { data: grp, error: grpErr } = await supabase
+    const { data: grp } = await supabase
       .from("bolao_grupos")
       .upsert({ codigo, nome: `Grupo ${codigo}` }, { onConflict: "codigo" })
-      .select("id")
-      .single();
-    if (grpErr) { log("ERROR", `Erro ao upsert grupo ${codigo}`, grpErr); continue; }
-
-    // Upsert seleções do grupo
+      .select("id").single();
+    if (!grp) continue;
     for (const nome of selecoes) {
-      const { error: selErr } = await supabase
-        .from("bolao_selecoes")
-        .upsert({ nome, grupo_id: grp!.id }, { onConflict: "nome" });
-      if (selErr) log("WARN", `Erro ao upsert seleção ${nome}`, selErr);
+      await supabase.from("bolao_selecoes")
+        .upsert({ nome, grupo_id: grp.id }, { onConflict: "nome" });
     }
   }
-  log("INFO", "Grupos e seleções sincronizados");
 }
 
-async function upsertRodada(
-  supabase: ReturnType<typeof import("../_shared/supabase.ts").admin>,
-  nome: string,
-  fase: string,
-  grupoId: string | null
-): Promise<string | null> {
-  const { data, error } = await supabase
+async function upsertRodada(supabase: Supa, nome: string, fase: string, grupoId: string | null) {
+  const { data } = await supabase
     .from("bolao_rodadas")
     .upsert({ nome, fase, grupo_id: grupoId }, { onConflict: "nome,fase" })
-    .select("id")
-    .single();
-  if (error) { log("WARN", `Erro ao upsert rodada ${nome}`, error); return null; }
+    .select("id").single();
   return data?.id ?? null;
 }
 
-// ====== HANDLER PRINCIPAL ======
+async function persistJogos(supabase: Supa, jogos: JogoSync[]) {
+  const grupoCache = new Map<string, string>();
+  const rodadaCache = new Map<string, string>();
+  const { data: grupos } = await supabase.from("bolao_grupos").select("id, codigo");
+  for (const g of grupos ?? []) grupoCache.set(g.codigo, g.id);
+
+  let upserts = 0;
+  let errors = 0;
+
+  for (const j of jogos) {
+    try {
+      const e_brasil = j.time_casa === "Brazil" || j.time_fora === "Brazil";
+      const status = mapStatus(j.status_raw);
+      const fase = mapFase(j.round);
+
+      let grupoId: string | null = null;
+      if (j.grupo) {
+        if (!grupoCache.has(j.grupo)) {
+          const { data: grp } = await supabase
+            .from("bolao_grupos")
+            .upsert({ codigo: j.grupo, nome: `Grupo ${j.grupo}` }, { onConflict: "codigo" })
+            .select("id").single();
+          if (grp) grupoCache.set(j.grupo, grp.id);
+        }
+        grupoId = grupoCache.get(j.grupo) ?? null;
+      }
+
+      for (const nome of [j.time_casa, j.time_fora]) {
+        const payload: Record<string, unknown> = { nome };
+        if (grupoId) payload.grupo_id = grupoId;
+        await supabase.from("bolao_selecoes").upsert(payload, { onConflict: "nome" });
+      }
+
+      const rodadaKey = `${j.round}::${fase}`;
+      if (!rodadaCache.has(rodadaKey)) {
+        const rid = await upsertRodada(supabase, j.round, fase, grupoId);
+        if (rid) rodadaCache.set(rodadaKey, rid);
+      }
+
+      let dataHora = j.data_hora;
+      if (!dataHora.includes("T") && /^\d{4}-\d{2}-\d{2}$/.test(dataHora)) dataHora += "T18:00:00Z";
+
+      const { error } = await supabase.from("bolao_jogos").upsert({
+        api_jogo_id: j.api_jogo_id,
+        api_football_id: j.api_football_id ?? null,
+        time_casa: j.time_casa,
+        time_fora: j.time_fora,
+        placar_casa: j.placar_casa,
+        placar_fora: j.placar_fora,
+        placar_casa_ht: j.placar_casa_ht ?? null,
+        placar_fora_ht: j.placar_fora_ht ?? null,
+        minuto_jogo: j.minuto_jogo ?? null,
+        e_brasil,
+        fase,
+        valor_entrada: e_brasil ? 10 : 5,
+        status,
+        data_hora: dataHora,
+        estadio: j.stadium,
+        grupo_id: grupoId,
+        rodada_id: rodadaCache.get(rodadaKey) ?? null,
+        fonte_sync: j.fonte,
+      }, { onConflict: "api_jogo_id" });
+
+      if (error) { errors++; continue; }
+      upserts++;
+
+      if (fase !== "grupos") {
+        const { data: jogoDb } = await supabase.from("bolao_jogos").select("id")
+          .eq("api_jogo_id", j.api_jogo_id).single();
+        if (jogoDb) {
+          const vencedor = j.placar_casa != null && j.placar_fora != null
+            ? (j.placar_casa > j.placar_fora ? j.time_casa : j.time_fora) : null;
+          await supabase.from("bolao_chaveamentos").upsert({
+            fase, time1: j.time_casa, time2: j.time_fora,
+            placar_time1: j.placar_casa, placar_time2: j.placar_fora,
+            vencedor, jogo_id: jogoDb.id, data_hora: dataHora, estadio: j.stadium,
+          }, { onConflict: "jogo_id" });
+        }
+      }
+    } catch {
+      errors++;
+    }
+  }
+  return { upserts, errors };
+}
+
+async function persistStandings(supabase: Supa, rows: FootballData.StandingRow[]) {
+  let n = 0;
+  for (const row of rows) {
+    const { data: grp } = await supabase.from("bolao_grupos").select("id").eq("codigo", row.grupo).single();
+    const { data: sel } = await supabase.from("bolao_selecoes").select("id").eq("nome", row.time).single();
+    if (!grp || !sel) continue;
+    await supabase.from("bolao_classificacao_grupos").upsert({
+      grupo_id: grp.id, selecao_id: sel.id,
+      posicao: row.posicao, jogos: row.jogos, vitorias: row.vitorias,
+      empates: row.empates, derrotas: row.derrotas,
+      gols_pro: row.gols_pro, gols_contra: row.gols_contra,
+      saldo: row.saldo, pontos: row.pontos,
+      atualizado_em: new Date().toISOString(),
+    }, { onConflict: "grupo_id,selecao_id" });
+    n++;
+  }
+  return n;
+}
+
+async function persistSquads(supabase: Supa, players: FootballData.ElencoJogador[]) {
+  let n = 0;
+  for (const p of players) {
+    if (!p.nome) continue;
+    const { data: sel } = await supabase.from("bolao_selecoes").select("id").eq("nome", p.time).single();
+    if (!sel) continue;
+    await supabase.from("bolao_elenco").upsert({
+      selecao_id: sel.id, jogador_nome: p.nome, posicao: p.posicao,
+      numero_camisa: p.numero, nacionalidade: p.nacionalidade,
+      data_nascimento: p.data_nascimento, fonte: "football-data",
+      atualizado_em: new Date().toISOString(),
+    }, { onConflict: "selecao_id,jogador_nome" });
+    n++;
+  }
+  return n;
+}
+
+async function persistTheSportsDB(supabase: Supa, teams: TheSportsDB.TeamMedia[]) {
+  let n = 0;
+  for (const t of teams) {
+    const { data: sel } = await supabase.from("bolao_selecoes").select("id").eq("nome", t.nome).single();
+    if (!sel) continue;
+    await supabase.from("bolao_selecoes").update({
+      escudo_url: t.escudo_url, thesportsdb_id: t.thesportsdb_id,
+      estadio: t.estadio, pais: t.pais, atualizado_em: new Date().toISOString(),
+    }).eq("id", sel.id);
+
+    for (const j of t.jogadores) {
+      if (!j.nome) continue;
+      await supabase.from("bolao_elenco").upsert({
+        selecao_id: sel.id, jogador_nome: j.nome, posicao: j.posicao,
+        numero_camisa: j.numero, foto_url: j.foto_url, fonte: "thesportsdb",
+        atualizado_em: new Date().toISOString(),
+      }, { onConflict: "selecao_id,jogador_nome" });
+    }
+    n++;
+  }
+  return n;
+}
+
+async function persistLiveStats(supabase: Supa, live: ApiFootball.LiveStats[]) {
+  let n = 0;
+  for (const lv of live) {
+    let jogoId: string | null = null;
+    const { data: j1 } = await supabase.from("bolao_jogos").select("id")
+      .eq("time_casa", lv.time_casa).eq("time_fora", lv.time_fora).maybeSingle();
+    if (j1) jogoId = j1.id;
+    else {
+      const { data: j2 } = await supabase.from("bolao_jogos").select("id")
+        .eq("time_casa", lv.time_fora).eq("time_fora", lv.time_casa).maybeSingle();
+      if (j2) jogoId = j2.id;
+    }
+    if (!jogoId) continue;
+    const jogo = { id: jogoId };
+
+    await supabase.from("bolao_jogos").update({
+      placar_casa: lv.placar_casa, placar_fora: lv.placar_fora,
+      placar_casa_ht: lv.placar_casa_ht, placar_fora_ht: lv.placar_fora_ht,
+      minuto_jogo: lv.minuto_jogo, api_football_id: lv.api_football_id,
+      status: mapStatus(lv.status_raw),
+    }).eq("id", jogo.id);
+
+    if (lv.estatisticas) {
+      const s = lv.estatisticas;
+      await supabase.from("bolao_jogo_estatisticas").upsert({
+        jogo_id: jogo.id,
+        posse_casa: s.posse_casa, posse_fora: s.posse_fora,
+        chutes_casa: s.chutes_casa, chutes_fora: s.chutes_fora,
+        chutes_gol_casa: s.chutes_gol_casa, chutes_gol_fora: s.chutes_gol_fora,
+        escanteios_casa: s.escanteios_casa, escanteios_fora: s.escanteios_fora,
+        faltas_casa: s.faltas_casa, faltas_fora: s.faltas_fora,
+        cartoes_amarelos_casa: s.cartoes_amarelos_casa, cartoes_amarelos_fora: s.cartoes_amarelos_fora,
+        cartoes_vermelhos_casa: s.cartoes_vermelhos_casa, cartoes_vermelhos_fora: s.cartoes_vermelhos_fora,
+        dados_brutos: s.dados_brutos, atualizado_em: new Date().toISOString(),
+      }, { onConflict: "jogo_id" });
+    }
+
+    for (const ev of lv.eventos) {
+      await supabase.from("bolao_jogo_eventos").insert({
+        jogo_id: jogo.id, minuto: ev.minuto, tipo: ev.tipo,
+        time: ev.time, jogador: ev.jogador, detalhe: ev.detalhe, fonte: "api-football",
+      });
+    }
+    n++;
+  }
+  return n;
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
   const supabase = admin();
+  const t0 = Date.now();
+  const report: Record<string, unknown> = {};
 
   try {
-    log("INFO", "Iniciando sincronização da Copa 2026");
+    log("INFO", "=== Sync multi-API Copa 2026 ===");
+    await upsertGruposEstaticos(supabase);
 
-    // 1. Sincronizar grupos e seleções iniciais
-    await upsertGruposESelecoes(supabase);
-
-    // 2. Buscar jogos da API
-    let jogos: Jogo[] = [];
-    let fonte = "primary";
+    // ---- 1. Football-Data.org (primario: jogos, tabelas, elencos) ----
+    let jogos: JogoSync[] = [];
+    let fonteJogos = "football-data";
     try {
-      jogos = await fetchPrimary();
+      const t1 = Date.now();
+      jogos = await FootballData.fetchMatches();
+      await logSync(supabase, "football-data", "ok", jogos.length, { tipo: "matches" }, Date.now() - t1);
     } catch (e) {
-      log("WARN", "Falha na API primária, tentando fallback", { error: (e as Error).message });
-      fonte = "fallback";
+      log("WARN", "Football-Data falhou", (e as Error).message);
+      fonteJogos = "fallback";
+      jogos = await fetchFallback();
+    }
+
+    // ---- 2. API-Football (complemento + ao vivo) ----
+    let apiFootballCalls = 0;
+    const { data: cfg } = await supabase.from("bolao_config").select("*").eq("id", 1).single();
+    const hoje = new Date().toISOString().slice(0, 10);
+    let chamadasHoje = cfg?.api_football_data === hoje ? (cfg?.api_football_chamadas_hoje ?? 0) : 0;
+
+    if (ApiFootball.isConfigured() && ApiFootball.canCall(chamadasHoje, cfg?.api_football_data)) {
       try {
-        jogos = await fetchFallback();
-      } catch (e2) {
-        log("ERROR", "Fallback também falhou", { error: (e2 as Error).message });
-        // Retornar status sem crash — app continua funcionando com dados do banco
-        return json({ ok: false, error: "APIs indisponíveis", fonte: "none", total: 0, upserts: 0 }, 503);
+        const hasLive = jogos.some(j => mapStatus(j.status_raw) === "ao_vivo");
+        if (hasLive) {
+          const { live, callsUsed } = await ApiFootball.fetchLiveWithStats();
+          apiFootballCalls += callsUsed;
+          await persistLiveStats(supabase, live);
+          jogos = ApiFootball.mergeLiveIntoJogos(jogos, live);
+          report.api_football_live = live.length;
+        }
+      } catch (e) {
+        log("WARN", "API-Football live", (e as Error).message);
       }
     }
 
-    // 3. Upsert jogos + rodadas + chaveamentos
-    let upserts = 0;
-    let errors = 0;
-    const rodadaCache: Map<string, string> = new Map();
-    const grupoCache: Map<string, string> = new Map();
-    const upsertedTeams = new Set<string>();
+    const { upserts, errors } = await persistJogos(supabase, jogos);
+    report.jogos = { total: jogos.length, upserts, errors, fonte: fonteJogos };
 
-    // Carregar grupos no cache
-    const { data: grupos } = await supabase.from("bolao_grupos").select("id, codigo");
-    for (const g of grupos ?? []) grupoCache.set(g.codigo, g.id);
-
-    for (const j of jogos) {
-      try {
-        const e_brasil = j.time_casa === "Brazil" || j.time_fora === "Brazil" ||
-          j.time_casa === "Brasil" || j.time_fora === "Brasil";
-        const valor_entrada = e_brasil ? 10.00 : 5.00;
-        const status = mapStatus(j.status_raw);
-        const fase = mapFase(j.round);
-
-        // Resolver grupo_id
-        let grupoId: string | null = null;
-        if (j.grupo) {
-          if (!grupoCache.has(j.grupo)) {
-            const { data: grp, error: grpErr } = await supabase
-              .from("bolao_grupos")
-              .upsert({ codigo: j.grupo, nome: `Grupo ${j.grupo}` }, { onConflict: "codigo" })
-              .select("id")
-              .single();
-            if (!grpErr && grp) grupoCache.set(j.grupo, grp.id);
-          }
-          grupoId = grupoCache.get(j.grupo) ?? null;
-        }
-
-        // Sincronizar seleções dinamicamente do jogo
-        if (j.time_casa && !upsertedTeams.has(`${j.time_casa}::${grupoId}`)) {
-          const payload: any = { nome: j.time_casa };
-          if (grupoId) payload.grupo_id = grupoId;
-          await supabase.from("bolao_selecoes").upsert(payload, { onConflict: "nome" });
-          upsertedTeams.add(`${j.time_casa}::${grupoId}`);
-        }
-        if (j.time_fora && !upsertedTeams.has(`${j.time_fora}::${grupoId}`)) {
-          const payload: any = { nome: j.time_fora };
-          if (grupoId) payload.grupo_id = grupoId;
-          await supabase.from("bolao_selecoes").upsert(payload, { onConflict: "nome" });
-          upsertedTeams.add(`${j.time_fora}::${grupoId}`);
-        }
-
-        // Resolver rodada_id
-        const rodadaKey = `${j.round}::${fase}`;
-        if (!rodadaCache.has(rodadaKey)) {
-          const rid = await upsertRodada(supabase, j.round, fase, grupoId);
-          if (rid) rodadaCache.set(rodadaKey, rid);
-        }
-        const rodadaId = rodadaCache.get(rodadaKey) ?? null;
-
-        // Normalizar data_hora
-        let dataHora = j.data_hora;
-        if (!dataHora.includes("T") && dataHora.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          dataHora += "T18:00:00Z";
-        }
-
-        const row = {
-          api_jogo_id: j.api_jogo_id,
-          time_casa: j.time_casa,
-          time_fora: j.time_fora,
-          placar_casa: j.placar_casa,
-          placar_fora: j.placar_fora,
-          e_brasil,
-          fase,
-          valor_entrada,
-          status,
-          data_hora: dataHora,
-          estadio: j.stadium ?? null,
-          grupo_id: grupoId,
-          rodada_id: rodadaId,
-        };
-
-        const { error } = await supabase
-          .from("bolao_jogos")
-          .upsert(row, { onConflict: "api_jogo_id" });
-
-        if (error) {
-          log("ERROR", `Erro ao upsert jogo ${j.api_jogo_id}`, error);
-          errors++;
-        } else {
-          upserts++;
-
-          // Upsert chaveamento para mata-mata
-          if (fase !== "grupos") {
-            const { data: jogoDb } = await supabase
-              .from("bolao_jogos")
-              .select("id")
-              .eq("api_jogo_id", j.api_jogo_id)
-              .single();
-
-            if (jogoDb) {
-              const vencedor = j.placar_casa != null && j.placar_fora != null
-                ? (j.placar_casa > j.placar_fora ? j.time_casa : j.time_fora)
-                : null;
-
-              await supabase.from("bolao_chaveamentos").upsert({
-                fase,
-                time1: j.time_casa,
-                time2: j.time_fora,
-                placar_time1: j.placar_casa,
-                placar_time2: j.placar_fora,
-                vencedor,
-                jogo_id: jogoDb.id,
-                data_hora: dataHora,
-                estadio: j.stadium ?? null,
-              }, { onConflict: "jogo_id" });
-            }
-          }
-        }
-      } catch (err) {
-        log("ERROR", `Exceção no jogo ${j.api_jogo_id}`, (err as Error).message);
-        errors++;
-      }
-    }
-
-    // 4. Abertura automática apostas finalistas quando há oitavas
+    // ---- 3. Classificacao e elencos (Football-Data) ----
     try {
-      const { data: oitavas } = await supabase
-        .from("bolao_jogos")
-        .select("id")
-        .eq("fase", "oitavas")
-        .limit(1);
-      if (oitavas && oitavas.length > 0) {
-        const { data: cfg } = await supabase
-          .from("bolao_config_finalistas")
-          .select("status")
-          .eq("id", 1)
-          .single();
-        if (cfg?.status === "fechada") {
-          const { data: prox } = await supabase
-            .from("bolao_jogos")
-            .select("data_hora")
-            .eq("fase", "oitavas")
-            .order("data_hora")
-            .limit(1)
-            .single();
-          await supabase.from("bolao_config_finalistas").update({
-            status: "aberta",
-            prazo_fim: prox?.data_hora,
-          }).eq("id", 1);
-          log("INFO", "Apostas de finalistas abertas automaticamente");
-        }
-      }
+      const standings = await FootballData.fetchStandings();
+      const nStand = await persistStandings(supabase, standings);
+      report.standings = nStand;
+      await logSync(supabase, "football-data", "ok", nStand, { tipo: "standings" }, 0);
     } catch (e) {
-      log("WARN", "Erro ao verificar oitavas", (e as Error).message);
+      log("WARN", "Standings", (e as Error).message);
     }
 
-    // 5. Atualizar config com timestamp da última sync
+    try {
+      const squads = await FootballData.fetchSquads();
+      const nSq = await persistSquads(supabase, squads);
+      report.squads = nSq;
+      await logSync(supabase, "football-data", "ok", nSq, { tipo: "squads" }, 0);
+    } catch (e) {
+      log("WARN", "Squads", (e as Error).message);
+    }
+
+    // ---- 4. TheSportsDB (midia — a cada 6h ou se nunca sincronizou) ----
+    const tsdbAge = cfg?.ultima_sync_thesportsdb
+      ? Date.now() - new Date(cfg.ultima_sync_thesportsdb).getTime() : Infinity;
+    if (tsdbAge > 6 * 3600000) {
+      try {
+        const { data: selecoes } = await supabase.from("bolao_selecoes").select("nome, escudo_url");
+        const pendentes = (selecoes ?? [])
+          .filter(s => !s.escudo_url)
+          .map(s => s.nome);
+        const todos = (selecoes ?? []).map(s => s.nome);
+        const alvo = pendentes.length ? pendentes : todos;
+        const { teams, errors: tsdbErr } = await TheSportsDB.enrichTeams(alvo, 8);
+        const nTsdb = await persistTheSportsDB(supabase, teams);
+        report.thesportsdb = { teams: nTsdb, errors: tsdbErr };
+        await supabase.from("bolao_config").update({ ultima_sync_thesportsdb: new Date().toISOString() }).eq("id", 1);
+      } catch (e) {
+        log("WARN", "TheSportsDB", (e as Error).message);
+      }
+    }
+
+    // ---- 5. StatsBomb (eventos taticos — a cada 12h) ----
+    const sbAge = cfg?.ultima_sync_statsbomb
+      ? Date.now() - new Date(cfg.ultima_sync_statsbomb).getTime() : Infinity;
+    if (sbAge > 12 * 3600000) {
+      try {
+        const { data: jogosDb } = await supabase.from("bolao_jogos")
+          .select("id, time_casa, time_fora").in("status", ["encerrado", "ao_vivo"]).limit(5);
+        const { eventos, matchesFound } = await StatsBomb.syncEventsForTeams(jogosDb ?? [], 2);
+        for (const ev of eventos.slice(0, 200)) {
+          await supabase.from("bolao_jogo_eventos").insert({
+            jogo_id: ev.jogo_id, minuto: ev.minuto, periodo: ev.periodo,
+            tipo: ev.tipo, time: ev.time, jogador: ev.jogador,
+            detalhe: ev.detalhe, fonte: "statsbomb",
+          });
+        }
+        report.statsbomb = { matches: matchesFound, eventos: eventos.length };
+        await supabase.from("bolao_config").update({ ultima_sync_statsbomb: new Date().toISOString() }).eq("id", 1);
+      } catch (e) {
+        log("WARN", "StatsBomb", (e as Error).message);
+      }
+    }
+
+    // ---- Abertura finalistas ----
+    const { data: oitavas } = await supabase.from("bolao_jogos").select("id").eq("fase", "oitavas").limit(1);
+    if (oitavas?.length) {
+      const { data: cfgFin } = await supabase.from("bolao_config_finalistas").select("status").eq("id", 1).single();
+      if (cfgFin?.status === "fechada") {
+        const { data: prox } = await supabase.from("bolao_jogos").select("data_hora")
+          .eq("fase", "oitavas").order("data_hora").limit(1).single();
+        await supabase.from("bolao_config_finalistas").update({
+          status: "aberta", prazo_fim: prox?.data_hora,
+        }).eq("id", 1);
+      }
+    }
+
+    // ---- Atualizar config ----
+    chamadasHoje += apiFootballCalls;
     await supabase.from("bolao_config").update({
       ultima_sync_api: new Date().toISOString(),
       total_jogos_api: jogos.length,
+      api_football_chamadas_hoje: chamadasHoje,
+      api_football_data: hoje,
+      ultima_sync_api_football: apiFootballCalls ? new Date().toISOString() : cfg?.ultima_sync_api_football,
+      atualizado_em: new Date().toISOString(),
     }).eq("id", 1);
 
-    log("INFO", "Sincronização concluída", { total: jogos.length, upserts, errors, fonte });
-    // O cron chama apenas esta function; por isso a apuracao fica encadeada aqui.
+    await logSync(supabase, "sync-copa", "ok", upserts, report, Date.now() - t0);
+
+    // ---- Apuracao encadeada ----
     let apuracao: unknown = null;
     try {
       const baseUrl = Deno.env.get("SUPABASE_URL");
-      if (!baseUrl) throw new Error("SUPABASE_URL nao configurada");
-
-      const res = await fetch(`${baseUrl}/functions/v1/apurar-jogo`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ origem: "sync-copa" }),
-      });
-      apuracao = await res.json().catch(() => null);
-      if (!res.ok) {
-        log("WARN", "Apuracao automatica retornou erro", { status: res.status, apuracao });
-      } else {
-        log("INFO", "Apuracao automatica concluida", apuracao);
+      if (baseUrl) {
+        const res = await fetch(`${baseUrl}/functions/v1/apurar-jogo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ origem: "sync-copa" }),
+        });
+        apuracao = await res.json().catch(() => null);
       }
     } catch (e) {
-      log("WARN", "Nao foi possivel executar apuracao automatica", (e as Error).message);
+      log("WARN", "Apuracao", (e as Error).message);
     }
 
-    return json({ ok: true, total: jogos.length, upserts, errors, fonte, apuracao });
+    log("INFO", "Sync concluida", { ...report, duracao_ms: Date.now() - t0 });
+    return json({ ok: true, ...report, apuracao, duracao_ms: Date.now() - t0 });
   } catch (e) {
-    log("ERROR", "Erro fatal na sincronização", (e as Error).message);
+    await logSync(supabase, "sync-copa", "error", 0, { error: (e as Error).message }, Date.now() - t0);
+    log("ERROR", "Sync fatal", (e as Error).message);
     return json({ error: (e as Error).message }, 500);
   }
 });

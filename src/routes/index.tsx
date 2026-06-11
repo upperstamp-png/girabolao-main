@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, fmtBRL, flag, countdown, FASES_LABEL } from "@/lib/bolao";
+import { POLL } from "@/lib/realtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SkeletonCard } from "@/components/SkeletonCard";
@@ -20,12 +21,22 @@ function Index() {
   const { data: cfgArt, isError: errArt } = useQuery({
     queryKey: ["cfg-art"],
     queryFn: async () => (await supabase.from("bolao_config_artilheiro").select("*").eq("id", 1).single()).data,
-    refetchInterval: 30000,
+    refetchInterval: POLL.SLOW,
   });
   const { data: cfgFin } = useQuery({
     queryKey: ["cfg-fin"],
     queryFn: async () => (await supabase.from("bolao_config_finalistas").select("*").eq("id", 1).single()).data,
-    refetchInterval: 30000,
+    refetchInterval: POLL.SLOW,
+  });
+  const { data: bolaoCfg } = useQuery({
+    queryKey: ["bolao-config-home"],
+    queryFn: async () => (await supabase.from("bolao_config").select("ultima_sync_api, total_jogos_api").eq("id", 1).single()).data,
+    refetchInterval: POLL.NORMAL,
+  });
+  const { data: aoVivo } = useQuery({
+    queryKey: ["jogos-ao-vivo"],
+    queryFn: async () => (await supabase.from("bolao_jogos").select("*").eq("status", "ao_vivo").order("data_hora")).data ?? [],
+    refetchInterval: POLL.LIVE,
   });
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
@@ -36,17 +47,19 @@ function Index() {
     queryFn: async () => (await supabase.from("bolao_jogos")
       .select("*").gte("data_hora", new Date().toISOString())
       .order("data_hora").limit(6)).data ?? [],
-    refetchInterval: 60000,
+    refetchInterval: POLL.NORMAL,
   });
   const { data: jogoAtual } = useQuery({
     queryKey: ["jogo-atual"],
     queryFn: async () => {
+      const { data: live } = await supabase.from("bolao_jogos").select("*").eq("status", "ao_vivo").limit(1);
+      if (live?.[0]) return live[0];
       const { data } = await supabase.from("bolao_jogos")
         .select("*").order("data_hora").limit(1)
         .gte("data_hora", new Date(Date.now() - 3 * 3600000).toISOString());
       return data?.[0] ?? null;
     },
-    refetchInterval: 30000,
+    refetchInterval: POLL.LIVE,
   });
 
   const nParticipantes = usuarios?.length ?? 0;
@@ -66,8 +79,38 @@ function Index() {
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Badge variant="secondary">{nParticipantes}/8 participantes</Badge>
           {acumuladoAtual > 0 && <Badge className="bg-gold-gradient text-black">Acumulado: {fmtBRL(acumuladoAtual)}</Badge>}
+          {(aoVivo?.length ?? 0) > 0 && <Badge className="bg-destructive animate-pulse">{aoVivo!.length} ao vivo</Badge>}
+          {bolaoCfg?.ultima_sync_api && (
+            <Badge variant="outline" className="text-xs">
+              Sync: {new Date(bolaoCfg.ultima_sync_api).toLocaleTimeString("pt-BR")}
+            </Badge>
+          )}
         </div>
       </section>
+
+      {(aoVivo?.length ?? 0) > 0 && (
+        <section>
+          <h2 className="text-display text-2xl sm:text-3xl mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+            Ao vivo agora
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {aoVivo!.map(j => (
+              <Link key={j.id} to="/jogos/$id" params={{ id: j.id }}>
+                <Card className="border-destructive/40 hover:shadow-glow transition-shadow">
+                  <CardContent className="py-4 text-center">
+                    <div className="text-display text-2xl text-primary">
+                      {flag(j.time_casa)} {j.placar_casa ?? 0} : {j.placar_fora ?? 0} {flag(j.time_fora)}
+                    </div>
+                    <div className="text-sm mt-1">{j.time_casa} × {j.time_fora}</div>
+                    {j.minuto_jogo != null && <Badge className="mt-2 bg-destructive">{j.minuto_jogo}&apos;</Badge>}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Pool cards */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">

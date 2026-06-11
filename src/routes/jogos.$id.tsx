@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase, callFn, flag, countdown, fmtBRL, FASES_LABEL, getIdentidade } from "@/lib/bolao";
+import { pollIntervalForStatus } from "@/lib/realtime";
 import { verificarVezNaSequencia } from "@/lib/sorteio";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,10 +56,17 @@ function Page() {
   const { data: jogo, isLoading: loadingJogo, isError: errJogo, refetch: refetchJogo } = useQuery({
     queryKey: ["jogo", id],
     queryFn: async () => (await supabase.from("bolao_jogos").select("*").eq("id", id).single()).data,
-    refetchInterval: 15000,
+    refetchInterval: (q) => pollIntervalForStatus(q.state.data?.status),
   });
 
-  const { data: sorteio, isLoading: loadingSorteio, refetch: refetchSorteio } = useQuery({
+  const { data: stats } = useQuery({
+    queryKey: ["jogo-stats", id],
+    queryFn: async () => (await supabase.from("bolao_jogo_estatisticas").select("*").eq("jogo_id", id).maybeSingle()).data,
+    refetchInterval: (q) => pollIntervalForStatus(jogo?.status),
+    enabled: !!id,
+  });
+
+  const { data: sorteio, isLoading: loadingSorteio } = useQuery({
     queryKey: ["sorteio-jogo", id],
     queryFn: async () => callFn<any>("sorteio", undefined, "GET", 1, { jogo_id: id }),
     refetchInterval: 10000,
@@ -94,7 +102,7 @@ function Page() {
   const { data: palpites, isLoading: loadingPalpites } = useQuery({
     queryKey: ["palpites", id],
     queryFn: async () => (await supabase.from("bolao_palpites_publica").select("*").eq("jogo_id", id)).data ?? [],
-    refetchInterval: 15000,
+    refetchInterval: (q) => pollIntervalForStatus(jogo?.status),
   });
 
   const enviar = useMutation({
@@ -178,13 +186,41 @@ function Page() {
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             {jogo.e_brasil && <Badge className="bg-gold-gradient text-black">Brasil • R$10</Badge>}
             {!jogo.e_brasil && <Badge variant="outline">R$5 por palpite</Badge>}
-            {jogo.status === "ao_vivo" && <Badge className="bg-destructive animate-pulse">AO VIVO</Badge>}
+            {jogo.status === "ao_vivo" && (
+              <Badge className="bg-destructive animate-pulse">
+                AO VIVO{jogo.minuto_jogo != null ? ` ${jogo.minuto_jogo}'` : ""}
+              </Badge>
+            )}
             {future && <Badge variant="secondary">Fecha em {countdown(jogo.data_hora)}</Badge>}
             {poolEstimado > 0 && <Badge className="bg-primary/20 text-primary border-primary/40">Pool: {fmtBRL(poolEstimado)}</Badge>}
           </div>
           {jogo.estadio && <p className="text-xs text-muted-foreground mt-2">🏟️ {jogo.estadio}</p>}
         </CardContent>
       </Card>
+
+      {jogo.status === "ao_vivo" && stats && (
+        <Card className="border-destructive/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Estatísticas ao vivo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2 text-center text-sm">
+              <div>
+                <div className="text-muted-foreground text-xs">Posse</div>
+                <div className="font-semibold">{stats.posse_casa ?? "—"}% × {stats.posse_fora ?? "—"}%</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">Chutes</div>
+                <div className="font-semibold">{stats.chutes_casa} × {stats.chutes_fora}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">No gol</div>
+                <div className="font-semibold">{stats.chutes_gol_casa} × {stats.chutes_gol_fora}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sorteio deste jogo */}
       {future && (

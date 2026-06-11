@@ -179,11 +179,18 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: syncLogs } = useQuery({
+    queryKey: ["sync-logs"],
+    queryFn: async () => (await supabase.from("bolao_sync_log").select("*").order("criado_em", { ascending: false }).limit(5)).data ?? [],
+    enabled: !!adminPin && adminPin === config?.admin_pin,
+  });
+
   const sync = useMutation({
     mutationFn: () => callFn("sync-copa"),
     onSuccess: (d: any) => {
       qc.invalidateQueries();
-      toast.success(`${d?.upserts ?? 0} jogos sincronizados.`);
+      const jogos = d?.jogos?.upserts ?? d?.upserts ?? 0;
+      toast.success(`Sync OK: ${jogos} jogos | ${d?.standings ?? 0} classificação | ${d?.squads ?? 0} elencos`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -492,7 +499,7 @@ function Page() {
                 <RefreshCw className="h-5 w-5 text-primary" />
                 Sincronização & Apuração
               </CardTitle>
-              <CardDescription>Dados do campeonato e encerramentos</CardDescription>
+              <CardDescription>4 APIs: Football-Data, API-Football, TheSportsDB, StatsBomb — cron a cada 10 min</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 rounded-lg border border-border bg-secondary/10 text-xs space-y-1">
@@ -504,7 +511,21 @@ function Page() {
                   <span className="text-muted-foreground">Total de jogos mapeados:</span>
                   <span className="font-mono font-semibold">{config?.total_jogos_api ?? 0} jogos</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">API-Football hoje:</span>
+                  <span className="font-mono">{(config as any)?.api_football_chamadas_hoje ?? 0}/95</span>
+                </div>
               </div>
+              {(syncLogs?.length ?? 0) > 0 && (
+                <div className="text-xs space-y-1 max-h-24 overflow-y-auto">
+                  {syncLogs!.map((l: any) => (
+                    <div key={l.id} className="flex justify-between text-muted-foreground">
+                      <span>{l.fonte} — {l.status}</span>
+                      <span>{new Date(l.criado_em).toLocaleTimeString("pt-BR")}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="text-xs text-muted-foreground">
                 <p><strong>Apurar jogos:</strong> Processa os jogos com status &quot;encerrado&quot; que possuem placar, distribuindo os prêmios ou acumulando os valores para a rodada seguinte.</p>

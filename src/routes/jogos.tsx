@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase, flag, countdown, FASES_LABEL, fmtBRL } from "@/lib/bolao";
+import { POLL } from "@/lib/realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +19,10 @@ function Page() {
   const { data: jogos, isLoading, isError, refetch } = useQuery({
     queryKey: ["jogos-all"],
     queryFn: async () => (await supabase.from("bolao_jogos").select("*").order("data_hora")).data ?? [],
-    refetchInterval: 60000,
+    refetchInterval: (query) => {
+      const list = query.state.data ?? [];
+      return list.some((j: { status?: string }) => j.status === "ao_vivo") ? POLL.LIVE : POLL.NORMAL;
+    },
   });
 
   const filtrados = (jogos ?? []).filter(j => fase === "todos" || j.fase === fase);
