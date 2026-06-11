@@ -432,7 +432,7 @@ function Page() {
                     <Dices className="h-5 w-5 text-primary" />
                     Sorteio de Ordem
                   </CardTitle>
-                  <CardDescription>Ordem de prioridade para os palpites</CardDescription>
+                  <CardDescription>Sorteio global legado. Cada jogo tem sorteio próprio ao ser aberto.</CardDescription>
                 </div>
                 <Badge variant={sorteio?.realizado ? "success" : "secondary"}>
                   {sorteio?.realizado ? "Realizado" : "Pendente"}

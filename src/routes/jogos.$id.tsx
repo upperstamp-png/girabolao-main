@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
-import { supabase, callFn, flag, countdown, fmtBRL, FASES_LABEL } from "@/lib/bolao";
+import { supabase, callFn, flag, countdown, fmtBRL, FASES_LABEL, getIdentidade } from "@/lib/bolao";
+import { verificarVezNaSequencia } from "@/lib/sorteio";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { toast } from "sonner";
 import { IdentidadePicker, type Identidade } from "@/components/IdentidadePicker";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Dices } from "lucide-react";
 
 export const Route = createFileRoute("/jogos/$id")({
   head: () => ({ meta: [{ title: "Palpite — Bolão Copa 2026" }, { name: "description", content: "Palpite no placar exato deste jogo." }] }),
@@ -47,7 +48,7 @@ function GolInput({ label, value, onChange }: { label: string; value: number; on
 function Page() {
   const { id } = useParams({ from: "/jogos/$id" });
   const qc = useQueryClient();
-  const [identidade, setIdentidade] = useState<Identidade | null>(null);
+  const [identidade, setIdentidade] = useState<Identidade | null>(() => getIdentidade());
   const [gc, setGc] = useState(0);
   const [gf, setGf] = useState(0);
 
@@ -56,10 +57,40 @@ function Page() {
     queryFn: async () => (await supabase.from("bolao_jogos").select("*").eq("id", id).single()).data,
     refetchInterval: 15000,
   });
+
+  const { data: sorteio, isLoading: loadingSorteio, refetch: refetchSorteio } = useQuery({
+    queryKey: ["sorteio-jogo", id],
+    queryFn: async () => callFn<any>("sorteio", undefined, "GET", 1, { jogo_id: id }),
+    refetchInterval: 10000,
+  });
+
+  const realizarSorteio = useMutation({
+    mutationFn: () => callFn("sorteio", { action: "realizar", jogo_id: id }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sorteio-jogo", id] });
+      toast.success("Sorteio deste jogo realizado!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  useEffect(() => {
+    if (!jogo || loadingSorteio || realizarSorteio.isPending || sorteio?.realizado) return;
+    if (new Date(jogo.data_hora) > new Date()) {
+      realizarSorteio.mutate();
+    }
+  }, [jogo?.id, sorteio?.realizado, loadingSorteio]);
+
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
   });
+
+  useEffect(() => {
+    if (!identidade?.nome || identidade.id || !usuarios?.length) return;
+    const u = usuarios.find(x => x.nome === identidade.nome);
+    if (u) setIdentidade({ ...identidade, id: u.id });
+  }, [identidade, usuarios]);
+
   const { data: palpites, isLoading: loadingPalpites } = useQuery({
     queryKey: ["palpites", id],
     queryFn: async () => (await supabase.from("bolao_palpites_publica").select("*").eq("jogo_id", id)).data ?? [],
@@ -78,13 +109,22 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Confete quando o jogo encerra e o usuário acertou
+  const comPalpite = useMemo(
+    () => new Set((palpites ?? []).map((p: { usuario_id: string }) => p.usuario_id)),
+    [palpites],
+  );
+
+  const vez = useMemo(
+    () => verificarVezNaSequencia(sorteio?.ordem ?? [], identidade?.id, comPalpite),
+    [sorteio?.ordem, identidade?.id, comPalpite],
+  );
+
   useEffect(() => {
     if (!jogo || !identidade || !palpites) return;
     if (jogo.status !== "encerrado" && jogo.status !== "apurado") return;
-    const meu = palpites.find((p: any) => usuarios?.find(u => u.id === p.usuario_id)?.nome === identidade.nome);
+    const meu = palpites.find((p: { usuario_id: string; acertou?: boolean }) => p.usuario_id === identidade.id);
     if (meu?.acertou) confetti({ particleCount: 200, spread: 80, origin: { y: 0.4 } });
-  }, [jogo?.status, palpites]);
+  }, [jogo?.status, palpites, identidade?.id]);
 
   if (loadingJogo) {
     return (
@@ -111,12 +151,12 @@ function Page() {
   const nP = palpites?.length ?? 0;
   const poolEstimado = nP * Number(jogo.valor_entrada) + acumulado;
   const nomeMap = new Map((usuarios ?? []).map(u => [u.id, u.nome]));
+  const ordem = sorteio?.ordem ?? [];
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-in">
       <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground">← Todos os jogos</Link>
 
-      {/* Header do jogo */}
       <Card className="bg-pitch shadow-card">
         <CardContent className="py-6 sm:py-8 text-center px-4">
           <div className="text-xs text-muted-foreground mb-3">
@@ -146,7 +186,61 @@ function Page() {
         </CardContent>
       </Card>
 
-      {/* Formulário de palpite */}
+      {/* Sorteio deste jogo */}
+      {future && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Dices className="h-5 w-5 text-primary" />
+              Sorteio deste jogo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loadingSorteio || realizarSorteio.isPending ? (
+              <p className="text-sm text-muted-foreground text-center py-2">Realizando sorteio...</p>
+            ) : !sorteio?.realizado ? (
+              <div className="text-center space-y-3">
+                <p className="text-sm text-muted-foreground">O sorteio define a ordem dos palpites nesta partida.</p>
+                <Button onClick={() => realizarSorteio.mutate()} disabled={realizarSorteio.isPending} className="btn-touch">
+                  Realizar sorteio
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Palpites seguem esta ordem. Quem já apostou pode alterar o palpite a qualquer momento.
+                </p>
+                <ol className="space-y-1.5">
+                  {ordem.map((o: { usuario_id: string; posicao: number; nome: string }) => {
+                    const apostou = comPalpite.has(o.usuario_id);
+                    const ehEu = o.usuario_id === identidade?.id;
+                    const ehVez = !apostou && vez.aguardando === o.nome;
+                    return (
+                      <li
+                        key={o.usuario_id}
+                        className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
+                          ehVez ? "border-primary bg-primary/10 font-semibold" :
+                          apostou ? "border-border bg-secondary/20 opacity-80" :
+                          "border-border"
+                        }`}
+                      >
+                        <span>
+                          {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
+                          {" "}{o.nome}{ehEu ? " (você)" : ""}
+                        </span>
+                        <Badge variant={apostou ? "secondary" : ehVez ? "default" : "outline"}>
+                          {apostou ? "Apostou" : ehVez ? "Sua vez" : "Aguardando"}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {future && (
         <Card>
           <CardHeader className="pb-3">
@@ -154,6 +248,11 @@ function Page() {
           </CardHeader>
           <CardContent className="space-y-5">
             <IdentidadePicker value={identidade} onChange={setIdentidade} />
+            {!vez.podeApostar && vez.mensagem && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                {vez.mensagem}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <GolInput
                 label={`${flag(jogo.time_casa)} ${jogo.time_casa}`}
@@ -171,7 +270,7 @@ function Page() {
             </div>
             <Button
               onClick={() => enviar.mutate()}
-              disabled={!identidade?.nome || enviar.isPending}
+              disabled={!identidade?.nome || !vez.podeApostar || !sorteio?.realizado || enviar.isPending}
               className="w-full btn-touch"
               size="lg"
             >
@@ -181,7 +280,6 @@ function Page() {
         </Card>
       )}
 
-      {/* Lista de palpites */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Palpites ({nP})</CardTitle>
@@ -197,7 +295,7 @@ function Page() {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {palpites!.map((p: any) => {
+              {palpites!.map((p: { id: string; usuario_id: string; gols_casa?: number; gols_fora?: number; acertou?: boolean }) => {
                 const acertou = p.acertou === true;
                 const nome = nomeMap.get(p.usuario_id) ?? "—";
                 return (

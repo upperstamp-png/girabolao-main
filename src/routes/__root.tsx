@@ -208,6 +208,10 @@ function AuthGate({ children }: { children: ReactNode }) {
   const [pin, setPin] = useState(() => getIdentidade()?.pin ?? "");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    callFn("usuarios", { action: "init_defaults" }).catch(() => {});
+  }, []);
+
   async function entrar() {
     const nomeLimpo = nome.trim();
     if (!nomeLimpo || !/^\d{4}$/.test(pin)) {
@@ -217,13 +221,13 @@ function AuthGate({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      const res = await callFn<{ ok: boolean; usuario: { nome: string } }>(
+      const res = await callFn<{ ok: boolean; usuario: { id: string; nome: string } }>(
         "usuarios",
         { action: "login", nome: nomeLimpo, pin },
         "POST",
         0,
       );
-      const id = { nome: res.usuario.nome, pin, tem_pin: true };
+      const id = { id: res.usuario.id, nome: res.usuario.nome, pin, tem_pin: true };
       setIdentidade(id);
       setIdentidadeState(id);
       toast.success("Entrada liberada.");

@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
 
       // Remover do sorteio se existir
       await supabase.from("bolao_sorteio_ordem").delete().eq("usuario_id", id);
+      await supabase.from("bolao_sorteio_jogo_ordem").delete().eq("usuario_id", id);
 
       log("INFO", `Participante marcado como excluído: ${id}`);
       return json({ ok: true });

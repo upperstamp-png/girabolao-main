@@ -1,5 +1,6 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario } from "../_shared/supabase.ts";
+import { buscarOrdemJogo, verificarVezNaSequencia } from "../_shared/sorteio.ts";
 
 function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
   console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
@@ -38,6 +39,24 @@ Deno.serve(async (req) => {
     if (!jogo) return json({ error: "Jogo não encontrado" }, 404);
     if (new Date(jogo.data_hora) <= new Date()) {
       return json({ error: "Prazo de palpite encerrado — o jogo já começou" }, 400);
+    }
+
+    // Sorteio por jogo: respeitar sequência de palpites
+    const ordem = await buscarOrdemJogo(supabase, jogo_id);
+    if (ordem.length === 0) {
+      return json({ error: "Sorteio deste jogo ainda não foi realizado. Abra o jogo para iniciar o sorteio." }, 400);
+    }
+
+    const { data: palpitesJogo } = await supabase
+      .from("bolao_palpites")
+      .select("usuario_id")
+      .eq("jogo_id", jogo_id);
+    const comPalpite = new Set((palpitesJogo ?? []).map((p: { usuario_id: string }) => p.usuario_id));
+
+    const vez = verificarVezNaSequencia(ordem, v.id, comPalpite);
+    if (!vez.ok) {
+      log("WARN", `Fora da vez: ${nome} no jogo ${jogo_id}`, { aguardando: vez.aguardando });
+      return json({ error: vez.error }, 409);
     }
 
     // Verificar exclusividade de placar (se configurado)

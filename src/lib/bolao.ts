@@ -8,13 +8,18 @@ export async function callFn<T = any>(
   name: string,
   body?: any,
   method: "GET" | "POST" = "POST",
-  retries = 1
+  retries = 1,
+  query?: Record<string, string>,
 ): Promise<T> {
+  const qs = query && Object.keys(query).length
+    ? "?" + new URLSearchParams(query).toString()
+    : "";
+
   const attempt = async (): Promise<Response> => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15000); // 15s timeout
     try {
-      const res = await fetch(`${FN}/${name}`, {
+      const res = await fetch(`${FN}/${name}${qs}`, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +58,7 @@ export async function callFn<T = any>(
 export { supabase };
 
 // LocalStorage para identificação do usuário no navegador (não é auth real)
-export type Identidade = { nome: string; pin?: string; tem_pin: boolean };
+export type Identidade = { id?: string; nome: string; pin?: string; tem_pin: boolean };
 const KEY_ID = "bolao_identidade";
 export function getIdentidade(): Identidade | null {
   if (typeof window === "undefined") return null;

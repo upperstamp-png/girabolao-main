@@ -68,7 +68,7 @@ function Page() {
         novo_pin: novoPin,
       }),
     onSuccess: (res) => {
-      const atualizada = { nome: res.usuario.nome, pin: novoPin, tem_pin: true };
+      const atualizada = { id: res.usuario.id, nome: res.usuario.nome, pin: novoPin, tem_pin: true };
       setIdentidade(atualizada);
       setMinhaConta(atualizada);
       setPinAtual("");

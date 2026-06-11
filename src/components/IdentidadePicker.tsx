@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getIdentidade } from "@/lib/bolao";
 import { Badge } from "@/components/ui/badge";
 
-export type Identidade = { nome: string; pin?: string; tem_pin: boolean };
+export type Identidade = { id?: string; nome: string; pin?: string; tem_pin: boolean };
 
 export function IdentidadePicker({
   value,
