@@ -1,0 +1,28 @@
+project_id = "ahcpszcxmqqiofacjasz"
+
+[functions.usuarios]
+verify_jwt = false
+
+[functions.sync-copa]
+verify_jwt = false
+
+[functions.apurar-jogo]
+verify_jwt = false
+
+[functions.apurar-artilheiro]
+verify_jwt = false
+
+[functions.apurar-finalistas]
+verify_jwt = false
+
+[functions.palpite-placar]
+verify_jwt = false
+
+[functions.aposta-artilheiro]
+verify_jwt = false
+
+[functions.aposta-finalistas]
+verify_jwt = false
+
+[functions.sorteio]
+verify_jwt = false
