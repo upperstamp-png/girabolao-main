@@ -1,7 +1,8 @@
 import { json, preflight } from "../_shared/cors.ts";
-import { admin, hashPin, validarAdmin } from "../_shared/supabase.ts";
+import { admin, hashPin, validarUsuario } from "../_shared/supabase.ts";
 
 const PARTICIPANTES_PADRAO = ["Igor","Natan","Alison","Pedro","Zé","Paulo","Vitinho","Kelvin"];
+const PIN_PADRAO = "1234";
 
 function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
   console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
@@ -31,6 +32,25 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const action = String(body.action ?? "create");
 
+    // ===== LOGIN: validar entrada por nome + PIN =====
+    if (action === "login") {
+      const nome = String(body.nome ?? "").trim();
+      const pin = body.pin ? String(body.pin).trim() : null;
+      if (!nome) return json({ error: "Nome obrigatório" }, 400);
+      if (!pin || !/^\d{4}$/.test(pin)) return json({ error: "PIN deve ter 4 dígitos" }, 400);
+
+      const v = await validarUsuario(supabase, nome, pin);
+      if (!v.ok) return json({ error: v.error }, 401);
+
+      const { data: usuario, error } = await supabase
+        .from("bolao_usuarios")
+        .select("id, nome, e_participante_padrao, ordem_sorteio")
+        .eq("id", v.id)
+        .single();
+      if (error) throw error;
+      return json({ ok: true, usuario: { ...usuario, tem_pin: true } });
+    }
+
     // ===== INIT: criar 8 participantes padrão =====
     if (action === "init_defaults") {
       log("INFO", "Inicializando participantes padrão");
@@ -50,17 +70,22 @@ Deno.serve(async (req) => {
             // Excluído manualmente — não recriar
             log("WARN", `Participante ${nome} excluído manualmente — ignorando`);
             ignorados.push(nome);
-          } else {
-            // Já existe e ativo — garantir e_participante_padrao = true
-            await supabase.from("bolao_usuarios")
-              .update({ e_participante_padrao: true })
-              .eq("id", existente.id);
-            ignorados.push(nome);
-          }
+        } else {
+          // Já existe e ativo — garantir e_participante_padrao = true
+          await supabase.from("bolao_usuarios")
+            .update({ e_participante_padrao: true })
+            .eq("id", existente.id);
+          await supabase.from("bolao_usuarios")
+            .update({ pin_hash: await hashPin(PIN_PADRAO) })
+            .eq("id", existente.id)
+            .is("pin_hash", null);
+          ignorados.push(nome);
+        }
         } else {
           // Criar novo
           const { error } = await supabase.from("bolao_usuarios").insert({
             nome,
+            pin_hash: await hashPin(PIN_PADRAO),
             e_participante_padrao: true,
           });
           if (error) {
@@ -95,7 +120,7 @@ Deno.serve(async (req) => {
         return json({ error: "Nome já cadastrado" }, 400);
       }
 
-      const pin_hash = pin ? await hashPin(pin) : null;
+      const pin_hash = await hashPin(pin || PIN_PADRAO);
 
       if (existe && existe.excluido_manualmente) {
         // Reativar excluído manualmente (admin está adicionando explicitamente)
@@ -123,6 +148,47 @@ Deno.serve(async (req) => {
       }
       log("INFO", `Participante criado: ${nome}`);
       return json(data);
+    }
+
+    // ===== UPDATE_SELF: participante altera o próprio nome e PIN =====
+    if (action === "update_self") {
+      const nomeAtual = String(body.nome_atual ?? "").trim();
+      const pinAtual = body.pin_atual ? String(body.pin_atual).trim() : null;
+      const novoNome = String(body.novo_nome ?? "").trim();
+      const novoPin = body.novo_pin ? String(body.novo_pin).trim() : null;
+
+      if (!novoNome || novoNome.length < 2 || novoNome.length > 40) {
+        return json({ error: "Nome inválido (2-40 caracteres)" }, 400);
+      }
+      if (!pinAtual || !/^\d{4}$/.test(pinAtual)) {
+        return json({ error: "PIN atual deve ter 4 dígitos" }, 400);
+      }
+      if (!novoPin || !/^\d{4}$/.test(novoPin)) {
+        return json({ error: "Novo PIN deve ter 4 dígitos" }, 400);
+      }
+
+      const v = await validarUsuario(supabase, nomeAtual, pinAtual);
+      if (!v.ok) return json({ error: v.error }, 401);
+
+      const { data: duplicado } = await supabase
+        .from("bolao_usuarios")
+        .select("id")
+        .eq("nome", novoNome)
+        .eq("excluido_manualmente", false)
+        .neq("id", v.id)
+        .maybeSingle();
+      if (duplicado) return json({ error: "Já existe outro participante com esse nome" }, 409);
+
+      const { data, error } = await supabase
+        .from("bolao_usuarios")
+        .update({ nome: novoNome, pin_hash: await hashPin(novoPin) })
+        .eq("id", v.id)
+        .select("id, nome, e_participante_padrao, ordem_sorteio")
+        .single();
+      if (error) throw error;
+
+      log("INFO", `Participante atualizou cadastro: ${nomeAtual} -> ${novoNome}`);
+      return json({ ok: true, usuario: { ...data, tem_pin: true } });
     }
 
     // ===== DELETE: remover participante (soft delete) =====

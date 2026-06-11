@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { callFn, supabase } from "@/lib/bolao";
+import { callFn, getIdentidade, setIdentidade, supabase } from "@/lib/bolao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,10 @@ function Page() {
   const [nome, setNome] = useState("");
   const [pin, setPin] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [minhaConta, setMinhaConta] = useState(() => getIdentidade());
+  const [meuNome, setMeuNome] = useState(() => getIdentidade()?.nome ?? "");
+  const [pinAtual, setPinAtual] = useState("");
+  const [novoPin, setNovoPin] = useState("");
 
   const { data: usuarios, isLoading, isError, refetch } = useQuery({
     queryKey: ["usuarios-full"],
@@ -54,6 +58,28 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const atualizarConta = useMutation({
+    mutationFn: () =>
+      callFn<{ ok: boolean; usuario: { nome: string } }>("usuarios", {
+        action: "update_self",
+        nome_atual: minhaConta?.nome,
+        pin_atual: pinAtual,
+        novo_nome: meuNome.trim(),
+        novo_pin: novoPin,
+      }),
+    onSuccess: (res) => {
+      const atualizada = { nome: res.usuario.nome, pin: novoPin, tem_pin: true };
+      setIdentidade(atualizada);
+      setMinhaConta(atualizada);
+      setPinAtual("");
+      setNovoPin("");
+      qc.invalidateQueries({ queryKey: ["usuarios-full"] });
+      qc.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Seus dados foram atualizados.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const total = usuarios?.length ?? 0;
   const sorteioRealizado = sorteio?.realizado ?? false;
   const ordemMap = new Map<string, number>((sorteio?.ordem ?? []).map((o: any) => [o.usuario_id, o.posicao]));
@@ -66,6 +92,63 @@ function Page() {
           8 participantes padrão + possibilidade de adicionar mais.
         </p>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Minha conta</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>Nome</Label>
+            <Input
+              value={meuNome}
+              onChange={(e) => setMeuNome(e.target.value)}
+              maxLength={40}
+              className="mt-1"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>PIN atual</Label>
+              <Input
+                value={pinAtual}
+                onChange={(e) => setPinAtual(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="1234"
+                inputMode="numeric"
+                type="password"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Novo PIN</Label>
+              <Input
+                value={novoPin}
+                onChange={(e) => setNovoPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="4 dígitos"
+                inputMode="numeric"
+                type="password"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <Button
+            className="w-full btn-touch"
+            disabled={
+              !minhaConta?.nome ||
+              !meuNome.trim() ||
+              pinAtual.length !== 4 ||
+              novoPin.length !== 4 ||
+              atualizarConta.isPending
+            }
+            onClick={() => atualizarConta.mutate()}
+          >
+            {atualizarConta.isPending ? "Salvando..." : "Salvar meu nome e PIN"}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            O PIN inicial dos cadastrados é 1234. Depois de trocar, use o novo PIN no próximo acesso.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Lista */}
       <Card>
