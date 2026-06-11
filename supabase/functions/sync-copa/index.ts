@@ -399,7 +399,28 @@ Deno.serve(async (req) => {
     }).eq("id", 1);
 
     log("INFO", "Sincronização concluída", { total: jogos.length, upserts, errors, fonte });
-    return json({ ok: true, total: jogos.length, upserts, errors, fonte });
+    // O cron chama apenas esta function; por isso a apuracao fica encadeada aqui.
+    let apuracao: unknown = null;
+    try {
+      const baseUrl = Deno.env.get("SUPABASE_URL");
+      if (!baseUrl) throw new Error("SUPABASE_URL nao configurada");
+
+      const res = await fetch(`${baseUrl}/functions/v1/apurar-jogo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ origem: "sync-copa" }),
+      });
+      apuracao = await res.json().catch(() => null);
+      if (!res.ok) {
+        log("WARN", "Apuracao automatica retornou erro", { status: res.status, apuracao });
+      } else {
+        log("INFO", "Apuracao automatica concluida", apuracao);
+      }
+    } catch (e) {
+      log("WARN", "Nao foi possivel executar apuracao automatica", (e as Error).message);
+    }
+
+    return json({ ok: true, total: jogos.length, upserts, errors, fonte, apuracao });
   } catch (e) {
     log("ERROR", "Erro fatal na sincronização", (e as Error).message);
     return json({ error: (e as Error).message }, 500);

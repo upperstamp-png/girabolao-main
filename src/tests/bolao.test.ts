@@ -1,5 +1,10 @@
-import { describe, test, expect, mock, spyOn, beforeAll, afterAll } from "bun:test";
-import { fmtBRL, flag, countdown, callFn } from "@/lib/bolao";
+import { describe, test, expect, mock, beforeAll } from "bun:test";
+
+mock.module("@/integrations/supabase/client", () => ({
+  supabase: {},
+}));
+
+const { fmtBRL, flag, countdown, callFn } = await import("@/lib/bolao");
 
 describe("Bolão Copa 2026 — Client Utilities", () => {
   test("fmtBRL formats numbers to BRL currency format", () => {
