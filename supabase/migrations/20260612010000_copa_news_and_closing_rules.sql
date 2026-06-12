@@ -44,6 +44,13 @@ CREATE POLICY "leitura publica automacoes_log" ON public.bolao_automacoes_log FO
 CREATE INDEX IF NOT EXISTS bolao_automacoes_log_criado_idx ON public.bolao_automacoes_log(criado_em DESC);
 
 -- 5. Update Views to disclose results when closed or palpites_liberados is true
+DROP VIEW IF EXISTS public.bolao_palpites_publica CASCADE;
+DROP VIEW IF EXISTS public.bolao_apostas_artilheiro_publica CASCADE;
+DROP VIEW IF EXISTS public.bolao_apostas_campeao_publica CASCADE;
+DROP VIEW IF EXISTS public.bolao_apostas_zebra_publica CASCADE;
+DROP VIEW IF EXISTS public.bolao_apostas_goleada_publica CASCADE;
+DROP VIEW IF EXISTS public.bolao_apostas_finalistas_publica CASCADE;
+
 -- View: bolao_palpites_publica
 CREATE OR REPLACE VIEW public.bolao_palpites_publica
 WITH (security_invoker = true) AS
