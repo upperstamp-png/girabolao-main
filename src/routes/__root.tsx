@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { Menu, X, Trophy, LogOut } from "lucide-react";
+import { Trophy, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,12 +103,8 @@ const NAV_LINKS = [
 ] as const;
 
 function Nav() {
-  const [open, setOpen] = useState(false);
   const location = useLocation();
   const [identidade] = useState<Identidade | null>(() => getIdentidade());
-
-  // Fechar menu ao mudar de rota
-  useEffect(() => { setOpen(false); }, [location.pathname]);
 
   const linkBase = "px-3 py-2 text-sm font-medium transition-colors rounded-md";
   const linkInactive = `${linkBase} text-muted-foreground hover:text-foreground hover:bg-secondary/50`;
@@ -118,72 +114,36 @@ function Nav() {
     exact ? location.pathname === to : location.pathname.startsWith(to);
 
   return (
-    <>
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border" style={{ height: "var(--nav-height)" }}>
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-full">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <Trophy className="h-5 w-5 text-primary" />
-            <span className="text-display text-lg leading-none">Bolão Copa 2026</span>
-          </Link>
+    <header className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border" style={{ height: "var(--nav-height)" }}>
+      <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-full gap-4">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <Trophy className="h-5 w-5 text-primary" />
+          <span className="text-display text-lg leading-none hidden sm:inline">Bolão Copa 2026</span>
+        </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-0.5 overflow-x-auto">
-            {NAV_LINKS.map(({ to, label, exact }) => (
-              <Link key={to} to={to} className={isActive(to, exact) ? linkActive : linkInactive}>
-                {label}
-              </Link>
-            ))}
-          </nav>
+        {/* Navigation list - always scrollable horizontally on mobile */}
+        <nav className="flex items-center gap-0.5 overflow-x-auto py-1">
+          {NAV_LINKS.map(({ to, label, exact }) => (
+            <Link key={to} to={to} className={isActive(to, exact) ? linkActive : linkInactive}>
+              {label}
+            </Link>
+          ))}
+        </nav>
 
-          {/* Mobile hamburguer */}
-          <button
-            id="nav-menu-toggle"
-            className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors btn-touch"
-            onClick={() => setOpen(o => !o)}
-            aria-label={open ? "Fechar menu" : "Abrir menu"}
-            aria-expanded={open}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-
-          <button
-            className="hidden md:flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md"
-            onClick={() => {
-              setIdentidade(null);
-              window.location.reload();
-            }}
-            title="Sair"
-          >
-            <span className="max-w-24 truncate">{identidade?.nome}</span>
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile dropdown menu */}
-      <div id="nav-mobile-menu" className={`nav-mobile-menu ${open ? "open" : ""}`} aria-hidden={!open}>
-        {NAV_LINKS.map(({ to, label, exact }) => (
-          <Link
-            key={to}
-            to={to}
-            className={`${isActive(to, exact) ? linkActive : linkInactive} block`}
-            onClick={() => setOpen(false)}
-          >
-            {label}
-          </Link>
-        ))}
         <button
-          className={`${linkInactive} block text-left`}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md shrink-0 btn-touch"
           onClick={() => {
             setIdentidade(null);
             window.location.reload();
           }}
+          title="Sair"
         >
-          Sair
+          <span className="max-w-16 sm:max-w-24 truncate">{identidade?.nome}</span>
+          <LogOut className="h-4 w-4" />
         </button>
       </div>
-    </>
+    </header>
   );
 }
 
