@@ -19,15 +19,16 @@ export const Route = createFileRoute("/jogos/$id")({
   component: Page,
 });
 
-function GolInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function GolInput({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-sm text-muted-foreground text-center">{label}</span>
       <div className="flex items-center gap-3">
         <button
           type="button"
+          disabled={disabled}
           onClick={() => onChange(Math.max(0, value - 1))}
-          className="h-11 w-11 rounded-full border border-border bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-95 transition-all btn-touch"
+          className="h-11 w-11 rounded-full border border-border bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-95 transition-all btn-touch disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Diminuir"
         >
           <Minus className="h-4 w-4" />
@@ -35,8 +36,9 @@ function GolInput({ label, value, onChange }: { label: string; value: number; on
         <span className="text-display text-5xl w-12 text-center text-primary">{value}</span>
         <button
           type="button"
+          disabled={disabled}
           onClick={() => onChange(Math.min(30, value + 1))}
-          className="h-11 w-11 rounded-full border border-border bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-95 transition-all btn-touch"
+          className="h-11 w-11 rounded-full border border-border bg-secondary flex items-center justify-center hover:bg-secondary/80 active:scale-95 transition-all btn-touch disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Aumentar"
         >
           <Plus className="h-4 w-4" />
@@ -81,13 +83,6 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  useEffect(() => {
-    if (!jogo || loadingSorteio || realizarSorteio.isPending || sorteio?.realizado) return;
-    if (new Date(jogo.data_hora) > new Date()) {
-      realizarSorteio.mutate();
-    }
-  }, [jogo?.id, sorteio?.realizado, loadingSorteio]);
-
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
@@ -122,10 +117,30 @@ function Page() {
     [palpites],
   );
 
-  const vez = useMemo(
-    () => verificarVezNaSequencia(sorteio?.ordem ?? [], identidade?.id, comPalpite),
-    [sorteio?.ordem, identidade?.id, comPalpite],
-  );
+  const prazoExpirado = useMemo(() => {
+    if (!jogo) return true;
+    const dataHoraJogo = new Date(jogo.data_hora);
+    const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
+    return dataHoraLimite <= new Date();
+  }, [jogo]);
+
+  const vez = useMemo(() => {
+    const res = verificarVezNaSequencia(sorteio?.ordem ?? [], identidade?.id, comPalpite);
+    if (prazoExpirado) {
+      return { podeApostar: false, mensagem: "Prazo de palpite encerrado (limite de 1 hora antes do jogo)." };
+    }
+    return res;
+  }, [sorteio?.ordem, identidade?.id, comPalpite, prazoExpirado]);
+
+  const ehMinhaVezDeFato = useMemo(() => {
+    if (prazoExpirado || !identidade?.id || !sorteio?.ordem || !sorteio?.realizado) return false;
+    for (const item of (sorteio.ordem ?? [])) {
+      if (!comPalpite.has(item.usuario_id)) {
+        return item.usuario_id === identidade.id;
+      }
+    }
+    return false;
+  }, [sorteio?.ordem, comPalpite, identidade?.id, prazoExpirado, sorteio?.realizado]);
 
   useEffect(() => {
     if (!jogo || !identidade || !palpites) return;
@@ -165,7 +180,9 @@ function Page() {
     <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-in">
       <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground">← Todos os jogos</Link>
 
-      <Card className="bg-pitch shadow-card">
+      <Card className={`bg-pitch shadow-card border-2 ${
+        ehMinhaVezDeFato ? "border-green-500 bg-green-500/5 card-minha-vez" : "border-border"
+      }`}>
         <CardContent className="py-6 sm:py-8 text-center px-4">
           <div className="text-xs text-muted-foreground mb-3">
             {FASES_LABEL[jogo.fase]} • {new Date(jogo.data_hora).toLocaleString("pt-BR")}
@@ -235,11 +252,8 @@ function Page() {
             {loadingSorteio || realizarSorteio.isPending ? (
               <p className="text-sm text-muted-foreground text-center py-2">Realizando sorteio...</p>
             ) : !sorteio?.realizado ? (
-              <div className="text-center space-y-3">
-                <p className="text-sm text-muted-foreground">O sorteio define a ordem dos palpites nesta partida.</p>
-                <Button onClick={() => realizarSorteio.mutate()} disabled={realizarSorteio.isPending} className="btn-touch">
-                  Realizar sorteio
-                </Button>
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">Aguardando o administrador realizar o sorteio deste jogo.</p>
               </div>
             ) : (
               <>
@@ -294,11 +308,13 @@ function Page() {
                 label={`${flag(jogo.time_casa)} ${jogo.time_casa}`}
                 value={gc}
                 onChange={setGc}
+                disabled={!vez.podeApostar}
               />
               <GolInput
                 label={`${flag(jogo.time_fora)} ${jogo.time_fora}`}
                 value={gf}
                 onChange={setGf}
+                disabled={!vez.podeApostar}
               />
             </div>
             <div className="text-center text-display text-3xl text-muted-foreground py-1">

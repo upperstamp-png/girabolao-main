@@ -71,6 +71,92 @@ Deno.serve(async (req) => {
     const action = String(body.action ?? "realizar");
     const jogo_id = String(body.jogo_id ?? jogoIdQuery ?? "").trim();
 
+    // ===== REALIZAR SORTEIO PARA TODOS OS JOGOS (admin) =====
+    if (action === "realizar_todos") {
+      const adminPin = String(body.admin_pin ?? "");
+      const isAdmin = await validarAdmin(supabase, adminPin);
+      if (!isAdmin) return json({ error: "PIN de administrador inválido" }, 401);
+
+      // 1. Obter todos os participantes
+      const { data: usuarios, error: uErr } = await supabase
+        .from("bolao_usuarios")
+        .select("id, nome")
+        .eq("excluido_manualmente", false)
+        .order("criado_em");
+      if (uErr) throw uErr;
+      if (!usuarios?.length) {
+        return json({ error: "Nenhum participante cadastrado para sortear" }, 400);
+      }
+
+      // 2. Sortear ordem
+      const ordemSorteada = shuffle(usuarios);
+
+      // 3. Atualizar bolao_sorteio_ordem
+      const { error: delGlobalErr } = await supabase.from("bolao_sorteio_ordem").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (delGlobalErr) throw delGlobalErr;
+
+      const rowsGlobal = ordemSorteada.map((u, idx) => ({
+        usuario_id: u.id,
+        posicao: idx + 1,
+      }));
+      const { error: insGlobalErr } = await supabase.from("bolao_sorteio_ordem").insert(rowsGlobal);
+      if (insGlobalErr) throw insGlobalErr;
+
+      // Atualizar no usuario
+      for (const row of rowsGlobal) {
+        await supabase.from("bolao_usuarios")
+          .update({ ordem_sorteio: row.posicao })
+          .eq("id", row.usuario_id);
+      }
+
+      await supabase.from("bolao_config").update({ sorteio_realizado: true }).eq("id", 1);
+
+      // 4. Obter todos os jogos
+      const { data: jogos, error: jErr } = await supabase
+        .from("bolao_jogos")
+        .select("id");
+      if (jErr) throw jErr;
+
+      // 5. Para cada jogo, atualizar a fila com a mesma ordem sorteada
+      // Limpa as filas existentes primeiro
+      const { error: delErr } = await supabase
+        .from("bolao_sorteio_jogo_ordem")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+      if (delErr) throw delErr;
+
+      const rowsJogos: any[] = [];
+      for (const jogo of (jogos ?? [])) {
+        ordemSorteada.forEach((u, idx) => {
+          rowsJogos.push({
+            jogo_id: jogo.id,
+            usuario_id: u.id,
+            posicao: idx + 1,
+          });
+        });
+      }
+
+      // Bulk insert
+      const { error: insErr } = await supabase
+        .from("bolao_sorteio_jogo_ordem")
+        .insert(rowsJogos);
+      if (insErr) throw insErr;
+
+      // Marcar sorteio_realizado = true em todos os jogos
+      await supabase
+        .from("bolao_jogos")
+        .update({ sorteio_realizado: true })
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      log("INFO", "Sorteio em massa realizado para todos os jogos", { participantes: usuarios.length, jogos: jogos?.length });
+      return json({
+        ok: true,
+        realizado: true,
+        ordem: ordemSorteada.map((u, idx) => ({ posicao: idx + 1, nome: u.nome, usuario_id: u.id })),
+        message: `Fila gerada para ${jogos?.length ?? 0} jogos.`,
+      });
+    }
+
     // ===== REALIZAR SORTEIO POR JOGO =====
     if (action === "realizar" && jogo_id) {
       const resultado = await realizarSorteioJogo(supabase, jogo_id);

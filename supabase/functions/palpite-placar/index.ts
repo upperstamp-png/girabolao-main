@@ -30,15 +30,17 @@ Deno.serve(async (req) => {
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
 
-    // Verificar jogo
     const { data: jogo } = await supabase
       .from("bolao_jogos")
       .select("id, data_hora, status, time_casa, time_fora")
       .eq("id", jogo_id)
       .single();
     if (!jogo) return json({ error: "Jogo não encontrado" }, 404);
-    if (new Date(jogo.data_hora) <= new Date()) {
-      return json({ error: "Prazo de palpite encerrado — o jogo já começou" }, 400);
+
+    const dataHoraJogo = new Date(jogo.data_hora);
+    const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
+    if (dataHoraLimite <= new Date()) {
+      return json({ error: "Prazo de palpite encerrado — o limite é de até 1 hora antes da partida" }, 400);
     }
 
     // Sorteio por jogo: respeitar sequência de palpites
@@ -91,6 +93,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Buscar palpite antigo antes do upsert para registrar auditoria
+    const { data: palpiteAntigo } = await supabase
+      .from("bolao_palpites")
+      .select("gols_casa, gols_fora")
+      .eq("usuario_id", v.id)
+      .eq("jogo_id", jogo_id)
+      .maybeSingle();
+
     // Salvar palpite (upsert — permite alterar antes do jogo)
     const { error } = await supabase
       .from("bolao_palpites")
@@ -99,6 +109,23 @@ Deno.serve(async (req) => {
         { onConflict: "usuario_id,jogo_id" }
       );
     if (error) throw error;
+
+    // Registrar no histórico de alterações
+    const acao = palpiteAntigo ? "alterar" : "criar";
+    const { error: histErr } = await supabase
+      .from("bolao_historico_alteracoes")
+      .insert({
+        usuario_id: v.id,
+        jogo_id,
+        acao,
+        gols_casa_antigo: palpiteAntigo ? palpiteAntigo.gols_casa : null,
+        gols_fora_antigo: palpiteAntigo ? palpiteAntigo.gols_fora : null,
+        gols_casa_novo: gols_casa,
+        gols_fora_novo: gols_fora,
+      });
+    if (histErr) {
+      log("WARN", `Falha ao registrar historico para ${nome}: ${histErr.message}`);
+    }
 
     log("INFO", `Palpite registrado: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`, { jogo_id });
     return json({ ok: true });
