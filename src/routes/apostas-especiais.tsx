@@ -227,14 +227,8 @@ function Page() {
   }, [elenco, jogadorSearch]);
 
   const isBolaoFechadoGlobal = useMemo(() => {
-    if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
-    if (primeiroJogo) {
-      const kickoff = new Date(primeiroJogo.data_hora);
-      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000);
-      return new Date() >= deadline;
-    }
-    return false;
-  }, [config, primeiroJogo]);
+    return config?.status === "FECHADO" || config?.status === "FINALIZADO";
+  }, [config]);
 
   const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status !== "aberta" || (cfgArt.prazo_fim && new Date(cfgArt.prazo_fim) <= new Date());
 

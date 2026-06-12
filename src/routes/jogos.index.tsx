@@ -119,15 +119,7 @@ function Page() {
               let vezNome = "Não sorteado";
               let minhaVez = false;
               let minhaPosicao: number | undefined = undefined;
-              const isBolaoFechadoGlobal = (() => {
-                if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
-                if (primeiroJogo) {
-                  const kickoff = new Date(primeiroJogo.data_hora);
-                  const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1h antes do primeiro jogo
-                  return new Date() >= deadline;
-                }
-                return false;
-              })();
+              const isBolaoFechadoGlobal = config?.status === "FECHADO" || config?.status === "FINALIZADO";
 
               const dataHoraJogo = new Date(j.data_hora);
               const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000);

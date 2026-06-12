@@ -132,16 +132,11 @@ function Page() {
 
     // Verificar se o bolão está fechado globalmente
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
-    if (primeiroJogo) {
-      const kickoff = new Date(primeiroJogo.data_hora);
-      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1h antes do primeiro jogo
-      if (new Date() >= deadline) return true;
-    }
 
     const dataHoraJogo = new Date(jogo.data_hora);
     const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
     return dataHoraLimite <= new Date();
-  }, [jogo, config, primeiroJogo]);
+  }, [jogo, config]);
 
 
   const vez = useMemo(() => {
@@ -228,7 +223,15 @@ function Page() {
                 AO VIVO{jogo.minuto_jogo != null ? ` ${jogo.minuto_jogo}'` : ""}
               </Badge>
             )}
-            {future && <Badge variant="secondary">Fecha em {countdown(jogo.data_hora)}</Badge>}
+            {prazoExpirado ? (
+              <Badge variant="destructive">Encerrado</Badge>
+            ) : (
+              future && (
+                <Badge variant="secondary">
+                  Fecha em {countdown(new Date(new Date(jogo.data_hora).getTime() - 60 * 60 * 1000).toISOString())}
+                </Badge>
+              )
+            )}
             {poolEstimado > 0 && <Badge className="bg-primary/20 text-primary border-primary/40">Pool: {fmtBRL(poolEstimado)}</Badge>}
           </div>
           {jogo.estadio && <p className="text-xs text-muted-foreground mt-2">🏟️ {jogo.estadio}</p>}

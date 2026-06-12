@@ -55,7 +55,7 @@ export async function validarAdmin(
 export async function verificarBolaoAberto(
   supabase: ReturnType<typeof admin>
 ): Promise<{ aberto: boolean; error?: string }> {
-  // 1. Verificar status da tabela bolao_config
+  // Verificar status da tabela bolao_config
   const { data: cfg } = await supabase
     .from("bolao_config")
     .select("status")
@@ -64,22 +64,6 @@ export async function verificarBolaoAberto(
 
   if (cfg?.status === "FECHADO" || cfg?.status === "FINALIZADO") {
     return { aberto: false, error: "O bolão está oficialmente FECHADO para novos palpites e alterações!" };
-  }
-
-  // 2. Verificar se já passou do prazo de 1 hora antes do primeiro jogo
-  const { data: primeiroJogo } = await supabase
-    .from("bolao_jogos")
-    .select("data_hora")
-    .order("data_hora", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (primeiroJogo) {
-    const kickoff = new Date(primeiroJogo.data_hora);
-    const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1 hora antes
-    if (new Date() >= deadline) {
-      return { aberto: false, error: "O bolão está fechado (o limite é de até 1 hora antes do primeiro jogo da Copa)!" };
-    }
   }
 
   return { aberto: true };

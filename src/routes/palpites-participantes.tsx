@@ -97,14 +97,8 @@ function Page() {
   }, [usuarios, premios]);
 
   const bolaoFechado = useMemo(() => {
-    if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
-    if (primeiroJogo) {
-      const kickoff = new Date(primeiroJogo.data_hora);
-      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000);
-      return new Date() >= deadline;
-    }
-    return false;
-  }, [config, primeiroJogo]);
+    return config?.status === "FECHADO" || config?.status === "FINALIZADO";
+  }, [config]);
 
   // Set default selection when data loads
   useEffect(() => {
