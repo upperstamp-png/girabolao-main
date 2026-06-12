@@ -1,5 +1,5 @@
 import { json, preflight } from "../_shared/cors.ts";
-import { admin, validarUsuario } from "../_shared/supabase.ts";
+import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -8,18 +8,39 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const nome = String(body.nome ?? "").trim();
     const pin = body.pin ? String(body.pin) : null;
-    const jogador = String(body.jogador ?? "").trim();
-    if (!jogador || jogador.length < 2 || jogador.length > 80) return json({ error: "Jogador inválido" }, 400);
+    const jogador_id = body.jogador_id ? String(body.jogador_id).trim() : null;
+
+    if (!jogador_id) {
+      return json({ error: "Selecione um jogador convocado" }, 400);
+    }
+
+    const { data: jogadorElenco } = await supabase
+      .from("bolao_elenco")
+      .select("jogador_nome")
+      .eq("id", jogador_id)
+      .maybeSingle();
+
+    if (!jogadorElenco) {
+      return json({ error: "Jogador convocado não encontrado" }, 404);
+    }
+
+    const jogadorNome = jogadorElenco.jogador_nome;
 
     const { data: cfg } = await supabase.from("bolao_config_artilheiro").select("status, prazo_fim").eq("id", 1).single();
-    if (cfg?.status !== "aberta") return json({ error: "Apostas fechadas" }, 400);
-    if (cfg.prazo_fim && new Date(cfg.prazo_fim) <= new Date()) return json({ error: "Prazo encerrado" }, 400);
+    if (cfg?.status !== "aberta") return json({ error: "Apostas de artilheiro fechadas" }, 400);
+    if (cfg.prazo_fim && new Date(cfg.prazo_fim) <= new Date()) return json({ error: "Prazo de artilheiro encerrado" }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
 
+    // Verificar se o bolão está fechado
+    const statusBolao = await verificarBolaoAberto(supabase);
+    if (!statusBolao.aberto) {
+      return json({ error: statusBolao.error }, 400);
+    }
+
     const { error } = await supabase.from("bolao_apostas_artilheiro").upsert(
-      { usuario_id: v.id, jogador_apostado: jogador },
+      { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id },
       { onConflict: "usuario_id" }
     );
     if (error) throw error;
@@ -29,3 +50,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+

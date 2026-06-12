@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ParticipantesRouteImport } from './routes/participantes'
+import { Route as PalpitesParticipantesRouteImport } from './routes/palpites-participantes'
+import { Route as NoticiasRouteImport } from './routes/noticias'
 import { Route as FinalistasRouteImport } from './routes/finalistas'
 import { Route as ArtilheiroRouteImport } from './routes/artilheiro'
 import { Route as ApostasEspeciaisRouteImport } from './routes/apostas-especiais'
@@ -33,6 +35,16 @@ const RankingRoute = RankingRouteImport.update({
 const ParticipantesRoute = ParticipantesRouteImport.update({
   id: '/participantes',
   path: '/participantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PalpitesParticipantesRoute = PalpitesParticipantesRouteImport.update({
+  id: '/palpites-participantes',
+  path: '/palpites-participantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NoticiasRoute = NoticiasRouteImport.update({
+  id: '/noticias',
+  path: '/noticias',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinalistasRoute = FinalistasRouteImport.update({
@@ -77,6 +89,8 @@ export interface FileRoutesByFullPath {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
+  '/noticias': typeof NoticiasRoute
+  '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
@@ -89,6 +103,8 @@ export interface FileRoutesByTo {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
+  '/noticias': typeof NoticiasRoute
+  '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
@@ -102,6 +118,8 @@ export interface FileRoutesById {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
+  '/noticias': typeof NoticiasRoute
+  '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
@@ -116,6 +134,8 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
+    | '/noticias'
+    | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
@@ -128,6 +148,8 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
+    | '/noticias'
+    | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
@@ -140,6 +162,8 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
+    | '/noticias'
+    | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
@@ -153,6 +177,8 @@ export interface RootRouteChildren {
   ApostasEspeciaisRoute: typeof ApostasEspeciaisRoute
   ArtilheiroRoute: typeof ArtilheiroRoute
   FinalistasRoute: typeof FinalistasRoute
+  NoticiasRoute: typeof NoticiasRoute
+  PalpitesParticipantesRoute: typeof PalpitesParticipantesRoute
   ParticipantesRoute: typeof ParticipantesRoute
   RankingRoute: typeof RankingRoute
   SorteioRoute: typeof SorteioRoute
@@ -181,6 +207,20 @@ declare module '@tanstack/react-router' {
       path: '/participantes'
       fullPath: '/participantes'
       preLoaderRoute: typeof ParticipantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/palpites-participantes': {
+      id: '/palpites-participantes'
+      path: '/palpites-participantes'
+      fullPath: '/palpites-participantes'
+      preLoaderRoute: typeof PalpitesParticipantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/noticias': {
+      id: '/noticias'
+      path: '/noticias'
+      fullPath: '/noticias'
+      preLoaderRoute: typeof NoticiasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finalistas': {
@@ -241,6 +281,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApostasEspeciaisRoute: ApostasEspeciaisRoute,
   ArtilheiroRoute: ArtilheiroRoute,
   FinalistasRoute: FinalistasRoute,
+  NoticiasRoute: NoticiasRoute,
+  PalpitesParticipantesRoute: PalpitesParticipantesRoute,
   ParticipantesRoute: ParticipantesRoute,
   RankingRoute: RankingRoute,
   SorteioRoute: SorteioRoute,

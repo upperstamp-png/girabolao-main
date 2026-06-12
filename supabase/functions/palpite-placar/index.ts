@@ -1,5 +1,5 @@
 import { json, preflight } from "../_shared/cors.ts";
-import { admin, validarUsuario } from "../_shared/supabase.ts";
+import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 import { buscarOrdemJogo, verificarVezNaSequencia } from "../_shared/sorteio.ts";
 
 function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
@@ -29,6 +29,13 @@ Deno.serve(async (req) => {
     // Validar identidade
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
+
+    // Verificar se o bolão está fechado
+    const statusBolao = await verificarBolaoAberto(supabase);
+    if (!statusBolao.aberto) {
+      return json({ error: statusBolao.error }, 400);
+    }
+
 
     const { data: jogo } = await supabase
       .from("bolao_jogos")

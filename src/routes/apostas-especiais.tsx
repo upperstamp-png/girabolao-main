@@ -29,6 +29,10 @@ function Page() {
 
   // States for forms
   const [artilheiro, setArtilheiro] = useState("");
+  const [selectedSelecaoId, setSelectedSelecaoId] = useState<string>("");
+  const [jogadorSearch, setJogadorSearch] = useState<string>("");
+  const [selectedJogadorId, setSelectedJogadorId] = useState<string>("");
+
   const [fin1, setFin1] = useState("");
   const [fin2, setFin2] = useState("");
   const [campeao, setCampeao] = useState("");
@@ -38,7 +42,78 @@ function Page() {
   const [golGolsCasa, setGolGolsCasa] = useState(0);
   const [golGolsFora, setGolGolsFora] = useState(0);
 
+
   // ====== QUERIES ======
+  const { data: config } = useQuery({
+    queryKey: ["bolao-config"],
+    queryFn: async () => (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
+  });
+
+  const { data: primeiroJogo } = useQuery({
+    queryKey: ["primeiro-jogo-cfg"],
+    queryFn: async () => (await supabase.from("bolao_jogos").select("data_hora").order("data_hora", { ascending: true }).limit(1).maybeSingle()).data,
+  });
+
+  const { data: selecoes } = useQuery({
+    queryKey: ["selecoes-especiais"],
+    queryFn: async () => (await supabase.from("bolao_selecoes").select("id, nome").order("nome")).data ?? [],
+  });
+
+  const { data: elenco, isLoading: loadingElenco } = useQuery({
+    queryKey: ["elenco-especial", selectedSelecaoId],
+    queryFn: async () => {
+      if (!selectedSelecaoId) return [];
+      return (await supabase.from("bolao_elenco").select("id, jogador_nome, posicao, numero_camisa").eq("selecao_id", selectedSelecaoId).order("jogador_nome")).data ?? [];
+    },
+    enabled: !!selectedSelecaoId,
+  });
+
+  // Query as apostas privadas do usuário logado para mostrar o que ele já salvou
+  const { data: minhaApostaArt } = useQuery({
+    queryKey: ["minha-aposta-art", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return null;
+      return (await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado, jogador_id").eq("usuario_id", identidade.id).maybeSingle()).data;
+    },
+    enabled: !!identidade?.id,
+  });
+
+  const { data: minhaApostaCam } = useQuery({
+    queryKey: ["minha-aposta-cam", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return null;
+      return (await supabase.from("bolao_apostas_campeao").select("id, time_campeao").eq("usuario_id", identidade.id).maybeSingle()).data;
+    },
+    enabled: !!identidade?.id,
+  });
+
+  const { data: minhaApostaFin } = useQuery({
+    queryKey: ["minha-aposta-fin", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return null;
+      return (await supabase.from("bolao_apostas_finalistas").select("id, time1, time2").eq("usuario_id", identidade.id).maybeSingle()).data;
+    },
+    enabled: !!identidade?.id,
+  });
+
+  const { data: minhaApostaZeb } = useQuery({
+    queryKey: ["minha-aposta-zeb", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return null;
+      return (await supabase.from("bolao_apostas_zebra").select("id, zebra_apostada").eq("usuario_id", identidade.id).maybeSingle()).data;
+    },
+    enabled: !!identidade?.id,
+  });
+
+  const { data: minhaApostaGol } = useQuery({
+    queryKey: ["minha-aposta-gol", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return null;
+      return (await supabase.from("bolao_apostas_goleada").select("id, time_casa, time_fora, gols_casa, gols_fora").eq("usuario_id", identidade.id).maybeSingle()).data;
+    },
+    enabled: !!identidade?.id,
+  });
+
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
@@ -53,6 +128,7 @@ function Page() {
       return Array.from(set).sort();
     },
   });
+
 
   // Configs
   const { data: rawCfgArt } = useQuery({
@@ -109,37 +185,59 @@ function Page() {
 
   // ====== MUTATIONS ======
   const postArt = useMutation({
-    mutationFn: () => callFn("aposta-artilheiro", { nome: identidade?.nome, pin: identidade?.pin, jogador: artilheiro }),
-    onSuccess: () => { setArtilheiro(""); qc.invalidateQueries({ queryKey: ["apostas-art"] }); toast.success("Aposta em Artilheiro registrada!"); },
+    mutationFn: () => callFn("aposta-artilheiro", { nome: identidade?.nome, pin: identidade?.pin, jogador_id: selectedJogadorId }),
+    onSuccess: () => { setSelectedJogadorId(""); qc.invalidateQueries({ queryKey: ["apostas-art"] }); qc.invalidateQueries({ queryKey: ["minha-aposta-art"] }); toast.success("Aposta em Artilheiro registrada!"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const postFin = useMutation({
     mutationFn: () => callFn("aposta-finalistas", { nome: identidade?.nome, pin: identidade?.pin, time1: fin1, time2: fin2 }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-fin"] }); toast.success("Aposta em Finalistas registrada!"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-fin"] }); qc.invalidateQueries({ queryKey: ["minha-aposta-fin"] }); toast.success("Aposta em Finalistas registrada!"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const postCam = useMutation({
     mutationFn: () => callFn("aposta-campeao", { nome: identidade?.nome, pin: identidade?.pin, time: campeao }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-cam"] }); toast.success("Aposta em Campeão registrada!"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-cam"] }); qc.invalidateQueries({ queryKey: ["minha-aposta-cam"] }); toast.success("Aposta em Campeão registrada!"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const postZeb = useMutation({
     mutationFn: () => callFn("aposta-zebra", { nome: identidade?.nome, pin: identidade?.pin, zebra: zebra }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-zeb"] }); toast.success("Aposta em Zebra registrada!"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-zeb"] }); qc.invalidateQueries({ queryKey: ["minha-aposta-zebra"] }); toast.success("Aposta em Zebra registrada!"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const postGol = useMutation({
     mutationFn: () => callFn("aposta-goleada", { nome: identidade?.nome, pin: identidade?.pin, time_casa: golCasa, time_fora: golFora, gols_casa: golGolsCasa, gols_fora: golGolsFora }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-gol"] }); toast.success("Aposta em Maior Goleada registrada!"); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["apostas-gol"] }); qc.invalidateQueries({ queryKey: ["minha-aposta-goleada"] }); toast.success("Aposta em Maior Goleada registrada!"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
+
   const nP = usuarios?.length ?? 0;
   const nomeMap = useMemo(() => new Map((usuarios ?? []).map(u => [u.id, u.nome])), [usuarios]);
+
+  const filteredElenco = useMemo(() => {
+    if (!elenco) return [];
+    if (!jogadorSearch.trim()) return elenco;
+    return elenco.filter(p =>
+      p.jogador_nome.toLowerCase().includes(jogadorSearch.toLowerCase())
+    );
+  }, [elenco, jogadorSearch]);
+
+  const isBolaoFechadoGlobal = useMemo(() => {
+    if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
+    if (primeiroJogo) {
+      const kickoff = new Date(primeiroJogo.data_hora);
+      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000);
+      return new Date() >= deadline;
+    }
+    return false;
+  }, [config, primeiroJogo]);
+
+  const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status !== "aberta" || (cfgArt.prazo_fim && new Date(cfgArt.prazo_fim) <= new Date());
+
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-in">
@@ -188,22 +286,75 @@ function Page() {
               nP={nP}
               resultadoReal={cfgArt.artilheiro_real}
               form={
-                cfgArt.status === "aberta" && (
-                  <div className="space-y-3 pt-3 border-t border-border">
-                    <Label htmlFor="artilheiro-name">Nome do Artilheiro</Label>
-                    <Input
-                      id="artilheiro-name"
-                      placeholder="Ex: Kylian Mbappé"
-                      value={artilheiro}
-                      onChange={e => setArtilheiro(e.target.value)}
-                    />
+                (cfgArt.status === "aberta" && !isArtilheiroClosed) ? (
+                  <div className="space-y-4 pt-3 border-t border-border">
+                    {minhaApostaArt?.jogador_apostado && (
+                      <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
+                        Seu palpite atual: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong>
+                      </div>
+                    )}
+                    
+                    {/* Seleção do País */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="artilheiro-selecao">1. Selecione a Seleção</Label>
+                      <Select value={selectedSelecaoId} onValueChange={(val) => { setSelectedSelecaoId(val); setSelectedJogadorId(""); setJogadorSearch(""); }}>
+                        <SelectTrigger id="artilheiro-selecao"><SelectValue placeholder="Escolha uma seleção..." /></SelectTrigger>
+                        <SelectContent>
+                          {selecoes?.map(s => <SelectItem key={s.id} value={s.id}>{flag(s.nome)} {s.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Autocomplete de Jogadores */}
+                    {selectedSelecaoId && (
+                      <div className="space-y-2">
+                        <Label htmlFor="jogador-search">2. Selecione o Jogador</Label>
+                        <Input
+                          id="jogador-search"
+                          placeholder="Digite para filtrar..."
+                          value={jogadorSearch}
+                          onChange={e => setJogadorSearch(e.target.value)}
+                        />
+                        
+                        {loadingElenco ? (
+                          <div className="text-xs text-muted-foreground">Carregando elenco...</div>
+                        ) : filteredElenco.length === 0 ? (
+                          <div className="text-xs text-muted-foreground italic">Nenhum jogador encontrado.</div>
+                        ) : (
+                          <div className="border border-border rounded-lg max-h-48 overflow-y-auto divide-y divide-border">
+                            {filteredElenco.map(p => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setSelectedJogadorId(p.id)}
+                                className={`w-full text-left px-3 py-2 text-xs flex justify-between items-center transition-colors hover:bg-secondary/40 ${selectedJogadorId === p.id ? "bg-primary/10 text-primary font-semibold" : ""}`}
+                              >
+                                <span>{p.jogador_nome}</span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {p.posicao || "Posição N/D"} {p.numero_camisa ? `(nº ${p.numero_camisa})` : ""}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <Button
-                      disabled={!identidade?.nome || !artilheiro.trim() || postArt.isPending}
+                      disabled={!identidade?.nome || !selectedJogadorId || postArt.isPending}
                       onClick={() => postArt.mutate()}
                       className="w-full btn-touch"
                     >
                       {postArt.isPending ? "Salvando..." : "Salvar Palpite de Artilheiro"}
                     </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
+                    {minhaApostaArt?.jogador_apostado ? (
+                      <span>Você apostou em: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong> (Apostas de artilheiro encerradas)</span>
+                    ) : (
+                      <span>Apostas de artilheiro encerradas.</span>
+                    )}
                   </div>
                 )
               }
@@ -229,8 +380,13 @@ function Page() {
               nP={nP}
               resultadoReal={cfgFin.finalista1_real && cfgFin.finalista2_real ? `${flag(cfgFin.finalista1_real)} ${cfgFin.finalista1_real} x ${cfgFin.finalista2_real} ${flag(cfgFin.finalista2_real)}` : null}
               form={
-                cfgFin.status === "aberta" && (
+                (cfgFin.status === "aberta" && !isBolaoFechadoGlobal) ? (
                   <div className="space-y-3 pt-3 border-t border-border">
+                    {minhaApostaFin?.time1 && minhaApostaFin?.time2 && (
+                      <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
+                        Seu palpite atual: <strong className="text-primary">{flag(minhaApostaFin.time1)} {minhaApostaFin.time1} × {minhaApostaFin.time2} {flag(minhaApostaFin.time2)}</strong>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="fin1-select">Finalista 1</Label>
@@ -258,6 +414,14 @@ function Page() {
                     >
                       {postFin.isPending ? "Salvando..." : "Salvar Palpite de Finalistas"}
                     </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
+                    {minhaApostaFin?.time1 && minhaApostaFin?.time2 ? (
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaFin.time1)} {minhaApostaFin.time1} × {minhaApostaFin.time2} {flag(minhaApostaFin.time2)}</strong> (Apostas de finalistas encerradas)</span>
+                    ) : (
+                      <span>Apostas de finalistas encerradas.</span>
+                    )}
                   </div>
                 )
               }
@@ -288,8 +452,13 @@ function Page() {
               nP={nP}
               resultadoReal={cfgCam.campeao_real ? `${flag(cfgCam.campeao_real)} ${cfgCam.campeao_real}` : null}
               form={
-                cfgCam.status === "aberta" && (
+                (cfgCam.status === "aberta" && !isBolaoFechadoGlobal) ? (
                   <div className="space-y-3 pt-3 border-t border-border">
+                    {minhaApostaCam?.time_campeao && (
+                      <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
+                        Seu palpite atual: <strong className="text-primary">{flag(minhaApostaCam.time_campeao)} {minhaApostaCam.time_campeao}</strong>
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="campeao-select">Seleção Campeã</Label>
                       <Select value={campeao} onValueChange={setCampeao}>
@@ -306,6 +475,14 @@ function Page() {
                     >
                       {postCam.isPending ? "Salvando..." : "Salvar Palpite de Campeão"}
                     </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
+                    {minhaApostaCam?.time_campeao ? (
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaCam.time_campeao)} {minhaApostaCam.time_campeao}</strong> (Apostas de campeão encerradas)</span>
+                    ) : (
+                      <span>Apostas de campeão encerradas.</span>
+                    )}
                   </div>
                 )
               }
@@ -331,8 +508,13 @@ function Page() {
               nP={nP}
               resultadoReal={cfgZeb.zebra_real ? `${flag(cfgZeb.zebra_real)} ${cfgZeb.zebra_real}` : null}
               form={
-                cfgZeb.status === "aberta" && (
+                (cfgZeb.status === "aberta" && !isBolaoFechadoGlobal) ? (
                   <div className="space-y-3 pt-3 border-t border-border">
+                    {minhaApostaZeb?.zebra_apostada && (
+                      <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
+                        Seu palpite atual: <strong className="text-primary">{flag(minhaApostaZeb.zebra_apostada)} {minhaApostaZeb.zebra_apostada}</strong>
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="zebra-select">Seleção Zebra</Label>
                       <Select value={zebra} onValueChange={setZebra}>
@@ -349,6 +531,14 @@ function Page() {
                     >
                       {postZeb.isPending ? "Salvando..." : "Salvar Palpite de Zebra"}
                     </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
+                    {minhaApostaZeb?.zebra_apostada ? (
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaZeb.zebra_apostada)} {minhaApostaZeb.zebra_apostada}</strong> (Apostas de zebra encerradas)</span>
+                    ) : (
+                      <span>Apostas de zebra encerradas.</span>
+                    )}
                   </div>
                 )
               }
@@ -374,8 +564,13 @@ function Page() {
               nP={nP}
               resultadoReal={cfgGol.goleada_time_casa_real ? `${flag(cfgGol.goleada_time_casa_real)} ${cfgGol.goleada_time_casa_real} ${cfgGol.goleada_gols_casa_real} x ${cfgGol.goleada_gols_fora_real} ${cfgGol.goleada_time_fora_real} ${flag(cfgGol.goleada_time_fora_real)}` : null}
               form={
-                cfgGol.status === "aberta" && (
+                (cfgGol.status === "aberta" && !isBolaoFechadoGlobal) ? (
                   <div className="space-y-4 pt-3 border-t border-border">
+                    {minhaApostaGol?.time_casa && minhaApostaGol?.time_fora && (
+                      <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
+                        Seu palpite atual: <strong className="text-primary">{flag(minhaApostaGol.time_casa)} {minhaApostaGol.time_casa} {minhaApostaGol.gols_casa} × {minhaApostaGol.gols_fora} {minhaApostaGol.time_fora} {flag(minhaApostaGol.time_fora)}</strong>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       {/* Mandante */}
                       <div className="space-y-2">
@@ -443,6 +638,14 @@ function Page() {
                     >
                       {postGol.isPending ? "Salvando..." : "Salvar Palpite de Maior Goleada"}
                     </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
+                    {minhaApostaGol?.time_casa && minhaApostaGol?.time_fora ? (
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaGol.time_casa)} {minhaApostaGol.time_casa} {minhaApostaGol.gols_casa} × {minhaApostaGol.gols_fora} {minhaApostaGol.time_fora} {flag(minhaApostaGol.time_fora)}</strong> (Apostas de maior goleada encerradas)</span>
+                    ) : (
+                      <span>Apostas de maior goleada encerradas.</span>
+                    )}
                   </div>
                 )
               }

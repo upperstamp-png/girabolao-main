@@ -1,5 +1,5 @@
 import { json, preflight } from "../_shared/cors.ts";
-import { admin, validarUsuario } from "../_shared/supabase.ts";
+import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -18,6 +18,12 @@ Deno.serve(async (req) => {
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
 
+    // Verificar se o bolão está fechado
+    const statusBolao = await verificarBolaoAberto(supabase);
+    if (!statusBolao.aberto) {
+      return json({ error: statusBolao.error }, 400);
+    }
+
     const { error } = await supabase.from("bolao_apostas_campeao").upsert(
       { usuario_id: v.id, time_campeao: time },
       { onConflict: "usuario_id" }
@@ -29,3 +35,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+

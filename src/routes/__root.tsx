@@ -95,12 +95,15 @@ function RootShell({ children }: { children: ReactNode }) {
 const NAV_LINKS = [
   { to: "/", label: "Início", exact: true },
   { to: "/jogos", label: "⚽ Jogos" },
+  { to: "/palpites-participantes", label: "📋 Palpites" },
   { to: "/apostas-especiais", label: "🎰 Apostas" },
   { to: "/ranking", label: "📊 Ranking" },
+  { to: "/noticias", label: "📰 Notícias" },
   { to: "/participantes", label: "👥 Participantes" },
   { to: "/sorteio", label: "🎲 Sorteio" },
   { to: "/admin", label: "⚙️ Admin" },
 ] as const;
+
 
 function Nav() {
   const location = useLocation();

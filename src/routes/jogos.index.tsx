@@ -18,6 +18,16 @@ function Page() {
   const [fase, setFase] = useState<string>("todos");
   const identidade = getIdentidade();
 
+  const { data: config } = useQuery({
+    queryKey: ["config-global-index"],
+    queryFn: async () => (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
+  });
+
+  const { data: primeiroJogo } = useQuery({
+    queryKey: ["primeiro-jogo-global-index"],
+    queryFn: async () => (await supabase.from("bolao_jogos").select("data_hora").order("data_hora", { ascending: true }).limit(1).maybeSingle()).data,
+  });
+
   const { data: jogos, isLoading: loadingJogos, isError: errJogos, refetch: refetchJogos } = useQuery({
     queryKey: ["jogos-all"],
     queryFn: async () => (await supabase.from("bolao_jogos").select("*").order("data_hora")).data ?? [],
@@ -109,9 +119,19 @@ function Page() {
               let vezNome = "Não sorteado";
               let minhaVez = false;
               let minhaPosicao: number | undefined = undefined;
+              const isBolaoFechadoGlobal = (() => {
+                if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
+                if (primeiroJogo) {
+                  const kickoff = new Date(primeiroJogo.data_hora);
+                  const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1h antes do primeiro jogo
+                  return new Date() >= deadline;
+                }
+                return false;
+              })();
+
               const dataHoraJogo = new Date(j.data_hora);
               const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000);
-              const prazoExpirado = dataHoraLimite <= new Date();
+              const prazoExpirado = isBolaoFechadoGlobal || dataHoraLimite <= new Date();
 
               if (ordemJogo.length > 0) {
                 if (prazoExpirado) {

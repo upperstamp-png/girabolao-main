@@ -88,6 +88,16 @@ function Page() {
     queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
   });
 
+  const { data: config } = useQuery({
+    queryKey: ["config-global"],
+    queryFn: async () => (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
+  });
+
+  const { data: primeiroJogo } = useQuery({
+    queryKey: ["primeiro-jogo-global"],
+    queryFn: async () => (await supabase.from("bolao_jogos").select("data_hora").order("data_hora", { ascending: true }).limit(1).maybeSingle()).data,
+  });
+
   useEffect(() => {
     if (!identidade?.nome || identidade.id || !usuarios?.length) return;
     const u = usuarios.find(x => x.nome === identidade.nome);
@@ -119,10 +129,20 @@ function Page() {
 
   const prazoExpirado = useMemo(() => {
     if (!jogo) return true;
+
+    // Verificar se o bolão está fechado globalmente
+    if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
+    if (primeiroJogo) {
+      const kickoff = new Date(primeiroJogo.data_hora);
+      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1h antes do primeiro jogo
+      if (new Date() >= deadline) return true;
+    }
+
     const dataHoraJogo = new Date(jogo.data_hora);
     const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
     return dataHoraLimite <= new Date();
-  }, [jogo]);
+  }, [jogo, config, primeiroJogo]);
+
 
   const vez = useMemo(() => {
     const res = verificarVezNaSequencia(sorteio?.ordem ?? [], identidade?.id, comPalpite);
