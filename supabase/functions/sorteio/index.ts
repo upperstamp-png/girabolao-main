@@ -127,7 +127,8 @@ Deno.serve(async (req) => {
 
       const rowsJogos: any[] = [];
       for (const jogo of (jogos ?? [])) {
-        ordemSorteada.forEach((u, idx) => {
+        const ordemJogoSorteada = shuffle(usuarios);
+        ordemJogoSorteada.forEach((u, idx) => {
           rowsJogos.push({
             jogo_id: jogo.id,
             usuario_id: u.id,
