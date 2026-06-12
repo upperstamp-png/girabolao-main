@@ -107,6 +107,21 @@ function Page() {
     onError: (e: Error) => toast.error("Erro ao atualizar exclusividade: " + e.message),
   });
 
+  const updateStatus = useMutation({
+    mutationFn: async (status: string) => {
+      const { error } = await supabase
+        .from("bolao_config")
+        .update({ status, palpites_liberados: status === "FECHADO" || status === "FINALIZADO" })
+        .eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bolao-config"] });
+      toast.success("Status do bolão atualizado com sucesso!");
+    },
+    onError: (e: Error) => toast.error("Erro ao atualizar status: " + e.message),
+  });
+
   const updatePin = useMutation({
     mutationFn: async (pin: string) => {
       if (!/^\d{6}$/.test(pin)) throw new Error("O PIN deve ter exatamente 6 dígitos");
@@ -351,18 +366,25 @@ function Page() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/20">
-                <div className="space-y-0.5 pr-2">
-                  <Label className="text-sm font-medium">Exclusividade de Placar</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Impede dois participantes de palpitarem o mesmo placar no mesmo jogo.
-                  </p>
-                </div>
-                <Switch
-                  checked={config?.exclusividade_placar ?? true}
-                  onCheckedChange={(checked) => updateExclusividade.mutate(checked)}
-                  disabled={updateExclusividade.isPending}
-                />
+              <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-border bg-secondary/20">
+                <Label className="text-sm font-medium">Status do Bolão</Label>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Controla o fechamento global das apostas.
+                </p>
+                <Select
+                  value={config?.status ?? "ABERTO"}
+                  onValueChange={(val) => updateStatus.mutate(val)}
+                  disabled={updateStatus.isPending}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ABERTO">🔓 Aberto para Apostas</SelectItem>
+                    <SelectItem value="FECHADO">🔒 Fechado (Consulta Pública)</SelectItem>
+                    <SelectItem value="FINALIZADO">🏁 Finalizado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2 pt-2 border-t border-border">
