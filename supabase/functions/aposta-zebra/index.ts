@@ -24,11 +24,18 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    const { error } = await supabase.from("bolao_apostas_zebra").upsert(
-      { usuario_id: v.id, zebra_apostada: zebra },
-      { onConflict: "usuario_id" }
-    );
-    if (error) throw error;
+    const { data: existing } = await supabase.from("bolao_apostas_zebra").select("id, zebra_apostada, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    if (existing && existing.bloqueado_em) {
+      return json({ error: "Aposta de zebra já bloqueada para este usuário" }, 400);
+    }
+
+    if (existing) {
+      const { error } = await supabase.from("bolao_apostas_zebra").update({ zebra_apostada: zebra }).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("bolao_apostas_zebra").insert({ usuario_id: v.id, zebra_apostada: zebra });
+      if (error) throw error;
+    }
     return json({ ok: true });
   } catch (e) {
     console.error(e);

@@ -73,7 +73,7 @@ function Page() {
     queryKey: ["minha-aposta-art", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return null;
-      return (await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado, jogador_id").eq("usuario_id", identidade.id).maybeSingle()).data;
+      return (await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado, jogador_id, confirmado_em, bloqueado_em").eq("usuario_id", identidade.id).maybeSingle()).data;
     },
     enabled: !!identidade?.id,
   });
@@ -82,7 +82,7 @@ function Page() {
     queryKey: ["minha-aposta-cam", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return null;
-      return (await supabase.from("bolao_apostas_campeao").select("id, time_campeao").eq("usuario_id", identidade.id).maybeSingle()).data;
+      return (await supabase.from("bolao_apostas_campeao").select("id, time_campeao, confirmado_em, bloqueado_em").eq("usuario_id", identidade.id).maybeSingle()).data;
     },
     enabled: !!identidade?.id,
   });
@@ -91,7 +91,7 @@ function Page() {
     queryKey: ["minha-aposta-fin", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return null;
-      return (await supabase.from("bolao_apostas_finalistas").select("id, time1, time2").eq("usuario_id", identidade.id).maybeSingle()).data;
+      return (await supabase.from("bolao_apostas_finalistas").select("id, time1, time2, confirmado_em, bloqueado_em").eq("usuario_id", identidade.id).maybeSingle()).data;
     },
     enabled: !!identidade?.id,
   });
@@ -100,7 +100,7 @@ function Page() {
     queryKey: ["minha-aposta-zeb", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return null;
-      return (await supabase.from("bolao_apostas_zebra").select("id, zebra_apostada").eq("usuario_id", identidade.id).maybeSingle()).data;
+      return (await supabase.from("bolao_apostas_zebra").select("id, zebra_apostada, confirmado_em, bloqueado_em").eq("usuario_id", identidade.id).maybeSingle()).data;
     },
     enabled: !!identidade?.id,
   });
@@ -109,7 +109,7 @@ function Page() {
     queryKey: ["minha-aposta-gol", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return null;
-      return (await supabase.from("bolao_apostas_goleada").select("id, time_casa, time_fora, gols_casa, gols_fora").eq("usuario_id", identidade.id).maybeSingle()).data;
+      return (await supabase.from("bolao_apostas_goleada").select("id, time_casa, time_fora, gols_casa, gols_fora, confirmado_em, bloqueado_em").eq("usuario_id", identidade.id).maybeSingle()).data;
     },
     enabled: !!identidade?.id,
   });
@@ -231,6 +231,7 @@ function Page() {
   }, [config]);
 
   const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status !== "aberta" || (cfgArt.prazo_fim && new Date(cfgArt.prazo_fim) <= new Date());
+  const isArtilheiroImmutable = !!minhaApostaArt?.jogador_apostado;
 
 
   return (
@@ -280,7 +281,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgArt.artilheiro_real}
               form={
-                (cfgArt.status === "aberta" && !isArtilheiroClosed) ? (
+                (cfgArt.status === "aberta" && !isArtilheiroClosed && !isArtilheiroImmutable) ? (
                   <div className="space-y-4 pt-3 border-t border-border">
                     {minhaApostaArt?.jogador_apostado && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -345,7 +346,10 @@ function Page() {
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaArt?.jogador_apostado ? (
-                      <span>Você apostou em: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong> (Apostas de artilheiro encerradas)</span>
+                      <div>
+                        <span>Você escolheu: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong></span>
+                        <div className="text-xs text-muted-foreground mt-1">Essa escolha é definitiva e não pode ser alterada.</div>
+                      </div>
                     ) : (
                       <span>Apostas de artilheiro encerradas.</span>
                     )}

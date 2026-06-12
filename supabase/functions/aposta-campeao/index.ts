@@ -24,11 +24,18 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    const { error } = await supabase.from("bolao_apostas_campeao").upsert(
-      { usuario_id: v.id, time_campeao: time },
-      { onConflict: "usuario_id" }
-    );
-    if (error) throw error;
+    const { data: existing } = await supabase.from("bolao_apostas_campeao").select("id, time_campeao, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    if (existing && existing.bloqueado_em) {
+      return json({ error: "Aposta de campeão já bloqueada para este usuário" }, 400);
+    }
+
+    if (existing) {
+      const { error } = await supabase.from("bolao_apostas_campeao").update({ time_campeao: time }).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("bolao_apostas_campeao").insert({ usuario_id: v.id, time_campeao: time });
+      if (error) throw error;
+    }
     return json({ ok: true });
   } catch (e) {
     console.error(e);

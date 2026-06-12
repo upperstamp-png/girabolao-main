@@ -132,8 +132,20 @@ async function persistJogos(supabase: Supa, jogos: JogoSync[]) {
         if (rid) rodadaCache.set(rodadaKey, rid);
       }
 
-      let dataHora = j.data_hora;
-      if (!dataHora.includes("T") && /^\d{4}-\d{2}-\d{2}$/.test(dataHora)) dataHora += "T18:00:00Z";
+      // Normalize data_hora to ISO-8601 UTC before persisting
+      let dataHora = String(j.data_hora ?? "");
+      let parsedDate = new Date(dataHora);
+      if (isNaN(parsedDate.getTime())) {
+        // try replace space with T and append default time if only date
+        let alt = dataHora.replace(/ /g, "T");
+        if (/^\d{4}-\d{2}-\d{2}$/.test(alt)) alt += "T18:00:00Z";
+        parsedDate = new Date(alt);
+      }
+      if (isNaN(parsedDate.getTime())) {
+        // fallback: store as now (should be rare) to avoid nulls
+        parsedDate = new Date();
+      }
+      dataHora = parsedDate.toISOString();
 
       const { error } = await supabase.from("bolao_jogos").upsert({
         api_jogo_id: j.api_jogo_id,
@@ -395,16 +407,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Abertura finalistas ----
-    const { data: oitavas } = await supabase.from("bolao_jogos").select("id").eq("fase", "oitavas").limit(1);
-    if (oitavas?.length) {
-      const { data: cfgFin } = await supabase.from("bolao_config_finalistas").select("status").eq("id", 1).single();
-      if (cfgFin?.status === "fechada") {
-        const { data: prox } = await supabase.from("bolao_jogos").select("data_hora")
-          .eq("fase", "oitavas").order("data_hora").limit(1).single();
-        await supabase.from("bolao_config_finalistas").update({
-          status: "aberta", prazo_fim: prox?.data_hora,
-        }).eq("id", 1);
+    // ---- Handle phase transitions: when oitavas start, block special bets ----
+    const { data: primeiroOitavas } = await supabase.from("bolao_jogos").select("data_hora").eq("fase", "oitavas").order("data_hora").limit(1).maybeSingle();
+    if (primeiroOitavas?.data_hora) {
+      const inicioOitavas = new Date(primeiroOitavas.data_hora);
+      if (!isNaN(inicioOitavas.getTime()) && inicioOitavas <= new Date()) {
+        // lock modules: finalistas, campeao, zebra, goleada
+        const lockPayload = { status: 'fechada', prazo_fim: primeiroOitavas.data_hora };
+        await supabase.from("bolao_config_finalistas").update(lockPayload).eq("id", 1);
+        await supabase.from("bolao_config_campeao").update(lockPayload).eq("id", 1);
+        await supabase.from("bolao_config_zebra").update(lockPayload).eq("id", 1);
+        await supabase.from("bolao_config_goleada").update(lockPayload).eq("id", 1);
+      } else {
+        // if oitavas exist but haven't started yet, ensure finalistas config is opened with prazo_fim
+        const { data: cfgFin } = await supabase.from("bolao_config_finalistas").select("status").eq("id", 1).single();
+        if (cfgFin?.status === "fechada") {
+          await supabase.from("bolao_config_finalistas").update({ status: "aberta", prazo_fim: primeiroOitavas.data_hora }).eq("id", 1);
+        }
       }
     }
 

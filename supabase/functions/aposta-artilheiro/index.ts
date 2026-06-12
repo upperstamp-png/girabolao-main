@@ -39,9 +39,14 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    const { error } = await supabase.from("bolao_apostas_artilheiro").upsert(
-      { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id },
-      { onConflict: "usuario_id" }
+    // Artilheiro: escolha imutável — se já existir, recusar alteração
+    const { data: existing } = await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado").eq("usuario_id", v.id).maybeSingle();
+    if (existing) {
+      return json({ error: "A escolha do artilheiro não pode ser alterada." }, 400);
+    }
+
+    const { error } = await supabase.from("bolao_apostas_artilheiro").insert(
+      { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id }
     );
     if (error) throw error;
     return json({ ok: true });

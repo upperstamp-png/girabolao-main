@@ -80,7 +80,7 @@ SELECT
   a.id, a.usuario_id, a.jogador_id,
   CASE WHEN c.status = 'apurada' OR (SELECT status FROM public.bolao_config WHERE id = 1) IN ('FECHADO', 'FINALIZADO') OR (SELECT palpites_liberados FROM public.bolao_config WHERE id = 1) THEN a.jogador_apostado ELSE NULL END AS jogador_apostado,
   (c.status = 'apurada' OR (SELECT status FROM public.bolao_config WHERE id = 1) IN ('FECHADO', 'FINALIZADO') OR (SELECT palpites_liberados FROM public.bolao_config WHERE id = 1)) AS revelado,
-  a.acertou, a.criado_em
+  a.acertou, a.criado_em, a.confirmado_em, a.bloqueado_em
 FROM public.bolao_apostas_artilheiro a
 CROSS JOIN public.bolao_config_artilheiro c WHERE c.id = 1;
 GRANT SELECT ON public.bolao_apostas_artilheiro_publica TO anon, authenticated;
@@ -132,7 +132,7 @@ SELECT
   CASE WHEN c.status = 'apurada' OR (SELECT status FROM public.bolao_config WHERE id = 1) IN ('FECHADO', 'FINALIZADO') OR (SELECT palpites_liberados FROM public.bolao_config WHERE id = 1) THEN a.time1 ELSE NULL END AS time1,
   CASE WHEN c.status = 'apurada' OR (SELECT status FROM public.bolao_config WHERE id = 1) IN ('FECHADO', 'FINALIZADO') OR (SELECT palpites_liberados FROM public.bolao_config WHERE id = 1) THEN a.time2 ELSE NULL END AS time2,
   (c.status = 'apurada' OR (SELECT status FROM public.bolao_config WHERE id = 1) IN ('FECHADO', 'FINALIZADO') OR (SELECT palpites_liberados FROM public.bolao_config WHERE id = 1)) AS revelado,
-  a.acertou_os_dois, a.acertou_um, a.criado_em
+  a.acertou_os_dois, a.acertou_um, a.criado_em, a.confirmado_em, a.bloqueado_em
 FROM public.bolao_apostas_finalistas a
 CROSS JOIN public.bolao_config_finalistas c WHERE c.id = 1;
 GRANT SELECT ON public.bolao_apostas_finalistas_publica TO anon, authenticated;
