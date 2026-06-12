@@ -240,56 +240,54 @@ function Page() {
       )}
 
       {/* Sorteio deste jogo */}
-      {future && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Dices className="h-5 w-5 text-primary" />
-              Sorteio deste jogo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingSorteio || realizarSorteio.isPending ? (
-              <p className="text-sm text-muted-foreground text-center py-2">Realizando sorteio...</p>
-            ) : !sorteio?.realizado ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">Aguardando o administrador realizar o sorteio deste jogo.</p>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  Palpites seguem esta ordem. Quem já apostou pode alterar o palpite a qualquer momento.
-                </p>
-                <ol className="space-y-1.5">
-                  {ordem.map((o: { usuario_id: string; posicao: number; nome: string }) => {
-                    const apostou = comPalpite.has(o.usuario_id);
-                    const ehEu = o.usuario_id === identidade?.id;
-                    const ehVez = !apostou && vez.aguardando === o.nome;
-                    return (
-                      <li
-                        key={o.usuario_id}
-                        className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
-                          ehVez ? "border-primary bg-primary/10 font-semibold" :
-                          apostou ? "border-border bg-secondary/20 opacity-80" :
-                          "border-border"
-                        }`}
-                      >
-                        <span>
-                          {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
-                          {" "}{o.nome}{ehEu ? " (você)" : ""}
-                        </span>
-                        <Badge variant={apostou ? "secondary" : ehVez ? "default" : "outline"}>
-                          {apostou ? "Apostou" : ehVez ? "Sua vez" : "Aguardando"}
-                        </Badge>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Dices className="h-5 w-5 text-primary" />
+            Sorteio deste jogo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {loadingSorteio || realizarSorteio.isPending ? (
+            <p className="text-sm text-muted-foreground text-center py-2">Realizando sorteio...</p>
+          ) : !sorteio?.realizado ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">Aguardando o administrador realizar o sorteio deste jogo.</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Palpites seguem esta ordem. Quem já apostou pode alterar o palpite a qualquer momento.
+              </p>
+              <ol className="space-y-1.5">
+                {ordem.map((o: { usuario_id: string; posicao: number; nome: string }) => {
+                  const apostou = comPalpite.has(o.usuario_id);
+                  const ehEu = o.usuario_id === identidade?.id;
+                  const ehVez = !apostou && vez.aguardando === o.nome;
+                  return (
+                    <li
+                      key={o.usuario_id}
+                      className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
+                        ehVez ? "border-primary bg-primary/10 font-semibold" :
+                        apostou ? "border-border bg-secondary/20 opacity-80" :
+                        "border-border"
+                      }`}
+                    >
+                      <span>
+                        {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
+                        {" "}{o.nome}{ehEu ? " (você)" : ""}
+                      </span>
+                      <Badge variant={apostou ? "secondary" : ehVez ? "default" : "outline"}>
+                        {apostou ? "Apostou" : ehVez ? "Sua vez" : "Aguardando"}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {future && (
         <Card>

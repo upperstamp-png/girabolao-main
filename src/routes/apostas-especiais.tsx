@@ -572,7 +572,7 @@ interface BetsListProps {
   acertouBadge?: (a: any) => React.ReactNode;
 }
 
-function BetsList({ bets, nomeMap, renderValue, isAcertou, acertouBadge }: BetsListProps) {
+function BetsList({ bets = [], nomeMap, renderValue, isAcertou, acertouBadge }: BetsListProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
