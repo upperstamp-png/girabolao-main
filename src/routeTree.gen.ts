@@ -15,6 +15,7 @@ import { Route as ParticipantesRouteImport } from './routes/participantes'
 import { Route as JogosRouteImport } from './routes/jogos'
 import { Route as FinalistasRouteImport } from './routes/finalistas'
 import { Route as ArtilheiroRouteImport } from './routes/artilheiro'
+import { Route as ApostasEspeciaisRouteImport } from './routes/apostas-especiais'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JogosIdRouteImport } from './routes/jogos.$id'
@@ -49,6 +50,11 @@ const ArtilheiroRoute = ArtilheiroRouteImport.update({
   path: '/artilheiro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApostasEspeciaisRoute = ApostasEspeciaisRouteImport.update({
+  id: '/apostas-especiais',
+  path: '/apostas-especiais',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -68,6 +74,7 @@ const JogosIdRoute = JogosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
   '/jogos': typeof JogosRouteWithChildren
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
   '/jogos': typeof JogosRouteWithChildren
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
   '/jogos': typeof JogosRouteWithChildren
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
     | '/jogos'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
     | '/jogos'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
     | '/jogos'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  ApostasEspeciaisRoute: typeof ApostasEspeciaisRoute
   ArtilheiroRoute: typeof ArtilheiroRoute
   FinalistasRoute: typeof FinalistasRoute
   JogosRoute: typeof JogosRouteWithChildren
@@ -190,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtilheiroRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/apostas-especiais': {
+      id: '/apostas-especiais'
+      path: '/apostas-especiais'
+      fullPath: '/apostas-especiais'
+      preLoaderRoute: typeof ApostasEspeciaisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -227,6 +247,7 @@ const JogosRouteWithChildren = JogosRoute._addFileChildren(JogosRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  ApostasEspeciaisRoute: ApostasEspeciaisRoute,
   ArtilheiroRoute: ArtilheiroRoute,
   FinalistasRoute: FinalistasRoute,
   JogosRoute: JogosRouteWithChildren,

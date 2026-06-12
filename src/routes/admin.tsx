@@ -147,6 +147,18 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const realizarSorteioTodos = useMutation({
+    mutationFn: () => callFn("sorteio", { action: "realizar_todos", admin_pin: adminPin }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sorteio-admin"] });
+      qc.invalidateQueries({ queryKey: ["sorteio-publico"] });
+      qc.invalidateQueries({ queryKey: ["sorteio"] });
+      qc.invalidateQueries({ queryKey: ["jogos-all"] });
+      toast.success("Fila aleatória gerada com sucesso para TODOS os jogos!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const resetarSorteio = useMutation({
     mutationFn: () => callFn("sorteio", { action: "resetar", admin_pin: adminPin }),
     onSuccess: () => {
@@ -463,19 +475,19 @@ function Page() {
               )}
             </CardContent>
           </div>
-          <CardContent className="pt-0 flex flex-col sm:flex-row gap-2">
+          <CardContent className="pt-0 flex flex-col gap-2">
             {!sorteio?.realizado ? (
               <Button
-                className="w-full btn-touch flex items-center justify-center gap-2"
+                className="w-full btn-touch flex items-center justify-center gap-2 border-primary"
                 disabled={realizarSorteio.isPending || nP === 0}
                 onClick={() => realizarSorteio.mutate()}
               >
                 <Dices className="h-4 w-4" />
-                {realizarSorteio.isPending ? "Sorteando..." : "Realizar Sorteio"}
+                {realizarSorteio.isPending ? "Sorteando..." : "Realizar Sorteio Global Legado"}
               </Button>
             ) : (
               <Button
-                variant="destructive"
+                variant="outline"
                 className="w-full btn-touch flex items-center justify-center gap-2"
                 disabled={resetarSorteio.isPending}
                 onClick={() => {
@@ -485,9 +497,22 @@ function Page() {
                 }}
               >
                 <RefreshCw className="h-4 w-4" />
-                {resetarSorteio.isPending ? "Redefinindo..." : "Redefinir / Limpar Sorteio"}
+                {resetarSorteio.isPending ? "Redefinindo..." : "Limpar Sorteio Global"}
               </Button>
             )}
+            <Button
+              variant="default"
+              className="w-full btn-touch flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={realizarSorteioTodos.isPending || nP === 0}
+              onClick={() => {
+                if (confirm("Deseja gerar/regenerar a fila aleatória para TODOS os jogos do bolão de forma segura?")) {
+                  realizarSorteioTodos.mutate();
+                }
+              }}
+            >
+              <Dices className="h-4 w-4" />
+              {realizarSorteioTodos.isPending ? "Gerando Fila de Jogos..." : "Gerar Fila para TODOS os Jogos"}
+            </Button>
           </CardContent>
         </Card>
 

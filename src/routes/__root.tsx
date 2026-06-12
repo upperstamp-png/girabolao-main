@@ -95,8 +95,7 @@ function RootShell({ children }: { children: ReactNode }) {
 const NAV_LINKS = [
   { to: "/", label: "Início", exact: true },
   { to: "/jogos", label: "⚽ Jogos" },
-  { to: "/artilheiro", label: "🎯 Artilheiro" },
-  { to: "/finalistas", label: "🏆 Finalistas" },
+  { to: "/apostas-especiais", label: "🎰 Apostas" },
   { to: "/ranking", label: "📊 Ranking" },
   { to: "/participantes", label: "👥 Participantes" },
   { to: "/sorteio", label: "🎲 Sorteio" },
