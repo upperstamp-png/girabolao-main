@@ -55,26 +55,35 @@ function Page() {
   });
 
   // Configs
-  const { data: cfgArt } = useQuery({
+  const { data: rawCfgArt } = useQuery({
     queryKey: ["cfg-art"],
     queryFn: async () => (await supabase.from("bolao_config_artilheiro").select("*").eq("id", 1).maybeSingle()).data || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 },
   });
-  const { data: cfgFin } = useQuery({
+  const cfgArt = rawCfgArt || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
+
+  const { data: rawCfgFin } = useQuery({
     queryKey: ["cfg-fin"],
     queryFn: async () => (await supabase.from("bolao_config_finalistas").select("*").eq("id", 1).maybeSingle()).data || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 },
   });
-  const { data: cfgCam } = useQuery({
+  const cfgFin = rawCfgFin || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
+
+  const { data: rawCfgCam } = useQuery({
     queryKey: ["cfg-cam"],
     queryFn: async () => (await supabase.from("bolao_config_campeao").select("*").eq("id", 1).maybeSingle()).data || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 },
   });
-  const { data: cfgZeb } = useQuery({
+  const cfgCam = rawCfgCam || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
+
+  const { data: rawCfgZeb } = useQuery({
     queryKey: ["cfg-zeb"],
     queryFn: async () => (await supabase.from("bolao_config_zebra").select("*").eq("id", 1).maybeSingle()).data || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 },
   });
-  const { data: cfgGol } = useQuery({
+  const cfgZeb = rawCfgZeb || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
+
+  const { data: rawCfgGol } = useQuery({
     queryKey: ["cfg-gol"],
     queryFn: async () => (await supabase.from("bolao_config_goleada").select("*").eq("id", 1).maybeSingle()).data || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 },
   });
+  const cfgGol = rawCfgGol || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
 
   // Bets lists
   const { data: apostasArt } = useQuery({

@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
 
-export const Route = createFileRoute("/jogos")({
+export const Route = createFileRoute("/jogos/")({
   head: () => ({ meta: [{ title: "Jogos — Bolão Copa 2026" }, { name: "description", content: "Todos os jogos da Copa 2026, palpite no placar exato." }] }),
   component: Page,
 });

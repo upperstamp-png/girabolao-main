@@ -12,12 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ParticipantesRouteImport } from './routes/participantes'
-import { Route as JogosRouteImport } from './routes/jogos'
 import { Route as FinalistasRouteImport } from './routes/finalistas'
 import { Route as ArtilheiroRouteImport } from './routes/artilheiro'
 import { Route as ApostasEspeciaisRouteImport } from './routes/apostas-especiais'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JogosIndexRouteImport } from './routes/jogos.index'
 import { Route as JogosIdRouteImport } from './routes/jogos.$id'
 
 const SorteioRoute = SorteioRouteImport.update({
@@ -33,11 +33,6 @@ const RankingRoute = RankingRouteImport.update({
 const ParticipantesRoute = ParticipantesRouteImport.update({
   id: '/participantes',
   path: '/participantes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JogosRoute = JogosRouteImport.update({
-  id: '/jogos',
-  path: '/jogos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinalistasRoute = FinalistasRouteImport.update({
@@ -65,10 +60,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JogosIndexRoute = JogosIndexRouteImport.update({
+  id: '/jogos/',
+  path: '/jogos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JogosIdRoute = JogosIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => JogosRoute,
+  id: '/jogos/$id',
+  path: '/jogos/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -77,11 +77,11 @@ export interface FileRoutesByFullPath {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
-  '/jogos': typeof JogosRouteWithChildren
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
+  '/jogos/': typeof JogosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +89,11 @@ export interface FileRoutesByTo {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
-  '/jogos': typeof JogosRouteWithChildren
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
+  '/jogos': typeof JogosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +102,11 @@ export interface FileRoutesById {
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
   '/finalistas': typeof FinalistasRoute
-  '/jogos': typeof JogosRouteWithChildren
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
   '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
+  '/jogos/': typeof JogosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +116,11 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
-    | '/jogos'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
     | '/jogos/$id'
+    | '/jogos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +128,11 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
-    | '/jogos'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
     | '/jogos/$id'
+    | '/jogos'
   id:
     | '__root__'
     | '/'
@@ -140,11 +140,11 @@ export interface FileRouteTypes {
     | '/apostas-especiais'
     | '/artilheiro'
     | '/finalistas'
-    | '/jogos'
     | '/participantes'
     | '/ranking'
     | '/sorteio'
     | '/jogos/$id'
+    | '/jogos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,10 +153,11 @@ export interface RootRouteChildren {
   ApostasEspeciaisRoute: typeof ApostasEspeciaisRoute
   ArtilheiroRoute: typeof ArtilheiroRoute
   FinalistasRoute: typeof FinalistasRoute
-  JogosRoute: typeof JogosRouteWithChildren
   ParticipantesRoute: typeof ParticipantesRoute
   RankingRoute: typeof RankingRoute
   SorteioRoute: typeof SorteioRoute
+  JogosIdRoute: typeof JogosIdRoute
+  JogosIndexRoute: typeof JogosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -180,13 +181,6 @@ declare module '@tanstack/react-router' {
       path: '/participantes'
       fullPath: '/participantes'
       preLoaderRoute: typeof ParticipantesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/jogos': {
-      id: '/jogos'
-      path: '/jogos'
-      fullPath: '/jogos'
-      preLoaderRoute: typeof JogosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finalistas': {
@@ -224,25 +218,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jogos/': {
+      id: '/jogos/'
+      path: '/jogos'
+      fullPath: '/jogos/'
+      preLoaderRoute: typeof JogosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jogos/$id': {
       id: '/jogos/$id'
-      path: '/$id'
+      path: '/jogos/$id'
       fullPath: '/jogos/$id'
       preLoaderRoute: typeof JogosIdRouteImport
-      parentRoute: typeof JogosRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface JogosRouteChildren {
-  JogosIdRoute: typeof JogosIdRoute
-}
-
-const JogosRouteChildren: JogosRouteChildren = {
-  JogosIdRoute: JogosIdRoute,
-}
-
-const JogosRouteWithChildren = JogosRoute._addFileChildren(JogosRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -250,10 +241,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApostasEspeciaisRoute: ApostasEspeciaisRoute,
   ArtilheiroRoute: ArtilheiroRoute,
   FinalistasRoute: FinalistasRoute,
-  JogosRoute: JogosRouteWithChildren,
   ParticipantesRoute: ParticipantesRoute,
   RankingRoute: RankingRoute,
   SorteioRoute: SorteioRoute,
+  JogosIdRoute: JogosIdRoute,
+  JogosIndexRoute: JogosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
