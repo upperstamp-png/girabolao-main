@@ -6,8 +6,5 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // Força o Nitro a rodar e prepara os arquivos para os servidores da Vercel
-  nitro: {
-    preset: "vercel"
-  }
+  // Nitro detecta automaticamente o ambiente Vercel — não definir preset manualmente
 });
