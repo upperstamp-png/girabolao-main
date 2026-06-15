@@ -407,25 +407,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- Handle phase transitions: when oitavas start, block special bets ----
-    const { data: primeiroOitavas } = await supabase.from("bolao_jogos").select("data_hora").eq("fase", "oitavas").order("data_hora").limit(1).maybeSingle();
-    if (primeiroOitavas?.data_hora) {
-      const inicioOitavas = new Date(primeiroOitavas.data_hora);
-      if (!isNaN(inicioOitavas.getTime()) && inicioOitavas <= new Date()) {
-        // lock modules: finalistas, campeao, zebra, goleada
-        const lockPayload = { status: 'fechada', prazo_fim: primeiroOitavas.data_hora };
-        await supabase.from("bolao_config_finalistas").update(lockPayload).eq("id", 1);
-        await supabase.from("bolao_config_campeao").update(lockPayload).eq("id", 1);
-        await supabase.from("bolao_config_zebra").update(lockPayload).eq("id", 1);
-        await supabase.from("bolao_config_goleada").update(lockPayload).eq("id", 1);
-      } else {
-        // if oitavas exist but haven't started yet, ensure finalistas config is opened with prazo_fim
-        const { data: cfgFin } = await supabase.from("bolao_config_finalistas").select("status").eq("id", 1).single();
-        if (cfgFin?.status === "fechada") {
-          await supabase.from("bolao_config_finalistas").update({ status: "aberta", prazo_fim: primeiroOitavas.data_hora }).eq("id", 1);
-        }
-      }
-    }
+    // ---- Handle phase transitions disabled (special bets always open) ----
 
     // ---- Atualizar config ----
     chamadasHoje += apiFootballCalls;

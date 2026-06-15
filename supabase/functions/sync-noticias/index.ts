@@ -78,34 +78,7 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (primeiroJogo) {
-      const kickoff = new Date(primeiroJogo.data_hora);
-      const deadline = new Date(kickoff.getTime() - 60 * 60 * 1000); // 1h antes
-      const agora = new Date();
-
-      if (agora >= deadline && statusAtual === "ABERTO") {
-        logs.push(`Prazo atingido! Fechando o bolão. (Prazo: ${deadline.toISOString()}, Agora: ${agora.toISOString()})`);
-        
-        // Fechar bolão e liberar palpites
-        const { error: updateErr } = await supabase
-          .from("bolao_config")
-          .update({ status: "FECHADO", palpites_liberados: true })
-          .eq("id", 1);
-
-        if (updateErr) throw updateErr;
-
-        // Registrar no log de automações
-        await supabase.from("bolao_automacoes_log").insert({
-          acao: "fechamento_bolao",
-          status: "sucesso",
-          detalhes: {
-            mensagem: "Bolão fechado e palpites liberados automaticamente.",
-            deadline: deadline.toISOString(),
-            primeiro_jogo: primeiroJogo.data_hora
-          }
-        });
-      }
-    }
+    // ---- Automatic global closing logic disabled ----
 
     // 2. SINCRONIZAR NOTÍCIAS (COM CACHE)
     let noticiasAdicionadas = 0;

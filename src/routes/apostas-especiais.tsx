@@ -709,7 +709,7 @@ function SpecialBetTab({
               <Badge variant={isAberta ? "success" : "secondary"} className="capitalize">
                 {status}
               </Badge>
-              {isAberta && prazoFim && (
+              {isAberta && prazoFim && new Date(prazoFim).getFullYear() < 2090 && (
                 <Badge variant="outline" className="text-xs">
                   Fecha em: {countdown(prazoFim)}
                 </Badge>
