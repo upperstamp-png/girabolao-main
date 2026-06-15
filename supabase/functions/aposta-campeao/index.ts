@@ -11,9 +11,8 @@ Deno.serve(async (req) => {
     const time = String(body.time ?? "").trim();
     if (!time) return json({ error: "Time inválido" }, 400);
 
-    const { data: cfg } = await supabase.from("bolao_config_campeao").select("status, prazo_fim").eq("id", 1).single();
-    if (cfg?.status !== "aberta") return json({ error: "Apostas fechadas" }, 400);
-    if (cfg.prazo_fim && new Date(cfg.prazo_fim) <= new Date()) return json({ error: "Prazo encerrado" }, 400);
+    const { data: cfg } = await supabase.from("bolao_config_campeao").select("status").eq("id", 1).single();
+    if (cfg?.status === "apurada") return json({ error: "Campeão já apurado — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);

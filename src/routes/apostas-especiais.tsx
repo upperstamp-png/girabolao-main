@@ -230,7 +230,8 @@ function Page() {
     return config?.status === "FECHADO" || config?.status === "FINALIZADO";
   }, [config]);
 
-  const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status !== "aberta" || (cfgArt.prazo_fim && new Date(cfgArt.prazo_fim) <= new Date());
+  // Artilheiro: bloqueado apenas se o bolão estiver fechado globalmente, ou a aposta já foi apurada, ou já apostou (imutável)
+  const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status === "apurada";
   const isArtilheiroImmutable = !!minhaApostaArt?.jogador_apostado;
 
 
@@ -281,7 +282,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgArt.artilheiro_real}
               form={
-                (cfgArt.status === "aberta" && !isArtilheiroClosed && !isArtilheiroImmutable) ? (
+                (!isArtilheiroClosed && !isArtilheiroImmutable) ? (
                   <div className="space-y-4 pt-3 border-t border-border">
                     {minhaApostaArt?.jogador_apostado && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -378,7 +379,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgFin.finalista1_real && cfgFin.finalista2_real ? `${flag(cfgFin.finalista1_real)} ${cfgFin.finalista1_real} x ${cfgFin.finalista2_real} ${flag(cfgFin.finalista2_real)}` : null}
               form={
-                (cfgFin.status === "aberta" && !isBolaoFechadoGlobal) ? (
+                (!isBolaoFechadoGlobal && cfgFin.status !== "apurada") ? (
                   <div className="space-y-3 pt-3 border-t border-border">
                     {minhaApostaFin?.time1 && minhaApostaFin?.time2 && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -450,7 +451,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgCam.campeao_real ? `${flag(cfgCam.campeao_real)} ${cfgCam.campeao_real}` : null}
               form={
-                (cfgCam.status === "aberta" && !isBolaoFechadoGlobal) ? (
+                (!isBolaoFechadoGlobal && cfgCam.status !== "apurada") ? (
                   <div className="space-y-3 pt-3 border-t border-border">
                     {minhaApostaCam?.time_campeao && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -506,7 +507,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgZeb.zebra_real ? `${flag(cfgZeb.zebra_real)} ${cfgZeb.zebra_real}` : null}
               form={
-                (cfgZeb.status === "aberta" && !isBolaoFechadoGlobal) ? (
+                (!isBolaoFechadoGlobal && cfgZeb.status !== "apurada") ? (
                   <div className="space-y-3 pt-3 border-t border-border">
                     {minhaApostaZeb?.zebra_apostada && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -562,7 +563,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgGol.goleada_time_casa_real ? `${flag(cfgGol.goleada_time_casa_real)} ${cfgGol.goleada_time_casa_real} ${cfgGol.goleada_gols_casa_real} x ${cfgGol.goleada_gols_fora_real} ${cfgGol.goleada_time_fora_real} ${flag(cfgGol.goleada_time_fora_real)}` : null}
               form={
-                (cfgGol.status === "aberta" && !isBolaoFechadoGlobal) ? (
+                (!isBolaoFechadoGlobal && cfgGol.status !== "apurada") ? (
                   <div className="space-y-4 pt-3 border-t border-border">
                     {minhaApostaGol?.time_casa && minhaApostaGol?.time_fora && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">

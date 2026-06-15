@@ -19,9 +19,8 @@ Deno.serve(async (req) => {
       return json({ error: "Placar de gols inválido" }, 400);
     }
 
-    const { data: cfg } = await supabase.from("bolao_config_goleada").select("status, prazo_fim").eq("id", 1).single();
-    if (cfg?.status !== "aberta") return json({ error: "Apostas fechadas" }, 400);
-    if (cfg.prazo_fim && new Date(cfg.prazo_fim) <= new Date()) return json({ error: "Prazo encerrado" }, 400);
+    const { data: cfg } = await supabase.from("bolao_config_goleada").select("status").eq("id", 1).single();
+    if (cfg?.status === "apurada") return json({ error: "Goleada já apurada — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);

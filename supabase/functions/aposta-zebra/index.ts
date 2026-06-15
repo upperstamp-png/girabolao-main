@@ -11,9 +11,8 @@ Deno.serve(async (req) => {
     const zebra = String(body.zebra ?? "").trim();
     if (!zebra) return json({ error: "Time zebra inválido" }, 400);
 
-    const { data: cfg } = await supabase.from("bolao_config_zebra").select("status, prazo_fim").eq("id", 1).single();
-    if (cfg?.status !== "aberta") return json({ error: "Apostas fechadas" }, 400);
-    if (cfg.prazo_fim && new Date(cfg.prazo_fim) <= new Date()) return json({ error: "Prazo encerrado" }, 400);
+    const { data: cfg } = await supabase.from("bolao_config_zebra").select("status").eq("id", 1).single();
+    if (cfg?.status === "apurada") return json({ error: "Zebra já apurada — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
