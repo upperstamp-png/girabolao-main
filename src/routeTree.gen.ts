@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SorteioRouteImport } from './routes/sorteio'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as ParticipantesRouteImport } from './routes/participantes'
 import { Route as PalpitesParticipantesRouteImport } from './routes/palpites-participantes'
@@ -22,11 +21,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as JogosIndexRouteImport } from './routes/jogos.index'
 import { Route as JogosIdRouteImport } from './routes/jogos.$id'
 
-const SorteioRoute = SorteioRouteImport.update({
-  id: '/sorteio',
-  path: '/sorteio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
-  '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
   '/jogos/': typeof JogosIndexRoute
 }
@@ -107,7 +100,6 @@ export interface FileRoutesByTo {
   '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
-  '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
   '/jogos': typeof JogosIndexRoute
 }
@@ -122,7 +114,6 @@ export interface FileRoutesById {
   '/palpites-participantes': typeof PalpitesParticipantesRoute
   '/participantes': typeof ParticipantesRoute
   '/ranking': typeof RankingRoute
-  '/sorteio': typeof SorteioRoute
   '/jogos/$id': typeof JogosIdRoute
   '/jogos/': typeof JogosIndexRoute
 }
@@ -138,7 +129,6 @@ export interface FileRouteTypes {
     | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
-    | '/sorteio'
     | '/jogos/$id'
     | '/jogos/'
   fileRoutesByTo: FileRoutesByTo
@@ -152,7 +142,6 @@ export interface FileRouteTypes {
     | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
-    | '/sorteio'
     | '/jogos/$id'
     | '/jogos'
   id:
@@ -166,7 +155,6 @@ export interface FileRouteTypes {
     | '/palpites-participantes'
     | '/participantes'
     | '/ranking'
-    | '/sorteio'
     | '/jogos/$id'
     | '/jogos/'
   fileRoutesById: FileRoutesById
@@ -181,20 +169,12 @@ export interface RootRouteChildren {
   PalpitesParticipantesRoute: typeof PalpitesParticipantesRoute
   ParticipantesRoute: typeof ParticipantesRoute
   RankingRoute: typeof RankingRoute
-  SorteioRoute: typeof SorteioRoute
   JogosIdRoute: typeof JogosIdRoute
   JogosIndexRoute: typeof JogosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sorteio': {
-      id: '/sorteio'
-      path: '/sorteio'
-      fullPath: '/sorteio'
-      preLoaderRoute: typeof SorteioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ranking': {
       id: '/ranking'
       path: '/ranking'
@@ -285,7 +265,6 @@ const rootRouteChildren: RootRouteChildren = {
   PalpitesParticipantesRoute: PalpitesParticipantesRoute,
   ParticipantesRoute: ParticipantesRoute,
   RankingRoute: RankingRoute,
-  SorteioRoute: SorteioRoute,
   JogosIdRoute: JogosIdRoute,
   JogosIndexRoute: JogosIndexRoute,
 }

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (req.method === "GET") {
       const { data, error } = await supabase
         .from("bolao_usuarios")
-        .select("id, nome, criado_em, pin_hash, e_participante_padrao, excluido_manualmente, ordem_sorteio")
+        .select("id, nome, criado_em, pin_hash, e_participante_padrao, excluido_manualmente")
         .eq("excluido_manualmente", false)
         .order("criado_em");
       if (error) throw error;
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
       const { data: usuario, error } = await supabase
         .from("bolao_usuarios")
-        .select("id, nome, e_participante_padrao, ordem_sorteio")
+        .select("id, nome, e_participante_padrao")
         .eq("id", v.id)
         .single();
       if (error) throw error;
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         .from("bolao_usuarios")
         .update({ nome: novoNome, pin_hash: await hashPin(novoPin) })
         .eq("id", v.id)
-        .select("id, nome, e_participante_padrao, ordem_sorteio")
+        .select("id, nome, e_participante_padrao")
         .single();
       if (error) throw error;
 

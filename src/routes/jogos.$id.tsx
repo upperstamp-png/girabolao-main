@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { IdentidadePicker, type Identidade } from "@/components/IdentidadePicker";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
-import { Minus, Plus, Dices } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/jogos/$id")({
   head: () => ({ meta: [{ title: "Palpite — Bolão Copa 2026" }, { name: "description", content: "Palpite no placar exato deste jogo." }] }),
@@ -67,11 +67,7 @@ function Page() {
     enabled: !!id,
   });
 
-  const { data: sorteio, isLoading: loadingSorteio } = useQuery({
-    queryKey: ["sorteio-jogo", id],
-    queryFn: async () => callFn<any>("sorteio", undefined, "GET", 1, { jogo_id: id }),
-    refetchInterval: 10000,
-  });
+
 
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
@@ -179,7 +175,7 @@ function Page() {
   const nP = palpites?.length ?? 0;
   const poolEstimado = nP * Number(jogo.valor_entrada) + acumulado;
   const nomeMap = new Map((usuarios ?? []).map(u => [u.id, u.nome]));
-  const ordem = sorteio?.ordem ?? [];
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-in">
@@ -244,50 +240,7 @@ function Page() {
         </Card>
       )}
 
-      {/* Sorteio deste jogo — apenas informativo */}
-      {sorteio?.realizado && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Dices className="h-5 w-5 text-primary" />
-              Ordem do sorteio
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingSorteio ? (
-              <p className="text-sm text-muted-foreground text-center py-2">Carregando...</p>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  Ordem sorteada para este jogo (apenas informativo — qualquer participante pode apostar a qualquer momento).
-                </p>
-                <ol className="space-y-1.5">
-                  {(sorteio?.ordem ?? []).map((o: { usuario_id: string; posicao: number; nome: string }) => {
-                    const apostou = comPalpite.has(o.usuario_id);
-                    const ehEu = o.usuario_id === identidade?.id;
-                    return (
-                      <li
-                        key={o.usuario_id}
-                        className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
-                          apostou ? "border-border bg-secondary/20 opacity-80" : "border-border"
-                        }`}
-                      >
-                        <span>
-                          {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
-                          {" "}{o.nome}{ehEu ? " (você)" : ""}
-                        </span>
-                        <Badge variant={apostou ? "secondary" : "outline"}>
-                          {apostou ? "Apostou" : "Não apostou"}
-                        </Badge>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
+
 
       {!prazoExpirado && (
         <Card>

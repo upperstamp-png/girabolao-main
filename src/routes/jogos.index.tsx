@@ -37,27 +37,7 @@ function Page() {
     },
   });
 
-  const { data: ordens } = useQuery({
-    queryKey: ["sorteio-jogos-all"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bolao_sorteio_jogo_ordem")
-        .select("jogo_id, usuario_id, posicao, bolao_usuarios(nome)");
-      return data ?? [];
-    },
-    refetchInterval: 15000,
-  });
 
-  const { data: palpites } = useQuery({
-    queryKey: ["palpites-all"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bolao_palpites_publica")
-        .select("jogo_id, usuario_id");
-      return data ?? [];
-    },
-    refetchInterval: 15000,
-  });
 
   const filtrados = (jogos ?? []).filter(j => fase === "todos" || j.fase === fase);
   const isLoading = loadingJogos;
@@ -112,45 +92,11 @@ function Page() {
             {filtrados.map(j => {
               const future = new Date(j.data_hora) > new Date();
 
-              // Calculate lottery queue for this game
-              const ordemJogo = (ordens ?? []).filter((o: any) => o.jogo_id === j.id).sort((a: any, b: any) => a.posicao - b.posicao);
-              const palpitesJogo = new Set((palpites ?? []).filter((p: any) => p.jogo_id === j.id).map((p: any) => p.usuario_id));
 
-              let vezNome = "Não sorteado";
-              let minhaVez = false;
-              let minhaPosicao: number | undefined = undefined;
-              const isBolaoFechadoGlobal = config?.status === "FECHADO" || config?.status === "FINALIZADO";
-
-              const dataHoraJogo = new Date(j.data_hora);
-              const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000);
-              const prazoExpirado = isBolaoFechadoGlobal || dataHoraLimite <= new Date();
-
-              if (ordemJogo.length > 0) {
-                if (prazoExpirado) {
-                  vezNome = "Prazo expirado";
-                } else {
-                  vezNome = "Finalizado";
-                  const oEu = ordemJogo.find((o: any) => o.usuario_id === identidade?.id);
-                  minhaPosicao = oEu?.posicao;
-
-                  for (const item of ordemJogo) {
-                    if (!palpitesJogo.has(item.usuario_id)) {
-                      const nomeParticipante = item.bolao_usuarios?.nome ?? "Outro";
-                      vezNome = `Vez de: ${nomeParticipante}`;
-                      if (item.usuario_id === identidade?.id) {
-                        minhaVez = true;
-                      }
-                      break;
-                    }
-                  }
-                }
-              }
 
               return (
                 <Link key={j.id} to="/jogos/$id" params={{ id: j.id }}>
-                  <Card className={`hover:shadow-glow transition-all cursor-pointer active:scale-[0.99] border-2 ${
-                    minhaVez ? "border-green-500 bg-green-500/10 card-minha-vez" : "border-border"
-                  }`}>
+                  <Card className="hover:shadow-glow transition-all cursor-pointer active:scale-[0.99] border-2 border-border">
                     <CardContent className="py-3 sm:py-4">
                       <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                         <span className="truncate">{FASES_LABEL[j.fase]}</span>
@@ -176,19 +122,7 @@ function Page() {
                         </div>
                       </div>
 
-                      {/* Info da fila e vez */}
-                      {future && (
-                        <div className="mt-2.5 pt-2.5 border-t border-border/50 flex justify-between items-center text-[11px]">
-                          <span className={`${minhaVez ? "text-green-400 font-bold" : "text-muted-foreground"}`}>
-                            {minhaVez ? "👉 É SUA VEZ!" : vezNome}
-                          </span>
-                          {minhaPosicao != null && (
-                            <span className="text-muted-foreground font-mono">
-                              Sua posição: {minhaPosicao}º
-                            </span>
-                          )}
-                        </div>
-                      )}
+
 
                       <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
                         {j.e_brasil && <Badge className="bg-gold-gradient text-black text-xs">Brasil • R$10</Badge>}

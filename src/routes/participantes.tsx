@@ -32,10 +32,7 @@ function Page() {
     queryFn: async () => callFn<any[]>("usuarios", undefined, "GET"),
   });
 
-  const { data: sorteio } = useQuery({
-    queryKey: ["sorteio"],
-    queryFn: async () => callFn<any>("sorteio", undefined, "GET"),
-  });
+
 
   const criar = useMutation({
     mutationFn: () => callFn("usuarios", { action: "create", nome: nome.trim(), pin: pin.trim() || null }),
@@ -81,8 +78,7 @@ function Page() {
   });
 
   const total = usuarios?.length ?? 0;
-  const sorteioRealizado = sorteio?.realizado ?? false;
-  const ordemMap = new Map<string, number>((sorteio?.ordem ?? []).map((o: any) => [o.usuario_id, o.posicao]));
+
 
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-in">
@@ -173,41 +169,29 @@ function Page() {
               </div>
             ) : (
               <ul className="divide-y divide-border">
-                {usuarios!.map((u: any) => {
-                  const pos = ordemMap.get(u.id);
-                  return (
-                    <li key={u.id} className="flex items-center justify-between py-3 gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {sorteioRealizado && pos && (
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                            pos === 1 ? "bg-gold-gradient text-black" :
-                            pos === 2 ? "bg-secondary text-foreground" :
-                            "bg-muted text-muted-foreground"
-                          }`}>
-                            {pos}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">{u.nome}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            {u.tem_pin ? "🔒 PIN" : "Sem PIN"}
-                            {u.e_participante_padrao && <Badge variant="outline" className="text-xs py-0">Padrão</Badge>}
-                          </div>
+                {usuarios!.map((u: any) => (
+                  <li key={u.id} className="flex items-center justify-between py-3 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{u.nome}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          {u.tem_pin ? "🔒 PIN" : "Sem PIN"}
+                          {u.e_participante_padrao && <Badge variant="outline" className="text-xs py-0">Padrão</Badge>}
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="shrink-0 btn-touch"
-                        onClick={() => {
-                          if (confirm(`Remover ${u.nome}?`)) remover.mutate(u.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </li>
-                  );
-                })}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="shrink-0 btn-touch"
+                      onClick={() => {
+                        if (confirm(`Remover ${u.nome}?`)) remover.mutate(u.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </li>
+                ))}
               </ul>
             )
           )}
@@ -261,30 +245,7 @@ function Page() {
         )}
       </Card>
 
-      {/* Sorteio preview */}
-      {sorteioRealizado && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>🎲 Ordem do sorteio</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-2">
-              {(sorteio?.ordem ?? []).map((o: any) => (
-                <li key={o.usuario_id} className={`flex items-center gap-3 p-2 rounded-lg border border-border sorteio-item ${
-                  o.posicao === 1 ? "sorteio-posicao-1" :
-                  o.posicao === 2 ? "sorteio-posicao-2" :
-                  o.posicao === 3 ? "sorteio-posicao-3" : ""
-                }`}>
-                  <span className="text-display text-xl w-8 text-center">
-                    {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : o.posicao}
-                  </span>
-                  <span className="font-medium">{o.nome}</span>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
+
     </div>
   );
 }
