@@ -84,7 +84,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head><HeadContent /></head>
-      <body className="font-[Inter,TwemojiCountryFlags,sans-serif]">
+      <body className="font-sans">
         {children}
         <Scripts />
       </body>

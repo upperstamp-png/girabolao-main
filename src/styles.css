@@ -39,7 +39,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-display: "Bebas Neue", "Impact", sans-serif;
+  --font-sans: "Inter", "TwemojiCountryFlags", sans-serif;
+  --font-display: "Bebas Neue", "Impact", "TwemojiCountryFlags", sans-serif;
 }
 
 :root {
