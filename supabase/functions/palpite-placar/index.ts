@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const { data: jogo } = await supabase
       .from("bolao_jogos")
-      .select("id, data_hora, status, time_casa, time_fora")
+      .select("id, data_hora, status, time_casa, time_fora, minuto_jogo")
       .eq("id", jogo_id)
       .single();
     if (!jogo) return json({ error: "Jogo não encontrado" }, 404);
@@ -45,6 +45,11 @@ Deno.serve(async (req) => {
     // Bloquear alteração após resultado confirmado (encerrado ou apurado)
     if (jogo.status === "encerrado" || jogo.status === "apurado") {
       return json({ error: "O resultado deste jogo já foi confirmado. Palpites não podem mais ser alterados." }, 400);
+    }
+
+    // Permitir apenas durante o primeiro tempo (até 45 min) — bloquear no intervalo ou segundo tempo
+    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) {
+      return json({ error: "Palpites encerrados — o intervalo já passou (limite: 1º tempo)." }, 400);
     }
 
     // Buscar palpite antigo antes do upsert para registrar auditoria

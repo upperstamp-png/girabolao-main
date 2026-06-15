@@ -123,6 +123,9 @@ function Page() {
     // Resultado confirmado — não pode mais apostar/alterar
     if (jogo.status === "encerrado" || jogo.status === "apurado") return true;
 
+    // Ao vivo: só permite no 1º tempo (até 45 min)
+    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) return true;
+
     // Verificar se o bolão está fechado globalmente
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
 
@@ -134,6 +137,9 @@ function Page() {
     if (!jogo) return null;
     if (jogo.status === "encerrado" || jogo.status === "apurado") {
       return "Resultado confirmado. Palpites não podem mais ser alterados.";
+    }
+    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) {
+      return "Intervalo/2º tempo — palpites encerrados para este jogo.";
     }
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") {
       return "Bolão encerrado. Palpites não são mais aceitos.";
