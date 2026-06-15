@@ -1,6 +1,5 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
-import { buscarOrdemJogo, verificarVezNaSequencia } from "../_shared/sorteio.ts";
 
 function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
   console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
@@ -36,7 +35,6 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-
     const { data: jogo } = await supabase
       .from("bolao_jogos")
       .select("id, data_hora, status, time_casa, time_fora")
@@ -44,60 +42,15 @@ Deno.serve(async (req) => {
       .single();
     if (!jogo) return json({ error: "Jogo não encontrado" }, 404);
 
+    // Bloquear alteração após resultado confirmado (encerrado ou apurado)
+    if (jogo.status === "encerrado" || jogo.status === "apurado") {
+      return json({ error: "O resultado deste jogo já foi confirmado. Palpites não podem mais ser alterados." }, 400);
+    }
+
     const dataHoraJogo = new Date(jogo.data_hora);
     const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
     if (dataHoraLimite <= new Date()) {
       return json({ error: "Prazo de palpite encerrado — o limite é de até 1 hora antes da partida" }, 400);
-    }
-
-    // Sorteio por jogo: respeitar sequência de palpites
-    const ordem = await buscarOrdemJogo(supabase, jogo_id);
-    if (ordem.length === 0) {
-      return json({ error: "Sorteio deste jogo ainda não foi realizado. Abra o jogo para iniciar o sorteio." }, 400);
-    }
-
-    const { data: palpitesJogo } = await supabase
-      .from("bolao_palpites")
-      .select("usuario_id")
-      .eq("jogo_id", jogo_id);
-    const comPalpite = new Set((palpitesJogo ?? []).map((p: { usuario_id: string }) => p.usuario_id));
-
-    const vez = verificarVezNaSequencia(ordem, v.id, comPalpite);
-    if (!vez.ok) {
-      log("WARN", `Fora da vez: ${nome} no jogo ${jogo_id}`, { aguardando: vez.aguardando });
-      return json({ error: vez.error }, 409);
-    }
-
-    // Verificar exclusividade de placar (se configurado)
-    const { data: cfg } = await supabase
-      .from("bolao_config")
-      .select("exclusividade_placar")
-      .eq("id", 1)
-      .single();
-
-    if (cfg?.exclusividade_placar) {
-      const { data: duplicado } = await supabase
-        .from("bolao_palpites")
-        .select("usuario_id")
-        .eq("jogo_id", jogo_id)
-        .eq("gols_casa", gols_casa)
-        .eq("gols_fora", gols_fora)
-        .neq("usuario_id", v.id)
-        .maybeSingle();
-
-      if (duplicado) {
-        // Buscar nome do participante que já escolheu esse placar
-        const { data: outro } = await supabase
-          .from("bolao_usuarios")
-          .select("nome")
-          .eq("id", duplicado.usuario_id)
-          .single();
-        const nomeOutro = outro?.nome ?? "outro participante";
-        log("WARN", `Placar duplicado bloqueado: ${gols_casa}x${gols_fora} para jogo ${jogo_id}`, { por: nomeOutro, tentativa: nome });
-        return json({
-          error: `Placar ${gols_casa}×${gols_fora} já foi escolhido por ${nomeOutro}. Escolha um resultado diferente.`,
-        }, 409);
-      }
     }
 
     // Buscar palpite antigo antes do upsert para registrar auditoria

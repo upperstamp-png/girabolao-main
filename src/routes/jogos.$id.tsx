@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
 import { supabase, callFn, flag, countdown, fmtBRL, FASES_LABEL, getIdentidade } from "@/lib/bolao";
 import { pollIntervalForStatus } from "@/lib/realtime";
-import { verificarVezNaSequencia } from "@/lib/sorteio";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,15 +73,6 @@ function Page() {
     refetchInterval: 10000,
   });
 
-  const realizarSorteio = useMutation({
-    mutationFn: () => callFn("sorteio", { action: "realizar", jogo_id: id }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sorteio-jogo", id] });
-      toast.success("Sorteio deste jogo realizado!");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
     queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
@@ -130,6 +120,9 @@ function Page() {
   const prazoExpirado = useMemo(() => {
     if (!jogo) return true;
 
+    // Resultado confirmado — não pode mais apostar/alterar
+    if (jogo.status === "encerrado" || jogo.status === "apurado") return true;
+
     // Verificar se o bolão está fechado globalmente
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
 
@@ -138,24 +131,20 @@ function Page() {
     return dataHoraLimite <= new Date();
   }, [jogo, config]);
 
-
-  const vez = useMemo(() => {
-    const res = verificarVezNaSequencia(sorteio?.ordem ?? [], identidade?.id, comPalpite);
+  // Mensagem de status para exibir ao usuário
+  const mensagemBloqueio = useMemo(() => {
+    if (!jogo) return null;
+    if (jogo.status === "encerrado" || jogo.status === "apurado") {
+      return "Resultado confirmado. Palpites não podem mais ser alterados.";
+    }
+    if (config?.status === "FECHADO" || config?.status === "FINALIZADO") {
+      return "Bolão encerrado. Palpites não são mais aceitos.";
+    }
     if (prazoExpirado) {
-      return { podeApostar: false, mensagem: "Prazo de palpite encerrado (limite de 1 hora antes do jogo)." };
+      return "Prazo de palpite encerrado (limite de 1 hora antes do jogo).";
     }
-    return res;
-  }, [sorteio?.ordem, identidade?.id, comPalpite, prazoExpirado]);
-
-  const ehMinhaVezDeFato = useMemo(() => {
-    if (prazoExpirado || !identidade?.id || !sorteio?.ordem || !sorteio?.realizado) return false;
-    for (const item of (sorteio.ordem ?? [])) {
-      if (!comPalpite.has(item.usuario_id)) {
-        return item.usuario_id === identidade.id;
-      }
-    }
-    return false;
-  }, [sorteio?.ordem, comPalpite, identidade?.id, prazoExpirado, sorteio?.realizado]);
+    return null;
+  }, [jogo, config, prazoExpirado]);
 
   useEffect(() => {
     if (!jogo || !identidade || !palpites) return;
@@ -195,9 +184,7 @@ function Page() {
     <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-in">
       <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground">← Todos os jogos</Link>
 
-      <Card className={`bg-pitch shadow-card border-2 ${
-        ehMinhaVezDeFato ? "border-green-500 bg-green-500/5 card-minha-vez" : "border-border"
-      }`}>
+      <Card className="bg-pitch shadow-card border-2 border-border">
         <CardContent className="py-6 sm:py-8 text-center px-4">
           <div className="text-xs text-muted-foreground mb-3">
             {FASES_LABEL[jogo.fase]} • {new Date(jogo.data_hora).toLocaleString("pt-BR")}
@@ -262,80 +249,70 @@ function Page() {
         </Card>
       )}
 
-      {/* Sorteio deste jogo */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Dices className="h-5 w-5 text-primary" />
-            Sorteio deste jogo
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {loadingSorteio || realizarSorteio.isPending ? (
-            <p className="text-sm text-muted-foreground text-center py-2">Realizando sorteio...</p>
-          ) : !sorteio?.realizado ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground">Aguardando o administrador realizar o sorteio deste jogo.</p>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs text-muted-foreground">
-                Palpites seguem esta ordem. Quem já apostou pode alterar o palpite a qualquer momento.
-              </p>
-              <ol className="space-y-1.5">
-                {ordem.map((o: { usuario_id: string; posicao: number; nome: string }) => {
-                  const apostou = comPalpite.has(o.usuario_id);
-                  const ehEu = o.usuario_id === identidade?.id;
-                  const ehVez = !apostou && vez.aguardando === o.nome;
-                  return (
-                    <li
-                      key={o.usuario_id}
-                      className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
-                        ehVez ? "border-primary bg-primary/10 font-semibold" :
-                        apostou ? "border-border bg-secondary/20 opacity-80" :
-                        "border-border"
-                      }`}
-                    >
-                      <span>
-                        {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
-                        {" "}{o.nome}{ehEu ? " (você)" : ""}
-                      </span>
-                      <Badge variant={apostou ? "secondary" : ehVez ? "default" : "outline"}>
-                        {apostou ? "Apostou" : ehVez ? "Sua vez" : "Aguardando"}
-                      </Badge>
-                    </li>
-                  );
-                })}
-              </ol>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {/* Sorteio deste jogo — apenas informativo */}
+      {sorteio?.realizado && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Dices className="h-5 w-5 text-primary" />
+              Ordem do sorteio
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loadingSorteio ? (
+              <p className="text-sm text-muted-foreground text-center py-2">Carregando...</p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Ordem sorteada para este jogo (apenas informativo — qualquer participante pode apostar a qualquer momento).
+                </p>
+                <ol className="space-y-1.5">
+                  {(sorteio?.ordem ?? []).map((o: { usuario_id: string; posicao: number; nome: string }) => {
+                    const apostou = comPalpite.has(o.usuario_id);
+                    const ehEu = o.usuario_id === identidade?.id;
+                    return (
+                      <li
+                        key={o.usuario_id}
+                        className={`flex items-center justify-between p-2 rounded-lg border text-sm ${
+                          apostou ? "border-border bg-secondary/20 opacity-80" : "border-border"
+                        }`}
+                      >
+                        <span>
+                          {o.posicao === 1 ? "🥇" : o.posicao === 2 ? "🥈" : o.posicao === 3 ? "🥉" : `${o.posicao}º`}
+                          {" "}{o.nome}{ehEu ? " (você)" : ""}
+                        </span>
+                        <Badge variant={apostou ? "secondary" : "outline"}>
+                          {apostou ? "Apostou" : "Não apostou"}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      {future && (
+      {!prazoExpirado && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Seu palpite</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <IdentidadePicker value={identidade} onChange={setIdentidade} />
-            {!vez.podeApostar && vez.mensagem && (
-              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-                {vez.mensagem}
-              </div>
-            )}
             <div className="grid grid-cols-2 gap-4">
               <GolInput
                 label={`${flag(jogo.time_casa)} ${jogo.time_casa}`}
                 value={gc}
                 onChange={setGc}
-                disabled={!vez.podeApostar}
+                disabled={false}
               />
               <GolInput
                 label={`${flag(jogo.time_fora)} ${jogo.time_fora}`}
                 value={gf}
                 onChange={setGf}
-                disabled={!vez.podeApostar}
+                disabled={false}
               />
             </div>
             <div className="text-center text-display text-3xl text-muted-foreground py-1">
@@ -343,7 +320,7 @@ function Page() {
             </div>
             <Button
               onClick={() => enviar.mutate()}
-              disabled={!identidade?.nome || !vez.podeApostar || !sorteio?.realizado || enviar.isPending}
+              disabled={!identidade?.nome || enviar.isPending}
               className="w-full btn-touch"
               size="lg"
             >
@@ -351,6 +328,12 @@ function Page() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {prazoExpirado && mensagemBloqueio && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 text-center">
+          🔒 {mensagemBloqueio}
+        </div>
       )}
 
       <Card>
