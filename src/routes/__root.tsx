@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { Trophy, LogOut } from "lucide-react";
+import { Trophy, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,40 +93,40 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 const NAV_LINKS = [
-  { to: "/", label: "Início", exact: true },
+  { to: "/", label: "🏠 Início", exact: true },
   { to: "/jogos", label: "⚽ Jogos" },
   { to: "/palpites-participantes", label: "📋 Palpites" },
   { to: "/apostas-especiais", label: "🎰 Apostas" },
   { to: "/ranking", label: "📊 Ranking" },
   { to: "/noticias", label: "📰 Notícias" },
   { to: "/participantes", label: "👥 Participantes" },
-  { to: "/sorteio", label: "🎲 Sorteio" },
   { to: "/admin", label: "⚙️ Admin" },
 ] as const;
-
 
 function Nav() {
   const location = useLocation();
   const [identidade] = useState<Identidade | null>(() => getIdentidade());
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const isActive = (to: string, exact = false) =>
+    exact ? location.pathname === to : location.pathname.startsWith(to);
 
   const linkBase = "px-3 py-2 text-sm font-medium transition-colors rounded-md";
   const linkInactive = `${linkBase} text-muted-foreground hover:text-foreground hover:bg-secondary/50`;
   const linkActive = `${linkBase} text-primary bg-primary/10 font-semibold`;
 
-  const isActive = (to: string, exact = false) =>
-    exact ? location.pathname === to : location.pathname.startsWith(to);
-
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border" style={{ height: "var(--nav-height)" }}>
-      <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-full gap-4">
+    <header className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border">
+      {/* Main bar */}
+      <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-14 gap-2">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+        <Link to="/" className="flex items-center gap-2 shrink-0" onClick={() => setIsMenuOpen(false)}>
           <Trophy className="h-5 w-5 text-primary" />
-          <span className="text-display text-lg leading-none hidden sm:inline">Bolão Copa 2026</span>
+          <span className="text-display text-lg leading-none">Bolão Copa 2026</span>
         </Link>
 
-        {/* Navigation list - always scrollable horizontally on mobile */}
-        <nav className="flex items-center gap-0.5 overflow-x-auto py-1">
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-0.5 overflow-x-auto">
           {NAV_LINKS.map(({ to, label, exact }) => (
             <Link key={to} to={to} className={isActive(to, exact) ? linkActive : linkInactive}>
               {label}
@@ -134,17 +134,56 @@ function Nav() {
           ))}
         </nav>
 
-        <button
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md shrink-0 btn-touch"
-          onClick={() => {
-            setIdentidade(null);
-            window.location.reload();
-          }}
-          title="Sair"
-        >
-          <span className="max-w-16 sm:max-w-24 truncate">{identidade?.nome}</span>
-          <LogOut className="h-4 w-4" />
-        </button>
+        {/* Right side */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* User/logout — desktop */}
+          <button
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch"
+            onClick={() => { setIdentidade(null); window.location.reload(); }}
+            title="Sair"
+          >
+            <span className="max-w-24 truncate">{identidade?.nome}</span>
+            <LogOut className="h-4 w-4" />
+          </button>
+
+          {/* Hamburger button — mobile */}
+          <button
+            className="md:hidden flex items-center justify-center h-9 w-9 rounded-md border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors"
+            onClick={() => setIsMenuOpen(o => !o)}
+            aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div
+        className="md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-border"
+        style={{ maxHeight: isMenuOpen ? "500px" : "0px", opacity: isMenuOpen ? 1 : 0 }}
+      >
+        <nav className="flex flex-col px-3 py-3 gap-1 bg-background">
+          {NAV_LINKS.map(({ to, label, exact }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`${isActive(to, exact) ? linkActive : linkInactive} w-full`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+          {/* User/logout — mobile */}
+          <div className="border-t border-border mt-2 pt-2">
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch"
+              onClick={() => { setIdentidade(null); window.location.reload(); }}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sair ({identidade?.nome})</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </header>
   );
