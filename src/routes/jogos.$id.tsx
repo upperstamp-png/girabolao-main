@@ -126,9 +126,7 @@ function Page() {
     // Verificar se o bolão está fechado globalmente
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
 
-    const dataHoraJogo = new Date(jogo.data_hora);
-    const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
-    return dataHoraLimite <= new Date();
+    return false;
   }, [jogo, config]);
 
   // Mensagem de status para exibir ao usuário
@@ -139,9 +137,6 @@ function Page() {
     }
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") {
       return "Bolão encerrado. Palpites não são mais aceitos.";
-    }
-    if (prazoExpirado) {
-      return "Prazo de palpite encerrado (limite de 1 hora antes do jogo).";
     }
     return null;
   }, [jogo, config, prazoExpirado]);
@@ -210,14 +205,8 @@ function Page() {
                 AO VIVO{jogo.minuto_jogo != null ? ` ${jogo.minuto_jogo}'` : ""}
               </Badge>
             )}
-            {prazoExpirado ? (
+            {(jogo.status === "encerrado" || jogo.status === "apurado") && (
               <Badge variant="destructive">Encerrado</Badge>
-            ) : (
-              future && (
-                <Badge variant="secondary">
-                  Fecha em {countdown(new Date(new Date(jogo.data_hora).getTime() - 60 * 60 * 1000).toISOString())}
-                </Badge>
-              )
             )}
             {poolEstimado > 0 && <Badge className="bg-primary/20 text-primary border-primary/40">Pool: {fmtBRL(poolEstimado)}</Badge>}
           </div>

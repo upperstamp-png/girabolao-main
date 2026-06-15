@@ -47,12 +47,6 @@ Deno.serve(async (req) => {
       return json({ error: "O resultado deste jogo já foi confirmado. Palpites não podem mais ser alterados." }, 400);
     }
 
-    const dataHoraJogo = new Date(jogo.data_hora);
-    const dataHoraLimite = new Date(dataHoraJogo.getTime() - 60 * 60 * 1000); // 1h antes
-    if (dataHoraLimite <= new Date()) {
-      return json({ error: "Prazo de palpite encerrado — o limite é de até 1 hora antes da partida" }, 400);
-    }
-
     // Buscar palpite antigo antes do upsert para registrar auditoria
     const { data: palpiteAntigo } = await supabase
       .from("bolao_palpites")
