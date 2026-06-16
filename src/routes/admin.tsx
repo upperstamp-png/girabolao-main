@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase, callFn, fmtBRL, flag } from "@/lib/bolao";
+import { supabase, callFn, flag } from "@/lib/bolao";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,25 +280,24 @@ function Page() {
           </CardContent>
         </Card>
 
-        {/* RESUMO FINANCEIRO */}
+        {/* ESTATÍSTICAS DO BOLÃO */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Coins className="h-5 w-5 text-amber-500" /> Resumo Financeiro
+              <Coins className="h-5 w-5 text-amber-500" /> Estatísticas do Bolão
             </CardTitle>
-            <CardDescription>Arrecadação estimada</CardDescription>
+            <CardDescription>Resumo dos jogos e palpites</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="divide-y divide-border border rounded-lg bg-secondary/10 overflow-hidden">
               <StatItem label="Participantes Ativos" value={`${nP}`} />
-              <StatItem label="Pool Artilheiro" value={fmtBRL(nP * 10 + Number(cfgArt?.acumulado_anterior || 0))} />
-              <StatItem label="Pool Finalistas" value={fmtBRL(nP * 10 + Number(cfgFin?.acumulado_anterior || 0))} />
-              <StatItem label="Jogos encerrados" value={`${jogosEncerrados.length}`} />
-              <StatItem label="Total Arrecadado" value={fmtBRL(totalArrecadado)} highlight />
+              <StatItem label="Total de Jogos" value={`${jogos?.length ?? 0}`} />
+              <StatItem label="Jogos Encerrados" value={`${jogosEncerrados.length}`} />
+              <StatItem label="Jogos Pendentes" value={`${(jogos?.length ?? 0) - jogosEncerrados.length}`} />
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-1.5 p-2 bg-secondary/30 rounded border border-border">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span>R$10 artilheiro + R$10 finalistas + R$1 por palpite de placar.</span>
+              <ShieldAlert className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>Bolão operando totalmente baseado em pontuação e acertos de placar/resultados.</span>
             </div>
           </CardContent>
         </Card>

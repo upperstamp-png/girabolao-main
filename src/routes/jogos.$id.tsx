@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
-import { supabase, callFn, flag, countdown, fmtBRL, FASES_LABEL, getIdentidade } from "@/lib/bolao";
+import { supabase, callFn, flag, countdown, FASES_LABEL, getIdentidade } from "@/lib/bolao";
 import { pollIntervalForStatus } from "@/lib/realtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -200,8 +200,7 @@ function Page() {
             </div>
           </div>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
-            {jogo.e_brasil && <Badge className="bg-gold-gradient text-black">Brasil • R$10</Badge>}
-            {!jogo.e_brasil && <Badge variant="outline">R$5 por palpite</Badge>}
+            {jogo.e_brasil && <Badge className="bg-gold-gradient text-black">Brasil</Badge>}
             {jogo.status === "ao_vivo" && (
               <Badge className="bg-destructive animate-pulse">
                 AO VIVO{jogo.minuto_jogo != null ? ` ${jogo.minuto_jogo}'` : ""}
@@ -210,7 +209,6 @@ function Page() {
             {(jogo.status === "encerrado" || jogo.status === "apurado") && (
               <Badge variant="destructive">Encerrado</Badge>
             )}
-            {poolEstimado > 0 && <Badge className="bg-primary/20 text-primary border-primary/40">Pool: {fmtBRL(poolEstimado)}</Badge>}
           </div>
           {jogo.estadio && <p className="text-xs text-muted-foreground mt-2">🏟️ {jogo.estadio}</p>}
         </CardContent>

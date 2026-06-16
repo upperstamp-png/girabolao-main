@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase, callFn, fmtBRL, countdown } from "@/lib/bolao";
+import { supabase, callFn, countdown } from "@/lib/bolao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,10 +51,11 @@ function Page() {
         <p className="text-muted-foreground">R$10 por participante. Aposte antes do primeiro jogo da Copa.</p>
       </div>
 
-      <Card className="bg-pitch">
+      <Card className="bg-pitch border-primary/20">
         <CardContent className="py-6 text-center">
-          <div className="text-display text-5xl text-primary">{fmtBRL(pool)}</div>
-          <div className="mt-2 flex justify-center gap-2 flex-wrap">
+          <div className="text-display text-5xl text-primary">+10 PONTOS</div>
+          <p className="text-xs text-muted-foreground mt-1 mb-2">Para quem acertar o artilheiro oficial da Copa</p>
+          <div className="flex justify-center gap-2 flex-wrap">
             <Badge variant="outline" className="capitalize">{cfg?.status}</Badge>
             {aberta && cfg?.prazo_fim && <Badge>Fecha em {countdown(cfg.prazo_fim)}</Badge>}
             {cfg?.artilheiro_real && <Badge className="bg-gold-gradient text-black">🏆 {cfg.artilheiro_real}</Badge>}

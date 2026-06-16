@@ -79,8 +79,7 @@ function Index() {
           Três modalidades, um campeonato. Faça seus palpites e acompanhe ao vivo.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <Badge variant="secondary">{nParticipantes}/8 participantes</Badge>
-          {acumuladoAtual > 0 && <Badge className="bg-gold-gradient text-black">Acumulado: {fmtBRL(acumuladoAtual)}</Badge>}
+          <Badge variant="secondary">{nParticipantes} participantes</Badge>
           {(aoVivo?.length ?? 0) > 0 && <Badge className="bg-destructive animate-pulse">{aoVivo!.length} ao vivo</Badge>}
           {bolaoCfg?.ultima_sync_api && (
             <Badge variant="outline" className="text-xs">
@@ -151,7 +150,7 @@ function Index() {
         <PoolCard
           emoji="🎯" title="Placar Exato"
           status={jogoAtual ? "Próximo jogo" : "Aguardando"}
-          pool={jogoAtual ? Number(jogoAtual.valor_entrada) * nParticipantes + acumuladoAtual : 0}
+          value="3 / 1 pts"
           subtitle={jogoAtual
             ? `${flag(jogoAtual.time_casa)} ${jogoAtual.time_casa} × ${jogoAtual.time_fora} ${flag(jogoAtual.time_fora)}`
             : "Sem jogos próximos"}
@@ -160,7 +159,7 @@ function Index() {
         <PoolCard
           emoji="⚽" title="Artilheiro"
           status={cfgArt?.status ?? "..."}
-          pool={poolArt}
+          value="10 pts"
           subtitle={cfgArt?.status === "aberta"
             ? `Fecha em ${countdown(cfgArt.prazo_fim)}`
             : (cfgArt?.artilheiro_real || "Apostas fechadas")}
@@ -169,7 +168,7 @@ function Index() {
         <PoolCard
           emoji="🏆" title="Dois Finalistas"
           status={cfgFin?.status ?? "..."}
-          pool={poolFin}
+          value="5 / 10 pts"
           subtitle={cfgFin?.status === "aberta"
             ? `Fecha em ${cfgFin?.prazo_fim ? countdown(cfgFin.prazo_fim) : "..."}`
             : "Abre nas oitavas"}
@@ -220,7 +219,7 @@ function Index() {
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        {j.e_brasil && <Badge className="bg-gold-gradient text-black mb-1 text-xs">BR R$10</Badge>}
+                        {j.e_brasil && <Badge className="bg-gold-gradient text-black mb-1 text-xs">Brasil</Badge>}
                         <div className="text-xs text-muted-foreground">{countdown(j.data_hora)}</div>
                       </div>
                     </CardContent>
@@ -235,9 +234,9 @@ function Index() {
   );
 }
 
-function PoolCard({ emoji, title, status, pool, subtitle, to }: {
+function PoolCard({ emoji, title, status, value, subtitle, to }: {
   emoji: string; title: string; status: string;
-  pool: number; subtitle: string; to: string;
+  value: string; subtitle: string; to: string;
 }) {
   return (
     <Link to={to}>
@@ -249,7 +248,7 @@ function PoolCard({ emoji, title, status, pool, subtitle, to }: {
           </div>
         </CardHeader>
         <CardContent className="pb-4">
-          <div className="text-display text-3xl sm:text-4xl text-primary">{fmtBRL(pool)}</div>
+          <div className="text-display text-3xl sm:text-4xl text-primary">{value}</div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-2 line-clamp-1">{subtitle}</p>
         </CardContent>
       </Card>

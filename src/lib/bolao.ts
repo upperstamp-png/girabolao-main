@@ -161,3 +161,36 @@ export function countdown(target: string | Date): string {
   if (h > 0) return `${h}h ${m}min`;
   return `${m}min`;
 }
+
+/** Calcula os pontos de um palpite com base no resultado real do jogo */
+export function calcularPontosPalpite(
+  golsCasaPalpite: number | null | undefined,
+  golsForaPalpite: number | null | undefined,
+  golsCasaReal: number | null | undefined,
+  golsForaReal: number | null | undefined
+): { pontos: number; acertouPlacar: boolean; acertouResultado: boolean } {
+  if (
+    golsCasaPalpite == null ||
+    golsForaPalpite == null ||
+    golsCasaReal == null ||
+    golsForaReal == null
+  ) {
+    return { pontos: 0, acertouPlacar: false, acertouResultado: false };
+  }
+
+  const acertouPlacar = golsCasaPalpite === golsCasaReal && golsForaPalpite === golsForaReal;
+  if (acertouPlacar) {
+    return { pontos: 3, acertouPlacar: true, acertouResultado: false };
+  }
+
+  const outcomeReal = Math.sign(golsCasaReal - golsForaReal);
+  const outcomePalp = Math.sign(golsCasaPalpite - golsForaPalpite);
+  const acertouResultado = outcomeReal === outcomePalp;
+
+  if (acertouResultado) {
+    return { pontos: 1, acertouPlacar: false, acertouResultado: true };
+  }
+
+  return { pontos: 0, acertouPlacar: false, acertouResultado: false };
+}
+

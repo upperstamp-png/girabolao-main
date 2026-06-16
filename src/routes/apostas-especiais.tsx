@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase, callFn, fmtBRL, flag, countdown } from "@/lib/bolao";
+import { supabase, callFn, flag, countdown } from "@/lib/bolao";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -735,16 +735,18 @@ function SpecialBetTab({
       </div>
 
       <div className="space-y-4">
-        {/* Pool de prêmios */}
-        <Card className="bg-pitch">
+        {/* Regras de Pontuação */}
+        <Card className="bg-pitch border-primary/20">
           <CardHeader className="pb-2">
-            <CardDescription className="text-center font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pool de Prêmio Acumulado</CardDescription>
+            <CardDescription className="text-center font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pontuação Extra</CardDescription>
           </CardHeader>
-          <CardContent className="text-center py-4">
-            <div className="text-display text-4xl sm:text-5xl text-primary font-bold">{fmtBRL(poolVal)}</div>
+          <CardContent className="text-center py-4 space-y-2">
+            <div className="text-display text-4xl sm:text-5xl text-primary font-bold">+10 pts</div>
             <div className="text-xs text-muted-foreground mt-2">
-              R$10 x {nP} participantes = {fmtBRL(nP * 10)}
-              {Number(acumulado) > 0 && ` + ${fmtBRL(acumulado)} acumulado anterior`}
+              Pontos adicionados ao ranking geral para quem acertar esta aposta especial.
+            </div>
+            <div className="text-[10px] text-muted-foreground italic">
+              * Finalistas: 5 pts se acertar 1 time, 10 pts se acertar os 2.
             </div>
           </CardContent>
         </Card>

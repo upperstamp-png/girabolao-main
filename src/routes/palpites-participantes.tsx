@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
-import { supabase, fmtBRL, flag, countdown, getIdentidade } from "@/lib/bolao";
+import { supabase, flag, countdown, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,15 +86,45 @@ function Page() {
 
   const scoresMap = useMemo(() => {
     const map = new Map<string, number>();
-    (usuarios ?? []).forEach(u => map.set(u.id, 0));
-    (premios ?? []).forEach(p => {
-      if (p.usuario_id) {
-        const val = map.get(p.usuario_id) ?? 0;
-        map.set(p.usuario_id, val + Number(p.valor));
+    const gamesMap = new Map((jogos ?? []).map(g => [g.id, g]));
+
+    (usuarios ?? []).forEach(u => {
+      let pontos = 0;
+
+      // 1. Calculate points from match predictions (palpites)
+      const userPalpites = (palpites ?? []).filter(p => p.usuario_id === u.id);
+      for (const p of userPalpites) {
+        const g = gamesMap.get(p.jogo_id);
+        if (g && g.placar_casa != null && g.placar_fora != null) {
+          const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, g.placar_casa, g.placar_fora);
+          pontos += res.pontos;
+        }
       }
+
+      // 2. Points from special bets
+      const acertouArt = !!(apostasArt ?? []).find(a => a.usuario_id === u.id)?.acertou;
+      if (acertouArt) pontos += 10;
+
+      const apostaFin = (apostasFin ?? []).find(a => a.usuario_id === u.id);
+      if (apostaFin) {
+        if (apostaFin.acertou_os_dois) pontos += 10;
+        else if (apostaFin.acertou_um) pontos += 5;
+      }
+
+      const acertouCam = !!(apostasCam ?? []).find(c => c.usuario_id === u.id)?.acertou;
+      if (acertouCam) pontos += 10;
+
+      const acertouZeb = !!(apostasZeb ?? []).find(z => z.usuario_id === u.id)?.acertou;
+      if (acertouZeb) pontos += 10;
+
+      const acertouGol = !!(apostasGol ?? []).find(g => g.usuario_id === u.id)?.acertou;
+      if (acertouGol) pontos += 10;
+
+      map.set(u.id, pontos);
     });
+
     return map;
-  }, [usuarios, premios]);
+  }, [usuarios, palpites, jogos, apostasArt, apostasFin, apostasCam, apostasZeb, apostasGol]);
 
   const bolaoFechado = useMemo(() => {
     return config?.status === "FECHADO" || config?.status === "FINALIZADO";
@@ -263,7 +293,7 @@ function Page() {
                     </CardHeader>
                     <CardContent className="py-4">
                       <div className="text-display text-3xl sm:text-4xl text-primary font-bold">
-                        {fmtBRL(scoresMap.get(selectedUser) ?? 0)}
+                        {scoresMap.get(selectedUser) ?? 0} pts
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         Soma total obtida nas apurações

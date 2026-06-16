@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase, flag, countdown, FASES_LABEL, fmtBRL, getIdentidade } from "@/lib/bolao";
+import { supabase, flag, countdown, FASES_LABEL, getIdentidade } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,11 +125,9 @@ function Page() {
 
 
                       <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
-                        {j.e_brasil && <Badge className="bg-gold-gradient text-black text-xs">Brasil • R$10</Badge>}
-                        {!j.e_brasil && <Badge variant="outline" className="text-xs">R$5</Badge>}
+                        {j.e_brasil && <Badge className="bg-gold-gradient text-black text-xs">Brasil</Badge>}
                         {j.status === "ao_vivo" && <Badge className="bg-destructive animate-pulse text-xs">AO VIVO</Badge>}
                         {j.status === "apurado" && <Badge variant="secondary" className="text-xs">Apurado</Badge>}
-                        {Number(j.acumulado) > 0 && <span className="text-gold text-xs">+{fmtBRL(j.acumulado)}</span>}
                       </div>
                     </CardContent>
                   </Card>
