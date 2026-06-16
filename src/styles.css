@@ -309,3 +309,14 @@
 header.ios-pwa {
   padding-top: 40px !important;
 }
+
+/* ====== LIVE BADGE PULSE ====== */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* font-display utility for Barlow Condensed */
+.font-display {
+  font-family: "Barlow Condensed", "TwemojiCountryFlags", sans-serif;
+}
