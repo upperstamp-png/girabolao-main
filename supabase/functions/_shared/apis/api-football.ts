@@ -34,7 +34,13 @@ export type LiveStats = {
     cartoes_vermelhos_fora: number;
     dados_brutos: unknown;
   } | null;
-  eventos: { minuto: number | null; tipo: string; time: string; jogador: string; detalhe: unknown }[];
+  eventos: {
+    minuto: number | null;
+    tipo: string;
+    time: string;
+    jogador: string;
+    detalhe: unknown;
+  }[];
 };
 
 function headers() {
@@ -52,7 +58,7 @@ export function canCall(chamadasHoje: number, dataRef: string | null): boolean {
 }
 
 function statVal(stats: unknown[], type: string): number {
-  const row = (stats as { type?: string; value?: number | string }[]).find(s => s.type === type);
+  const row = (stats as { type?: string; value?: number | string }[]).find((s) => s.type === type);
   if (!row?.value) return 0;
   const v = String(row.value).replace("%", "");
   return Number(v) || 0;
@@ -66,35 +72,39 @@ export async function fetchFixturesSeason(): Promise<JogoSync[]> {
   if (!r.ok) throw new Error(`API-Football fixtures HTTP ${r.status}`);
   const data = await r.json();
   const arr = data.response || [];
-  return arr.map((item: Record<string, unknown>): JogoSync | null => {
-    const fix = item.fixture as Record<string, unknown>;
-    const teams = item.teams as Record<string, Record<string, unknown>>;
-    const goals = item.goals as Record<string, unknown>;
-    const score = item.score as Record<string, Record<string, unknown>>;
-    const league = item.league as Record<string, unknown>;
-    const id = Number(fix?.id ?? 0);
-    const casa = normalizeTeamName(String(teams?.home?.name ?? ""));
-    const fora = normalizeTeamName(String(teams?.away?.name ?? ""));
-    if (!id || !casa || !fora) return null;
-    const status = fix?.status as Record<string, unknown> | undefined;
-    return {
-      api_jogo_id: id + 900000,
-      api_football_id: id,
-      time_casa: casa,
-      time_fora: fora,
-      placar_casa: goals?.home != null ? Number(goals.home) : null,
-      placar_fora: goals?.away != null ? Number(goals.away) : null,
-      placar_casa_ht: score?.halftime?.home != null ? Number(score.halftime.home) : null,
-      placar_fora_ht: score?.halftime?.away != null ? Number(score.halftime.away) : null,
-      minuto_jogo: status?.elapsed != null ? Number(status.elapsed) : null,
-      status_raw: String(status?.short ?? status?.long ?? ""),
-      data_hora: String(fix?.date ?? ""),
-      round: String(league?.round ?? "Group"),
-      stadium: (fix?.venue as Record<string, unknown>)?.name ? String((fix!.venue as Record<string, unknown>).name) : null,
-      grupo: null,
-      fonte: "api-football",
-    };
-  }).filter((j): j is JogoSync => j !== null);
+  return arr
+    .map((item: Record<string, unknown>): JogoSync | null => {
+      const fix = item.fixture as Record<string, unknown>;
+      const teams = item.teams as Record<string, Record<string, unknown>>;
+      const goals = item.goals as Record<string, unknown>;
+      const score = item.score as Record<string, Record<string, unknown>>;
+      const league = item.league as Record<string, unknown>;
+      const id = Number(fix?.id ?? 0);
+      const casa = normalizeTeamName(String(teams?.home?.name ?? ""));
+      const fora = normalizeTeamName(String(teams?.away?.name ?? ""));
+      if (!id || !casa || !fora) return null;
+      const status = fix?.status as Record<string, unknown> | undefined;
+      return {
+        api_jogo_id: id + 900000,
+        api_football_id: id,
+        time_casa: casa,
+        time_fora: fora,
+        placar_casa: goals?.home != null ? Number(goals.home) : null,
+        placar_fora: goals?.away != null ? Number(goals.away) : null,
+        placar_casa_ht: score?.halftime?.home != null ? Number(score.halftime.home) : null,
+        placar_fora_ht: score?.halftime?.away != null ? Number(score.halftime.away) : null,
+        minuto_jogo: status?.elapsed != null ? Number(status.elapsed) : null,
+        status_raw: String(status?.short ?? status?.long ?? ""),
+        data_hora: String(fix?.date ?? ""),
+        round: String(league?.round ?? "Group"),
+        stadium: (fix?.venue as Record<string, unknown>)?.name
+          ? String((fix!.venue as Record<string, unknown>).name)
+          : null,
+        grupo: null,
+        fonte: "api-football",
+      };
+    })
+    .filter((j): j is JogoSync => j !== null);
 }
 
 /** 1 chamada: todos os jogos ao vivo + stats (economiza quota de 100/dia). */
@@ -110,7 +120,12 @@ export async function fetchLiveWithStats(): Promise<{ live: LiveStats[]; callsUs
 
   const wcLive = fixtures.filter((item) => {
     const league = item.league as Record<string, unknown> | undefined;
-    return Number(league?.id) === WC_LEAGUE || String(league?.name ?? "").toLowerCase().includes("world cup");
+    return (
+      Number(league?.id) === WC_LEAGUE ||
+      String(league?.name ?? "")
+        .toLowerCase()
+        .includes("world cup")
+    );
   });
 
   const live: LiveStats[] = [];
@@ -177,7 +192,9 @@ export async function fetchLiveWithStats(): Promise<{ live: LiveStats[]; callsUs
             });
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     live.push({
@@ -200,8 +217,8 @@ export async function fetchLiveWithStats(): Promise<{ live: LiveStats[]; callsUs
 
 export function mergeLiveIntoJogos(jogos: JogoSync[], live: LiveStats[]): JogoSync[] {
   if (!live.length) return jogos;
-  const byTeams = new Map(live.map(l => [`${l.time_casa}::${l.time_fora}`, l]));
-  return jogos.map(j => {
+  const byTeams = new Map(live.map((l) => [`${l.time_casa}::${l.time_fora}`, l]));
+  return jogos.map((j) => {
     const key = `${j.time_casa}::${j.time_fora}`;
     const lv = byTeams.get(key);
     if (!lv) return j;

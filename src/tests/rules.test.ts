@@ -21,15 +21,16 @@ interface Palpite {
 function validarPalpiteExclusivo(
   novoPalpite: Palpite,
   palpitesExistentes: Palpite[],
-  exclusividadeAtiva: boolean
+  exclusividadeAtiva: boolean,
 ): { valido: boolean; erro?: string } {
   if (!exclusividadeAtiva) return { valido: true };
 
   const duplicado = palpitesExistentes.find(
-    p => p.jogo_id === novoPalpite.jogo_id &&
-         p.gols_casa === novoPalpite.gols_casa &&
-         p.gols_fora === novoPalpite.gols_fora &&
-         p.usuario_id !== novoPalpite.usuario_id
+    (p) =>
+      p.jogo_id === novoPalpite.jogo_id &&
+      p.gols_casa === novoPalpite.gols_casa &&
+      p.gols_fora === novoPalpite.gols_fora &&
+      p.usuario_id !== novoPalpite.usuario_id,
   );
 
   if (duplicado) {
@@ -46,7 +47,7 @@ describe("Bolão Copa 2026 — Sorteio de Ordem Logic", () => {
   test("shuffle returns an array with the same elements but shuffled", () => {
     const participantes = ["Igor", "Natan", "Alison", "Pedro", "Zé", "Paulo", "Vitinho", "Kelvin"];
     const shuffled = shuffle(participantes);
-    
+
     expect(shuffled.length).toBe(participantes.length);
     expect(shuffled.sort()).toEqual([...participantes].sort());
   });

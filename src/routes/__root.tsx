@@ -1,18 +1,30 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-  Outlet, Link, createRootRouteWithContext, useRouter,
-  HeadContent, Scripts, useLocation,
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  useRouter,
+  HeadContent,
+  Scripts,
+  useLocation,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { Trophy, LogOut, Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { callFn, getIdentidade, setIdentidade, type Identidade } from "@/lib/bolao";
-import { isPushSupported, getNotificationPermissionState, subscribeToPush, unsubscribeFromPush, isIOSStandalone } from "@/lib/webPush";
+import { supabase, callFn, getIdentidade, setIdentidade, type Identidade } from "@/lib/bolao";
+import {
+  isPushSupported,
+  getNotificationPermissionState,
+  subscribeToPush,
+  unsubscribeFromPush,
+  isIOSStandalone,
+} from "@/lib/webPush";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -24,7 +36,10 @@ function NotFoundComponent() {
         <h1 className="text-7xl text-display text-primary">404</h1>
         <h2 className="mt-4 text-xl font-semibold">Página não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">Essa rota não existe.</p>
-        <Link to="/" className="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <Link
+          to="/"
+          className="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
           Voltar ao bolão
         </Link>
       </div>
@@ -34,7 +49,9 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
-  useEffect(() => { reportLovableError(error, { boundary: "tanstack_root_error_component" }); }, [error]);
+  useEffect(() => {
+    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+  }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-md text-center">
@@ -42,7 +59,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold">Algo deu errado</h1>
         <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
         <button
-          onClick={() => { router.invalidate(); reset(); }}
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
           className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Tentar novamente
@@ -62,7 +82,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { title: "Bolão Copa do Mundo 2026" },
-      { name: "description", content: "Bolão entre amigos para a Copa do Mundo 2026 — placar exato, artilheiro e finalistas." },
+      {
+        name: "description",
+        content:
+          "Bolão entre amigos para a Copa do Mundo 2026 — placar exato, artilheiro e finalistas.",
+      },
       { property: "og:title", content: "Bolão Copa do Mundo 2026" },
       { property: "og:description", content: "Bolão entre amigos para a Copa do Mundo 2026." },
       { property: "og:type", content: "website" },
@@ -72,7 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap",
+      },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "https://img.icons8.com/color/192/trophy.png" },
     ],
@@ -86,7 +113,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
-      <head><HeadContent /></head>
+      <head>
+        <HeadContent />
+      </head>
       <body className="font-sans">
         {children}
         <Scripts />
@@ -126,11 +155,17 @@ function Nav() {
   const linkActive = `${linkBase} text-primary bg-primary/10 font-semibold`;
 
   return (
-    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "ios-pwa" : ""}`}>
+    <header
+      className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "ios-pwa" : ""}`}
+    >
       {/* Main bar */}
       <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-14 gap-2">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 shrink-0" onClick={() => setIsMenuOpen(false)}>
+        <Link
+          to="/"
+          className="flex items-center gap-2 shrink-0"
+          onClick={() => setIsMenuOpen(false)}
+        >
           <Trophy className="h-5 w-5 text-primary" />
           <span className="text-display text-lg leading-none">Bolão Copa 2026</span>
         </Link>
@@ -146,6 +181,7 @@ function Nav() {
 
         {/* Right side */}
         <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
           {/* User/logout — desktop */}
           <button
             className="hidden md:flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch"
@@ -164,7 +200,7 @@ function Nav() {
           {/* Hamburger button — mobile */}
           <button
             className="md:hidden flex items-center justify-center h-9 w-9 rounded-md border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors"
-            onClick={() => setIsMenuOpen(o => !o)}
+            onClick={() => setIsMenuOpen((o) => !o)}
             aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -188,6 +224,10 @@ function Nav() {
               {label}
             </Link>
           ))}
+          {/* Theme toggle — mobile */}
+          <div className="border-t border-border mt-2 pt-2 flex">
+            <ThemeToggle />
+          </div>
           {/* User/logout — mobile */}
           <div className="border-t border-border mt-2 pt-2">
             <button
@@ -212,12 +252,45 @@ function Nav() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  const location = useLocation();
+
   useEffect(() => {
+    // 1. Auto-registro do Service Worker (PWA Offline)
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js", { scope: "/" })
+        .then((reg) => {
+          // SW registrado com sucesso
+        })
+        .catch((err) => {
+          console.warn("Falha ao registrar SW:", err);
+        });
+    }
+
+    // 2. Auto-renovação de Push
     const identity = getIdentidade();
     if (identity?.nome && isPushSupported() && getNotificationPermissionState() === "granted") {
-      subscribeToPush(identity).catch(err => console.warn("Erro ao auto-renovar token push:", err));
+      subscribeToPush(identity).catch((err) =>
+        console.warn("Erro ao auto-renovar token push:", err),
+      );
     }
   }, []);
+
+  useEffect(() => {
+    // 3. Telemetria de Analytics
+    const identity = getIdentidade();
+    if (location.pathname) {
+      supabase
+        .from("bolao_analytics")
+        .insert({
+          usuario_id: identity?.id || null,
+          tela: location.pathname,
+        })
+        .then(({ error }) => {
+          if (error) console.warn("Erro ao registrar telemetria:", error.message);
+        });
+    }
+  }, [location.pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

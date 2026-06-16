@@ -1,15 +1,27 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, hashPin, validarUsuario } from "../_shared/supabase.ts";
 
-const PARTICIPANTES_PADRAO = ["Igor","Natan","Alison","Pedro","Zé","Paulo","Vitinho","Kelvin"];
+const PARTICIPANTES_PADRAO = [
+  "Igor",
+  "Natan",
+  "Alison",
+  "Pedro",
+  "Zé",
+  "Paulo",
+  "Vitinho",
+  "Kelvin",
+];
 const PIN_PADRAO = "1234";
 
-function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
+function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
+  console.log(
+    JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }),
+  );
 }
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
 
   try {
@@ -22,11 +34,13 @@ Deno.serve(async (req) => {
         .order("criado_em");
       if (error) throw error;
       log("INFO", `Listando usuários: ${data?.length ?? 0}`);
-      return json(data?.map(u => ({
-        ...u,
-        tem_pin: !!u.pin_hash,
-        pin_hash: undefined,
-      })) ?? []);
+      return json(
+        data?.map((u) => ({
+          ...u,
+          tem_pin: !!u.pin_hash,
+          pin_hash: undefined,
+        })) ?? [],
+      );
     }
 
     const body = await req.json();
@@ -70,17 +84,19 @@ Deno.serve(async (req) => {
             // Excluído manualmente — não recriar
             log("WARN", `Participante ${nome} excluído manualmente — ignorando`);
             ignorados.push(nome);
-        } else {
-          // Já existe e ativo — garantir e_participante_padrao = true
-          await supabase.from("bolao_usuarios")
-            .update({ e_participante_padrao: true })
-            .eq("id", existente.id);
-          await supabase.from("bolao_usuarios")
-            .update({ pin_hash: await hashPin(PIN_PADRAO) })
-            .eq("id", existente.id)
-            .is("pin_hash", null);
-          ignorados.push(nome);
-        }
+          } else {
+            // Já existe e ativo — garantir e_participante_padrao = true
+            await supabase
+              .from("bolao_usuarios")
+              .update({ e_participante_padrao: true })
+              .eq("id", existente.id);
+            await supabase
+              .from("bolao_usuarios")
+              .update({ pin_hash: await hashPin(PIN_PADRAO) })
+              .eq("id", existente.id)
+              .is("pin_hash", null);
+            ignorados.push(nome);
+          }
         } else {
           // Criar novo
           const { error } = await supabase.from("bolao_usuarios").insert({
@@ -142,7 +158,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        if (error.message?.includes("Limite")) return json({ error: "Limite de participantes atingido" }, 400);
+        if (error.message?.includes("Limite"))
+          return json({ error: "Limite de participantes atingido" }, 400);
         if (error.code === "23505") return json({ error: "Nome já cadastrado" }, 400);
         throw error;
       }

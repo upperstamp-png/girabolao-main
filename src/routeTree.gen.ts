@@ -14,6 +14,7 @@ import { Route as ParticipantesRouteImport } from './routes/participantes'
 import { Route as PalpitesParticipantesRouteImport } from './routes/palpites-participantes'
 import { Route as NoticiasRouteImport } from './routes/noticias'
 import { Route as FinalistasRouteImport } from './routes/finalistas'
+import { Route as ConviteRouteImport } from './routes/convite'
 import { Route as ArtilheiroRouteImport } from './routes/artilheiro'
 import { Route as ApostasEspeciaisRouteImport } from './routes/apostas-especiais'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -44,6 +45,11 @@ const NoticiasRoute = NoticiasRouteImport.update({
 const FinalistasRoute = FinalistasRouteImport.update({
   id: '/finalistas',
   path: '/finalistas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteRoute = ConviteRouteImport.update({
+  id: '/convite',
+  path: '/convite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtilheiroRoute = ArtilheiroRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
+  '/convite': typeof ConviteRoute
   '/finalistas': typeof FinalistasRoute
   '/noticias': typeof NoticiasRoute
   '/palpites-participantes': typeof PalpitesParticipantesRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
+  '/convite': typeof ConviteRoute
   '/finalistas': typeof FinalistasRoute
   '/noticias': typeof NoticiasRoute
   '/palpites-participantes': typeof PalpitesParticipantesRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/apostas-especiais': typeof ApostasEspeciaisRoute
   '/artilheiro': typeof ArtilheiroRoute
+  '/convite': typeof ConviteRoute
   '/finalistas': typeof FinalistasRoute
   '/noticias': typeof NoticiasRoute
   '/palpites-participantes': typeof PalpitesParticipantesRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/apostas-especiais'
     | '/artilheiro'
+    | '/convite'
     | '/finalistas'
     | '/noticias'
     | '/palpites-participantes'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/apostas-especiais'
     | '/artilheiro'
+    | '/convite'
     | '/finalistas'
     | '/noticias'
     | '/palpites-participantes'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/apostas-especiais'
     | '/artilheiro'
+    | '/convite'
     | '/finalistas'
     | '/noticias'
     | '/palpites-participantes'
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   ApostasEspeciaisRoute: typeof ApostasEspeciaisRoute
   ArtilheiroRoute: typeof ArtilheiroRoute
+  ConviteRoute: typeof ConviteRoute
   FinalistasRoute: typeof FinalistasRoute
   NoticiasRoute: typeof NoticiasRoute
   PalpitesParticipantesRoute: typeof PalpitesParticipantesRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/finalistas'
       fullPath: '/finalistas'
       preLoaderRoute: typeof FinalistasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite': {
+      id: '/convite'
+      path: '/convite'
+      fullPath: '/convite'
+      preLoaderRoute: typeof ConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artilheiro': {
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   ApostasEspeciaisRoute: ApostasEspeciaisRoute,
   ArtilheiroRoute: ArtilheiroRoute,
+  ConviteRoute: ConviteRoute,
   FinalistasRoute: FinalistasRoute,
   NoticiasRoute: NoticiasRoute,
   PalpitesParticipantesRoute: PalpitesParticipantesRoute,

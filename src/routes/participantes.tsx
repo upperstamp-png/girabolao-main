@@ -16,8 +16,8 @@ export const Route = createFileRoute("/participantes")({
   head: () => ({
     meta: [
       { title: "Participantes — Bolão Copa 2026" },
-      { name: "description", content: "Participantes do bolão da Copa 2026." }
-    ]
+      { name: "description", content: "Participantes do bolão da Copa 2026." },
+    ],
   }),
   component: Page,
 });
@@ -33,15 +33,23 @@ function Page() {
   const [novoPin, setNovoPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
 
-  const { data: usuarios, isLoading, isError, refetch } = useQuery({
+  const {
+    data: usuarios,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["usuarios-full"],
     queryFn: async () => callFn<any[]>("usuarios", undefined, "GET"),
   });
 
   const criar = useMutation({
-    mutationFn: () => callFn("usuarios", { action: "create", nome: nome.trim(), pin: pin.trim() || null }),
+    mutationFn: () =>
+      callFn("usuarios", { action: "create", nome: nome.trim(), pin: pin.trim() || null }),
     onSuccess: () => {
-      setNome(""); setPin(""); setShowAdd(false);
+      setNome("");
+      setPin("");
+      setShowAdd(false);
       qc.invalidateQueries({ queryKey: ["usuarios-full"] });
       qc.invalidateQueries({ queryKey: ["usuarios"] });
       toast.success("Participante adicionado");
@@ -69,7 +77,12 @@ function Page() {
         novo_pin: novoPin,
       }),
     onSuccess: (res) => {
-      const atualizada = { id: res.usuario.id, nome: res.usuario.nome, pin: novoPin, tem_pin: true };
+      const atualizada = {
+        id: res.usuario.id,
+        nome: res.usuario.nome,
+        pin: novoPin,
+        tem_pin: true,
+      };
       setIdentidade(atualizada);
       setPinAtual("");
       setNovoPin("");
@@ -82,7 +95,8 @@ function Page() {
   });
 
   const pinMismatch = novoPin.length === 4 && confirmPin.length === 4 && novoPin !== confirmPin;
-  const canSaveProfile = !!minhaConta?.nome && !!meuNome.trim() && meuNome.trim() !== minhaConta?.nome;
+  const canSaveProfile =
+    !!minhaConta?.nome && !!meuNome.trim() && meuNome.trim() !== minhaConta?.nome;
   const canSavePin = pinAtual.length === 4 && novoPin.length === 4 && confirmPin === novoPin;
 
   const total = usuarios?.length ?? 0;
@@ -144,7 +158,9 @@ function Page() {
           {/* PIN section */}
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              O PIN inicial de todos é <span className="font-mono font-bold text-foreground">1234</span>. Troque para proteger sua conta.
+              O PIN inicial de todos é{" "}
+              <span className="font-mono font-bold text-foreground">1234</span>. Troque para
+              proteger sua conta.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
@@ -203,15 +219,20 @@ function Page() {
               <Users className="h-4 w-4 text-primary" />
               Cadastrados
             </CardTitle>
-            <Badge variant="secondary" className="font-mono text-xs">{total}</Badge>
+            <Badge variant="secondary" className="font-mono text-xs">
+              {total}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="p-3">
           {isLoading && <SkeletonCard lines={4} />}
-          {isError && <ErrorState message="Erro ao carregar participantes." onRetry={() => refetch()} />}
+          {isError && (
+            <ErrorState message="Erro ao carregar participantes." onRetry={() => refetch()} />
+          )}
 
-          {!isLoading && !isError && (
-            total === 0 ? (
+          {!isLoading &&
+            !isError &&
+            (total === 0 ? (
               <div className="flex flex-col items-center py-10 gap-3 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/30 border border-border">
                   <Users className="h-6 w-6 text-muted-foreground/50" />
@@ -234,23 +255,36 @@ function Page() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 ${
-                          isMe ? "bg-primary/20 text-primary" : "bg-secondary/40 text-muted-foreground"
-                        }`}>
+                        <div
+                          className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 ${
+                            isMe
+                              ? "bg-primary/20 text-primary"
+                              : "bg-secondary/40 text-muted-foreground"
+                          }`}
+                        >
                           {u.nome.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <div className={`text-sm font-semibold truncate ${isMe ? "text-primary" : ""}`}>
-                            {u.nome} {isMe && <span className="text-[10px] font-normal opacity-70">• Você</span>}
+                          <div
+                            className={`text-sm font-semibold truncate ${isMe ? "text-primary" : ""}`}
+                          >
+                            {u.nome}{" "}
+                            {isMe && (
+                              <span className="text-[10px] font-normal opacity-70">• Você</span>
+                            )}
                           </div>
                           <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
                             {u.tem_pin ? (
-                              <span className="flex items-center gap-0.5"><Shield className="h-2.5 w-2.5" /> PIN configurado</span>
+                              <span className="flex items-center gap-0.5">
+                                <Shield className="h-2.5 w-2.5" /> PIN configurado
+                              </span>
                             ) : (
                               "Sem PIN"
                             )}
                             {u.e_participante_padrao && (
-                              <Badge variant="outline" className="text-[9px] py-0 px-1 h-4">Padrão</Badge>
+                              <Badge variant="outline" className="text-[9px] py-0 px-1 h-4">
+                                Padrão
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -268,8 +302,7 @@ function Page() {
                   );
                 })}
               </ul>
-            )
-          )}
+            ))}
         </CardContent>
       </Card>
 
@@ -278,16 +311,17 @@ function Page() {
         <CardHeader className="pb-3">
           <button
             className="flex items-center justify-between w-full text-left"
-            onClick={() => setShowAdd(o => !o)}
+            onClick={() => setShowAdd((o) => !o)}
           >
             <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
               <UserPlus className="h-4 w-4 text-primary" />
               Adicionar Participante
             </CardTitle>
-            {showAdd
-              ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-              : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            }
+            {showAdd ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
           </button>
         </CardHeader>
         {showAdd && (
@@ -297,7 +331,7 @@ function Page() {
                 <Label className="text-xs text-muted-foreground">Nome</Label>
                 <Input
                   value={nome}
-                  onChange={e => setNome(e.target.value)}
+                  onChange={(e) => setNome(e.target.value)}
                   placeholder="Ex: João"
                   maxLength={40}
                   className="bg-secondary/20 border-border h-9"
@@ -307,7 +341,7 @@ function Page() {
                 <Label className="text-xs text-muted-foreground">PIN (4 dígitos, opcional)</Label>
                 <Input
                   value={pin}
-                  onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="1234"
                   inputMode="numeric"
                   className="bg-secondary/20 border-border h-9 font-mono tracking-widest"

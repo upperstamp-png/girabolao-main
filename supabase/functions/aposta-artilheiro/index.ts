@@ -3,7 +3,8 @@ import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase
 import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   try {
     const body = await req.json();
@@ -27,8 +28,13 @@ Deno.serve(async (req) => {
 
     const jogadorNome = jogadorElenco.jogador_nome;
 
-    const { data: cfg } = await supabase.from("bolao_config_artilheiro").select("status").eq("id", 1).single();
-    if (cfg?.status === "apurada") return json({ error: "Artilheiro já apurado — apostas encerradas." }, 400);
+    const { data: cfg } = await supabase
+      .from("bolao_config_artilheiro")
+      .select("status")
+      .eq("id", 1)
+      .single();
+    if (cfg?.status === "apurada")
+      return json({ error: "Artilheiro já apurado — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
@@ -40,20 +46,25 @@ Deno.serve(async (req) => {
     }
 
     // Artilheiro: permitir alteração se não estiver bloqueado
-    const { data: existing } = await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    const { data: existing } = await supabase
+      .from("bolao_apostas_artilheiro")
+      .select("id, jogador_apostado, bloqueado_em")
+      .eq("usuario_id", v.id)
+      .maybeSingle();
     if (existing && existing.bloqueado_em) {
       return json({ error: "Aposta de artilheiro já bloqueada para este usuário" }, 400);
     }
 
     if (existing) {
-      const { error } = await supabase.from("bolao_apostas_artilheiro").update(
-        { jogador_apostado: jogadorNome, jogador_id: jogador_id }
-      ).eq("id", existing.id);
+      const { error } = await supabase
+        .from("bolao_apostas_artilheiro")
+        .update({ jogador_apostado: jogadorNome, jogador_id: jogador_id })
+        .eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("bolao_apostas_artilheiro").insert(
-        { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id }
-      );
+      const { error } = await supabase
+        .from("bolao_apostas_artilheiro")
+        .insert({ usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id });
       if (error) throw error;
     }
 
@@ -64,7 +75,7 @@ Deno.serve(async (req) => {
       body: `${nome} ${actionVerb} ${jogadorNome} para Artilheiro da Copa`,
       url: "/apostas-especiais",
       tag: `artilheiro_${v.id}`,
-    }).catch(err => console.error("Erro ao disparar push notification", err));
+    }).catch((err) => console.error("Erro ao disparar push notification", err));
 
     return json({ ok: true });
   } catch (e) {
@@ -72,4 +83,3 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
-

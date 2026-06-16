@@ -1,4 +1,3 @@
-
 # Bolão Copa do Mundo 2026
 
 Sistema completo em TanStack Start + Supabase (Lovable Cloud) com Edge Functions e cron automático. **Sem login** — usuários são identificados apenas pelo nome cadastrado (até 10). Como a doc pede, palpites ficam ocultos até o prazo de cada jogo/modalidade.
@@ -88,5 +87,6 @@ Ao final faço sync inicial para popular jogos da Copa 2026.
 ---
 
 **Confirma para eu começar?** Se quiser, posso também:
+
 - Trocar PIN por senha-mestre única do grupo (mais simples)
 - Adicionar canal de Realtime para revelar placar/palpites ao vivo sem refresh

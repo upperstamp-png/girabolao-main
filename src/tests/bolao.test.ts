@@ -10,7 +10,9 @@ describe("Bolão Copa 2026 — Client Utilities", () => {
   test("fmtBRL formats numbers to BRL currency format", () => {
     // Note: BRL formatting can have non-breaking spaces depending on JS environment.
     // We replace them with normal spaces for robust comparisons or just match numbers.
-    const result = fmtBRL(10).replace(/\u00a0/g, " ").replace(/\s/g, " ");
+    const result = fmtBRL(10)
+      .replace(/\u00a0/g, " ")
+      .replace(/\s/g, " ");
     expect(result).toContain("R$");
     expect(result).toContain("10,00");
   });
@@ -72,7 +74,7 @@ describe("Bolão Copa 2026 — API callFn logic", () => {
   test("callFn retries on error and respects backoff", async () => {
     const originalFetch = global.fetch;
     let callCount = 0;
-    
+
     global.fetch = mock(async () => {
       callCount++;
       if (callCount === 1) {
@@ -103,7 +105,7 @@ describe("Bolão Copa 2026 — API callFn logic", () => {
   test("callFn throws error after exceeding retries", async () => {
     const originalFetch = global.fetch;
     let callCount = 0;
-    
+
     global.fetch = mock(async () => {
       callCount++;
       return new Response(JSON.stringify({ error: "Failed permanently" }), {

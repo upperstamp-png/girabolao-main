@@ -1,12 +1,14 @@
 Revise, corrija e implemente integralmente todas as funcionalidades do sistema de bolão, garantindo que tudo esteja funcionando corretamente em ambiente de produção. Antes de realizar qualquer alteração, analise toda a estrutura existente do projeto (frontend, backend, integrações e banco de dados) para identificar problemas, inconsistências e funcionalidades incompletas.
 
 ### 1. Responsividade Mobile
+
 - Ajuste toda a interface utilizando abordagem mobile-first.
 - Garanta que todas as telas do sistema funcionem perfeitamente em smartphones Android e iOS.
 - Corrija problemas de layout, overflow horizontal, componentes quebrando a tela, tabelas não responsivas, formulários difíceis de utilizar e botões desalinhados.
 - Certifique-se de que todas as funcionalidades estejam acessíveis e utilizáveis em dispositivos móveis.
 
 ### 2. Integração com a API
+
 - Verifique por que o sistema não está consumindo corretamente os dados da API.
 - Analise e corrija todo o fluxo de integração, incluindo:
   - URL base;
@@ -22,6 +24,7 @@ Revise, corrija e implemente integralmente todas as funcionalidades do sistema d
 - Valide que os dados retornados pela API estão sendo exibidos corretamente na interface.
 
 ### 3. Persistência automática dos dados do campeonato
+
 Ao obter os dados da API, o sistema deve salvar automaticamente no banco de dados:
 
 - todos os grupos;
@@ -34,6 +37,7 @@ Ao obter os dados da API, o sistema deve salvar automaticamente no banco de dado
 - todos os relacionamentos necessários entre essas entidades.
 
 Regras:
+
 - O processo deve ser idempotente.
 - Registros existentes devem ser atualizados quando houver alterações.
 - Registros inexistentes devem ser criados.
@@ -41,6 +45,7 @@ Regras:
 - A sincronização deve poder ser executada múltiplas vezes sem corromper os dados.
 
 ### 4. Cadastro automático dos participantes do bolão
+
 Ao criar um novo bolão, o sistema deve cadastrar automaticamente os seguintes participantes:
 
 1. Igor
@@ -53,6 +58,7 @@ Ao criar um novo bolão, o sistema deve cadastrar automaticamente os seguintes p
 8. Kelvin
 
 Regras:
+
 - Os participantes devem ser vinculados automaticamente ao bolão criado.
 - Devem existir exatamente 8 participantes padrão.
 - Não pode haver participantes duplicados dentro do mesmo bolão.
@@ -62,6 +68,7 @@ Regras:
 - O sistema deve permitir que administradores adicionem novos participantes futuramente.
 
 Cada participante deve possuir no mínimo:
+
 - ID único;
 - nome;
 - referência ao bolão;
@@ -69,9 +76,11 @@ Cada participante deve possuir no mínimo:
 - data de criação.
 
 ### 5. Sorteio da ordem do bolão
+
 Cada bolão deve possuir um sorteio para definir a ordem em que os participantes irão realizar seus palpites.
 
 Regras:
+
 - O sorteio deve considerar todos os participantes cadastrados naquele bolão.
 - O sorteio deve ocorrer apenas uma vez.
 - A ordem sorteada deve ser armazenada permanentemente no banco de dados.
@@ -81,18 +90,22 @@ Regras:
 - A posição sorteada deve ficar associada ao participante.
 
 ### 6. Sistema de palpites
+
 Implemente e valide todo o fluxo de criação e armazenamento dos palpites.
 
 Regras:
+
 - Cada participante deve conseguir registrar seus palpites para todas as partidas.
 - Os palpites devem ficar vinculados ao participante, ao bolão e ao jogo correspondente.
 - O sistema deve impedir alterações após o prazo definido para cada partida.
 - Deve existir validação tanto no frontend quanto no backend.
 
 ### 7. Impedir resultados iguais
+
 O sistema não deve permitir resultados idênticos entre participantes quando a regra do bolão exigir exclusividade.
 
 Regras:
+
 - Antes de salvar um palpite, verifique se já existe outro participante com o mesmo resultado para aquela partida.
 - Caso a regra seja aplicada ao conjunto completo de palpites do bolão, valide toda a combinação antes da gravação.
 - Se houver duplicidade, exiba uma mensagem clara ao usuário informando que aquele resultado já foi escolhido por outro participante.
@@ -101,9 +114,11 @@ Regras:
 - Criar restrições adequadas no banco de dados sempre que possível para garantir integridade.
 
 ### 8. Banco de dados
+
 Revise toda a modelagem e implemente as correções necessárias.
 
 Garanta que existam relacionamentos adequados entre:
+
 - bolões;
 - participantes;
 - grupos;
@@ -116,6 +131,7 @@ Garanta que existam relacionamentos adequados entre:
 - ordem do sorteio.
 
 Crie ou ajuste:
+
 - migrations;
 - índices;
 - chaves estrangeiras;
@@ -123,6 +139,7 @@ Crie ou ajuste:
 - políticas de integridade.
 
 ### 9. Interface administrativa
+
 Implemente ou corrija funcionalidades administrativas para permitir:
 
 - sincronizar dados da API manualmente;
@@ -133,6 +150,7 @@ Implemente ou corrija funcionalidades administrativas para permitir:
 - gerenciar bolões existentes.
 
 ### 10. Tratamento de erros e experiência do usuário
+
 - Adicione estados de carregamento em todas as operações assíncronas.
 - Exiba mensagens claras de sucesso e erro.
 - Trate cenários de indisponibilidade da API.
@@ -140,9 +158,11 @@ Implemente ou corrija funcionalidades administrativas para permitir:
 - Garanta que a aplicação continue funcional mesmo após falhas temporárias.
 
 ### 11. Testes
+
 Implemente testes para validar os principais fluxos do sistema.
 
 Teste pelo menos:
+
 - sincronização da API;
 - criação automática dos participantes;
 - prevenção de participantes duplicados;
@@ -156,6 +176,7 @@ Teste pelo menos:
 - responsividade das principais telas.
 
 ### 12. Critérios obrigatórios para considerar a tarefa concluída
+
 A implementação somente poderá ser considerada finalizada quando:
 
 - a API estiver sendo consumida corretamente;
@@ -171,6 +192,7 @@ A implementação somente poderá ser considerada finalizada quando:
 - não existirem erros críticos no console do navegador ou nos logs do backend.
 
 IMPORTANTE:
+
 - Não gere apenas sugestões, exemplos ou pseudocódigo.
 - Implemente efetivamente todas as correções necessárias nos arquivos existentes do projeto.
 - Analise o código atual antes de realizar qualquer alteração.

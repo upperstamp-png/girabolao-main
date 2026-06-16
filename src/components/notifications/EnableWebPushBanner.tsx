@@ -7,7 +7,7 @@ import {
   isPushSupported,
   getNotificationPermissionState,
   subscribeToPush,
-  isIOSStandalone
+  isIOSStandalone,
 } from "@/lib/webPush";
 import { toast } from "sonner";
 
@@ -84,7 +84,9 @@ export function EnableWebPushBanner() {
             <div className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1.5 rounded-md">
               <span>Toque em</span>
               <Share className="h-3 w-3 inline text-primary" />
-              <span>e em <strong>&quot;Tela de Início&quot;</strong></span>
+              <span>
+                e em <strong>&quot;Tela de Início&quot;</strong>
+              </span>
             </div>
           ) : (
             <Button

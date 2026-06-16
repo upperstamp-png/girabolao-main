@@ -11,8 +11,11 @@ export const Route = createFileRoute("/noticias")({
   head: () => ({
     meta: [
       { title: "Notícias da Copa — Bolão Copa 2026" },
-      { name: "description", content: "Notícias e atualizações oficiais sobre a Copa do Mundo 2026." }
-    ]
+      {
+        name: "description",
+        content: "Notícias e atualizações oficiais sobre a Copa do Mundo 2026.",
+      },
+    ],
   }),
   component: Page,
 });
@@ -20,7 +23,12 @@ export const Route = createFileRoute("/noticias")({
 function Page() {
   const qc = useQueryClient();
 
-  const { data: noticias, isLoading, isError, refetch } = useQuery({
+  const {
+    data: noticias,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["noticias"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -40,7 +48,7 @@ function Page() {
     },
     onError: (e: Error) => {
       toast.error(`Falha ao atualizar notícias: ${e.message}`);
-    }
+    },
   });
 
   return (
@@ -53,7 +61,9 @@ function Page() {
           </div>
           <div>
             <h1 className="text-display text-2xl sm:text-3xl leading-none">Notícias da Copa</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Copa do Mundo 2026 — Cobertura completa</p>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              Copa do Mundo 2026 — Cobertura completa
+            </p>
           </div>
         </div>
         <Button
@@ -118,8 +128,73 @@ function Page() {
               year: "numeric",
             });
 
-            // Derive a category tag from fonte or a fallback
-            const categoria = n.fonte ?? "Copa 2026";
+            // Derive editorial category + color from fonte
+            const categoriaMap: Record<
+              string,
+              { label: string; color: string; bg: string; border: string }
+            > = {
+              ge: {
+                label: "COPA 2026",
+                color: "#3FB950",
+                bg: "rgba(63,185,80,0.1)",
+                border: "rgba(63,185,80,0.2)",
+              },
+              ESPN: {
+                label: "COPA 2026",
+                color: "#3FB950",
+                bg: "rgba(63,185,80,0.1)",
+                border: "rgba(63,185,80,0.2)",
+              },
+              FIFA: {
+                label: "COPA 2026",
+                color: "#3FB950",
+                bg: "rgba(63,185,80,0.1)",
+                border: "rgba(63,185,80,0.2)",
+              },
+              "UOL Esporte": {
+                label: "SELEÇÕES",
+                color: "#388BFD",
+                bg: "rgba(56,139,253,0.1)",
+                border: "rgba(56,139,253,0.2)",
+              },
+              "Lance!": {
+                label: "SELEÇÕES",
+                color: "#388BFD",
+                bg: "rgba(56,139,253,0.1)",
+                border: "rgba(56,139,253,0.2)",
+              },
+              "TNT Sports": {
+                label: "AO VIVO",
+                color: "#F85149",
+                bg: "rgba(248,81,73,0.1)",
+                border: "rgba(248,81,73,0.2)",
+              },
+              CazéTV: {
+                label: "AO VIVO",
+                color: "#F85149",
+                bg: "rgba(248,81,73,0.1)",
+                border: "rgba(248,81,73,0.2)",
+              },
+              Transfermarkt: {
+                label: "MERCADO",
+                color: "#D29922",
+                bg: "rgba(210,153,34,0.1)",
+                border: "rgba(210,153,34,0.2)",
+              },
+              "90min": {
+                label: "CURIOSIDADES",
+                color: "#A371F7",
+                bg: "rgba(163,113,247,0.1)",
+                border: "rgba(163,113,247,0.2)",
+              },
+            };
+            const defaultCat = {
+              label: "COPA 2026",
+              color: "#3FB950",
+              bg: "rgba(63,185,80,0.1)",
+              border: "rgba(63,185,80,0.2)",
+            };
+            const cat = categoriaMap[n.fonte] ?? defaultCat;
 
             return (
               <a
@@ -131,7 +206,9 @@ function Page() {
               >
                 {/* Image */}
                 {n.imagem_url ? (
-                  <div className={`w-full overflow-hidden bg-secondary/20 ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}>
+                  <div
+                    className={`w-full overflow-hidden bg-secondary/20 ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}
+                  >
                     <img
                       src={n.imagem_url}
                       alt={n.titulo}
@@ -140,7 +217,9 @@ function Page() {
                     />
                   </div>
                 ) : (
-                  <div className={`w-full bg-gradient-to-br from-secondary/40 to-background flex items-center justify-center ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}>
+                  <div
+                    className={`w-full bg-gradient-to-br from-secondary/40 to-background flex items-center justify-center ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}
+                  >
                     <Newspaper className="h-12 w-12 text-muted-foreground/30" />
                   </div>
                 )}
@@ -149,9 +228,15 @@ function Page() {
                 <div className="p-4 space-y-2">
                   {/* Meta row */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                      🟢 {categoria.toUpperCase()}
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                      style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
+                    >
+                      ● {cat.label}
                     </span>
+                    {n.fonte && n.fonte !== cat.label && (
+                      <span className="text-[10px] text-muted-foreground">{n.fonte}</span>
+                    )}
                     <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <CalendarDays className="h-3 w-3" />
                       {dataPub}
@@ -159,7 +244,9 @@ function Page() {
                   </div>
 
                   {/* Title */}
-                  <h2 className={`font-display font-bold leading-snug group-hover:text-primary transition-colors ${i === 0 ? "text-xl sm:text-2xl" : "text-base"} line-clamp-2`}>
+                  <h2
+                    className={`font-display font-bold leading-snug group-hover:text-primary transition-colors ${i === 0 ? "text-xl sm:text-2xl" : "text-base"} line-clamp-2`}
+                  >
                     {n.titulo}
                   </h2>
 

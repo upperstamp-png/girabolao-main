@@ -1,9 +1,19 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
-import { supabase, callFn, flag, countdown, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
+import {
+  supabase,
+  callFn,
+  flag,
+  countdown,
+  FASES_LABEL,
+  getIdentidade,
+  calcularPontosPalpite,
+} from "@/lib/bolao";
 import { pollIntervalForStatus } from "@/lib/realtime";
+import { ReactionBar } from "@/components/ReactionBar";
+import { useSharePrediction } from "@/lib/shareCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,14 +21,29 @@ import { toast } from "sonner";
 import { IdentidadePicker, type Identidade } from "@/components/IdentidadePicker";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ArrowRight, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/jogos/$id")({
-  head: () => ({ meta: [{ title: "Palpite — Bolão Copa 2026" }, { name: "description", content: "Palpite no placar exato deste jogo." }] }),
+  head: () => ({
+    meta: [
+      { title: "Palpite — Bolão Copa 2026" },
+      { name: "description", content: "Palpite no placar exato deste jogo." },
+    ],
+  }),
   component: Page,
 });
 
-function GolInput({ label, value, onChange, disabled }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) {
+function GolInput({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+}) {
   return (
     <div className="flex flex-col items-center gap-2">
       <span className="text-sm text-muted-foreground text-center">{label}</span>
@@ -53,60 +78,183 @@ function Page() {
   const [identidade, setIdentidade] = useState<Identidade | null>(() => getIdentidade());
   const [gc, setGc] = useState(0);
   const [gf, setGf] = useState(0);
+  const [initialized, setInitialized] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
+  const sharePrediction = useSharePrediction();
 
-  const { data: jogo, isLoading: loadingJogo, isError: errJogo, refetch: refetchJogo } = useQuery({
+  const {
+    data: jogo,
+    isLoading: loadingJogo,
+    isError: errJogo,
+    refetch: refetchJogo,
+  } = useQuery({
     queryKey: ["jogo", id],
-    queryFn: async () => (await supabase.from("bolao_jogos").select("*").eq("id", id).single()).data,
+    queryFn: async () =>
+      (await supabase.from("bolao_jogos").select("*").eq("id", id).single()).data,
     refetchInterval: (q) => pollIntervalForStatus(q.state.data?.status),
   });
 
   const { data: stats } = useQuery({
     queryKey: ["jogo-stats", id],
-    queryFn: async () => (await supabase.from("bolao_jogo_estatisticas").select("*").eq("jogo_id", id).maybeSingle()).data,
+    queryFn: async () =>
+      (await supabase.from("bolao_jogo_estatisticas").select("*").eq("jogo_id", id).maybeSingle())
+        .data,
     refetchInterval: (q) => pollIntervalForStatus(jogo?.status),
     enabled: !!id,
   });
 
-
-
   const { data: usuarios } = useQuery({
     queryKey: ["usuarios"],
-    queryFn: async () => (await supabase.from("bolao_usuarios").select("id, nome").eq("excluido_manualmente", false).order("nome")).data ?? [],
+    queryFn: async () =>
+      (
+        await supabase
+          .from("bolao_usuarios")
+          .select("id, nome")
+          .eq("excluido_manualmente", false)
+          .order("nome")
+      ).data ?? [],
   });
 
   const { data: config } = useQuery({
     queryKey: ["config-global"],
-    queryFn: async () => (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
+    queryFn: async () =>
+      (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
   });
 
   const { data: primeiroJogo } = useQuery({
     queryKey: ["primeiro-jogo-global"],
-    queryFn: async () => (await supabase.from("bolao_jogos").select("data_hora").order("data_hora", { ascending: true }).limit(1).maybeSingle()).data,
+    queryFn: async () =>
+      (
+        await supabase
+          .from("bolao_jogos")
+          .select("data_hora")
+          .order("data_hora", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      ).data,
   });
 
   useEffect(() => {
     if (!identidade?.nome || identidade.id || !usuarios?.length) return;
-    const u = usuarios.find(x => x.nome === identidade.nome);
+    const u = usuarios.find((x) => x.nome === identidade.nome);
     if (u) setIdentidade({ ...identidade, id: u.id });
   }, [identidade, usuarios]);
 
   const { data: palpites, isLoading: loadingPalpites } = useQuery({
     queryKey: ["palpites", id],
-    queryFn: async () => (await supabase.from("bolao_palpites_publica").select("*").eq("jogo_id", id)).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("bolao_palpites_publica").select("*").eq("jogo_id", id)).data ?? [],
     refetchInterval: (q) => pollIntervalForStatus(jogo?.status),
   });
 
+  useEffect(() => {
+    if (!id || !identidade?.id || !palpites) return;
+
+    // 1. Carregar do LocalStorage (Rascunho)
+    const draftKey = `bolao_draft_palpite_${id}`;
+    const draft = localStorage.getItem(draftKey);
+    if (draft) {
+      try {
+        const { gc: dGc, gf: dGf } = JSON.parse(draft);
+        setGc(dGc);
+        setGf(dGf);
+        setHasDraft(true);
+        setInitialized(true);
+        return;
+      } catch {}
+    }
+
+    // 2. Se não houver rascunho, iniciar com o palpite já registrado no banco (uma única vez)
+    if (!initialized) {
+      const meu = palpites.find((p: { usuario_id: string }) => p.usuario_id === identidade.id);
+      if (meu && meu.gols_casa != null && meu.gols_fora != null) {
+        setGc(meu.gols_casa);
+        setGf(meu.gols_fora);
+      }
+      setInitialized(true);
+    }
+  }, [id, identidade?.id, palpites, initialized]);
+
+  useEffect(() => {
+    if (!initialized || !id || !identidade?.id || !palpites) return;
+
+    const meu = palpites.find((p: { usuario_id: string }) => p.usuario_id === identidade.id);
+    const draftKey = `bolao_draft_palpite_${id}`;
+
+    const isMatchDb = meu && meu.gols_casa === gc && meu.gols_fora === gf;
+    const isDefaultZero = !meu && gc === 0 && gf === 0;
+
+    if (isMatchDb || isDefaultZero) {
+      localStorage.removeItem(draftKey);
+      setHasDraft(false);
+    } else {
+      localStorage.setItem(draftKey, JSON.stringify({ gc, gf }));
+      setHasDraft(true);
+    }
+  }, [gc, gf, id, identidade?.id, palpites, initialized]);
+
   const enviar = useMutation({
-    mutationFn: () => callFn("palpite-placar", {
-      nome: identidade?.nome, pin: identidade?.pin,
-      jogo_id: id, gols_casa: gc, gols_fora: gf,
-    }),
+    mutationFn: () => {
+      if (config?.exclusividade_placar) {
+        const duplicado = palpites?.find(
+          (p: { usuario_id: string; gols_casa?: number; gols_fora?: number }) =>
+            p.gols_casa === gc && p.gols_fora === gf && p.usuario_id !== identidade?.id,
+        );
+        if (duplicado) {
+          const outroNome = nomeMap.get(duplicado.usuario_id) ?? "outro participante";
+          throw new Error(`Placar ${gc}x${gf} já foi escolhido por ${outroNome}.`);
+        }
+      }
+      return callFn("palpite-placar", {
+        nome: identidade?.nome,
+        pin: identidade?.pin,
+        jogo_id: id,
+        gols_casa: gc,
+        gols_fora: gf,
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["palpites", id] });
+      qc.invalidateQueries({ queryKey: ["user-palpites"] });
+      localStorage.removeItem(`bolao_draft_palpite_${id}`);
+      setHasDraft(false);
       toast.success("🎯 Palpite registrado com sucesso!");
+      setSaved(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // All future games for multi-game navigation
+  const { data: allGames } = useQuery({
+    queryKey: ["jogos-nav"],
+    queryFn: async () =>
+      (await supabase.from("bolao_jogos").select("id, data_hora").order("data_hora")).data ?? [],
+    staleTime: 60000,
+  });
+
+  const { data: allUserPalpites } = useQuery({
+    queryKey: ["user-palpites-nav", identidade?.id],
+    queryFn: async () => {
+      if (!identidade?.id) return [];
+      return (
+        (await supabase.from("bolao_palpites").select("jogo_id").eq("usuario_id", identidade.id))
+          .data ?? []
+      );
+    },
+    enabled: !!identidade?.id,
+  });
+
+  const nextUnpredictedGame = useMemo(() => {
+    if (!allGames || !allUserPalpites) return null;
+    const predictedSet = new Set(allUserPalpites.map((p) => p.jogo_id));
+    const now = new Date();
+    return (
+      allGames.find((g) => g.id !== id && new Date(g.data_hora) > now && !predictedSet.has(g.id)) ??
+      null
+    );
+  }, [allGames, allUserPalpites, id]);
 
   const comPalpite = useMemo(
     () => new Set((palpites ?? []).map((p: { usuario_id: string }) => p.usuario_id)),
@@ -116,11 +264,15 @@ function Page() {
   const prazoExpirado = useMemo(() => {
     if (!jogo) return true;
 
+    // Bloqueado manualmente
+    if (jogo.bloqueado_manual) return true;
+
     // Resultado confirmado — não pode mais apostar/alterar
     if (jogo.status === "encerrado" || jogo.status === "apurado") return true;
 
     // Ao vivo: só permite no 1º tempo (até 45 min)
-    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) return true;
+    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45)
+      return true;
 
     // Verificar se o bolão está fechado globalmente
     if (config?.status === "FECHADO" || config?.status === "FINALIZADO") return true;
@@ -131,6 +283,9 @@ function Page() {
   // Mensagem de status para exibir ao usuário
   const mensagemBloqueio = useMemo(() => {
     if (!jogo) return null;
+    if (jogo.bloqueado_manual) {
+      return "Palpites encerrados para este jogo (bloqueado manualmente pelo administrador).";
+    }
     if (jogo.status === "encerrado" || jogo.status === "apurado") {
       return "Resultado confirmado. Palpites não podem mais ser alterados.";
     }
@@ -146,7 +301,9 @@ function Page() {
   useEffect(() => {
     if (!jogo || !identidade || !palpites) return;
     if (jogo.status !== "encerrado" && jogo.status !== "apurado") return;
-    const meu = palpites.find((p: { usuario_id: string; acertou?: boolean }) => p.usuario_id === identidade.id);
+    const meu = palpites.find(
+      (p: { usuario_id: string; acertou?: boolean }) => p.usuario_id === identidade.id,
+    );
     if (meu?.acertou) confetti({ particleCount: 200, spread: 80, origin: { y: 0.4 } });
   }, [jogo?.status, palpites, identidade?.id]);
 
@@ -163,7 +320,12 @@ function Page() {
   if (errJogo || !jogo) {
     return (
       <div className="max-w-3xl mx-auto">
-        <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground inline-block mb-4">← Todos os jogos</Link>
+        <Link
+          to="/jogos"
+          className="text-sm text-muted-foreground hover:text-foreground inline-block mb-4"
+        >
+          ← Todos os jogos
+        </Link>
         <ErrorState message="Não foi possível carregar este jogo." onRetry={() => refetchJogo()} />
       </div>
     );
@@ -174,12 +336,13 @@ function Page() {
   const acumulado = Number(jogo.acumulado || 0);
   const nP = palpites?.length ?? 0;
   const poolEstimado = nP * Number(jogo.valor_entrada) + acumulado;
-  const nomeMap = new Map((usuarios ?? []).map(u => [u.id, u.nome]));
-
+  const nomeMap = new Map((usuarios ?? []).map((u) => [u.id, u.nome]));
 
   return (
     <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 animate-in">
-      <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground">← Todos os jogos</Link>
+      <Link to="/jogos" className="text-sm text-muted-foreground hover:text-foreground">
+        ← Todos os jogos
+      </Link>
 
       <Card className="bg-pitch shadow-card border-2 border-border">
         <CardContent className="py-6 sm:py-8 text-center px-4">
@@ -189,14 +352,19 @@ function Page() {
           <div className="flex items-center justify-center gap-3 sm:gap-8">
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-6xl">{flag(jogo.time_casa)}</div>
-              <div className="text-display text-sm sm:text-xl mt-2 leading-tight">{jogo.time_casa}</div>
+              <div className="text-display text-sm sm:text-xl mt-2 leading-tight">
+                {jogo.time_casa}
+              </div>
             </div>
             <div className="text-display game-hero-score text-4xl sm:text-6xl text-primary shrink-0">
-              {jogo.placar_casa ?? "–"} <span className="text-muted-foreground">:</span> {jogo.placar_fora ?? "–"}
+              {jogo.placar_casa ?? "–"} <span className="text-muted-foreground">:</span>{" "}
+              {jogo.placar_fora ?? "–"}
             </div>
             <div className="text-center flex-1">
               <div className="text-4xl sm:text-6xl">{flag(jogo.time_fora)}</div>
-              <div className="text-display text-sm sm:text-xl mt-2 leading-tight">{jogo.time_fora}</div>
+              <div className="text-display text-sm sm:text-xl mt-2 leading-tight">
+                {jogo.time_fora}
+              </div>
             </div>
           </div>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
@@ -211,6 +379,9 @@ function Page() {
             )}
           </div>
           {jogo.estadio && <p className="text-xs text-muted-foreground mt-2">🏟️ {jogo.estadio}</p>}
+          <div className="pt-3">
+            <ReactionBar jogoId={jogo.id} />
+          </div>
         </CardContent>
       </Card>
 
@@ -222,7 +393,11 @@ function Page() {
               📺 Transmissão ao vivo — CazéTV
             </CardTitle>
             <Button asChild size="sm" variant="outline" className="text-xs shrink-0 gap-1.5 h-8">
-              <a href="https://www.youtube.com/@CazeTV/live" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://www.youtube.com/@CazeTV/live"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Abrir no YouTube ↗
               </a>
             </Button>
@@ -239,7 +414,8 @@ function Page() {
               />
             </div>
             <p className="text-xs text-muted-foreground p-3 text-center sm:pt-2 sm:pb-0">
-              Se o vídeo acima aparecer como indisponível devido a restrições de direitos autorais do YouTube, clique no botão para assistir diretamente no canal da CazéTV.
+              Se o vídeo acima aparecer como indisponível devido a restrições de direitos autorais
+              do YouTube, clique no botão para assistir diretamente no canal da CazéTV.
             </p>
           </CardContent>
         </Card>
@@ -254,27 +430,39 @@ function Page() {
             <div className="grid grid-cols-3 gap-2 text-center text-sm">
               <div>
                 <div className="text-muted-foreground text-xs">Posse</div>
-                <div className="font-semibold">{stats.posse_casa ?? "—"}% × {stats.posse_fora ?? "—"}%</div>
+                <div className="font-semibold">
+                  {stats.posse_casa ?? "—"}% × {stats.posse_fora ?? "—"}%
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">Chutes</div>
-                <div className="font-semibold">{stats.chutes_casa} × {stats.chutes_fora}</div>
+                <div className="font-semibold">
+                  {stats.chutes_casa} × {stats.chutes_fora}
+                </div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">No gol</div>
-                <div className="font-semibold">{stats.chutes_gol_casa} × {stats.chutes_gol_fora}</div>
+                <div className="font-semibold">
+                  {stats.chutes_gol_casa} × {stats.chutes_gol_fora}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-
-
       {!prazoExpirado && (
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4">
             <CardTitle>Seu palpite</CardTitle>
+            {hasDraft && (
+              <Badge
+                variant="outline"
+                className="bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse text-[10px] py-0.5 px-2"
+              >
+                ✍️ Rascunho salvo
+              </Badge>
+            )}
           </CardHeader>
           <CardContent className="space-y-5">
             <IdentidadePicker value={identidade} onChange={setIdentidade} />
@@ -295,24 +483,126 @@ function Page() {
             <div className="text-center text-display text-3xl text-muted-foreground py-1">
               {gc} × {gf}
             </div>
+            {(() => {
+              if (config?.exclusividade_placar) {
+                const duplicado = palpites?.find(
+                  (p: { usuario_id: string; gols_casa?: number; gols_fora?: number }) =>
+                    p.gols_casa === gc && p.gols_fora === gf && p.usuario_id !== identidade?.id,
+                );
+                if (duplicado) {
+                  const outroNome = nomeMap.get(duplicado.usuario_id) ?? "outro participante";
+                  return (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-center text-xs text-destructive font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                      ⚠️ O placar {gc}x{gf} já foi escolhido por {outroNome}.
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
             <Button
               onClick={() => enviar.mutate()}
-              disabled={!identidade?.nome || enviar.isPending}
+              disabled={
+                !identidade?.nome ||
+                enviar.isPending ||
+                (() => {
+                  if (config?.exclusividade_placar) {
+                    return (
+                      palpites?.some(
+                        (p: { usuario_id: string; gols_casa?: number; gols_fora?: number }) =>
+                          p.gols_casa === gc &&
+                          p.gols_fora === gf &&
+                          p.usuario_id !== identidade?.id,
+                      ) ?? false
+                    );
+                  }
+                  return false;
+                })()
+              }
               className="w-full btn-touch"
               size="lg"
             >
               {enviar.isPending ? "Enviando..." : "Registrar palpite"}
             </Button>
+
+            {/* Multi-game navigation */}
+            {saved && nextUnpredictedGame && (
+              <Button
+                variant="outline"
+                className="w-full btn-touch gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                size="lg"
+                onClick={() =>
+                  navigate({ to: "/jogos/$id", params: { id: nextUnpredictedGame.id } })
+                }
+              >
+                Palpitar próximo jogo <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Share prediction */}
+            {(saved ||
+              palpites?.some((p: { usuario_id: string }) => p.usuario_id === identidade?.id)) && (
+              <Button
+                variant="outline"
+                className="w-full btn-touch gap-2 text-muted-foreground hover:text-foreground"
+                size="lg"
+                onClick={() =>
+                  sharePrediction({
+                    timeCasa: jogo.time_casa,
+                    timeFora: jogo.time_fora,
+                    golsCasa: gc,
+                    golsFora: gf,
+                    fase: FASES_LABEL[jogo.fase] ?? jogo.fase,
+                    dataHora: jogo.data_hora,
+                    userName: identidade?.nome ?? "Anônimo",
+                  })
+                }
+              >
+                <Share2 className="h-4 w-4" /> Compartilhar palpite
+              </Button>
+            )}
+
             <p className="text-center text-[11px] text-muted-foreground leading-normal mt-2">
-              💡 <strong>Regras de pontuação:</strong> Acertar placar exato = <strong>3 pts</strong> | Acertar vencedor ou empate = <strong>1 pt</strong>
+              💡 <strong>Regras de pontuação:</strong> Acertar placar exato = <strong>3 pts</strong>{" "}
+              | Acertar vencedor ou empate = <strong>1 pt</strong>
             </p>
           </CardContent>
         </Card>
       )}
 
       {prazoExpirado && mensagemBloqueio && (
-        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 text-center">
-          🔒 {mensagemBloqueio}
+        <div className="space-y-3">
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 text-center">
+            🔒 {mensagemBloqueio}
+          </div>
+          {(() => {
+            const meuPalpite = palpites?.find(
+              (p: { usuario_id: string; gols_casa?: number; gols_fora?: number }) =>
+                p.usuario_id === identidade?.id,
+            );
+            if (!meuPalpite || meuPalpite.gols_casa == null || meuPalpite.gols_fora == null)
+              return null;
+            return (
+              <Button
+                variant="outline"
+                className="w-full btn-touch gap-2 text-muted-foreground hover:text-foreground"
+                size="lg"
+                onClick={() =>
+                  sharePrediction({
+                    timeCasa: jogo.time_casa,
+                    timeFora: jogo.time_fora,
+                    golsCasa: meuPalpite.gols_casa!,
+                    golsFora: meuPalpite.gols_fora!,
+                    fase: FASES_LABEL[jogo.fase] ?? jogo.fase,
+                    dataHora: jogo.data_hora,
+                    userName: identidade?.nome ?? "Anônimo",
+                  })
+                }
+              >
+                <Share2 className="h-4 w-4" /> Compartilhar palpite
+              </Button>
+            );
+          })()}
         </div>
       )}
 
@@ -323,7 +613,9 @@ function Page() {
         <CardContent>
           {loadingPalpites ? (
             <div className="space-y-2">
-              {[1,2,3].map(i => <div key={i} className="skeleton h-10 rounded" />)}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton h-10 rounded" />
+              ))}
             </div>
           ) : nP === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
@@ -331,47 +623,75 @@ function Page() {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {palpites!.map((p: { id: string; usuario_id: string; gols_casa?: number; gols_fora?: number; acertou?: boolean }) => {
-                const nome = nomeMap.get(p.usuario_id) ?? "—";
-                let pointsText = "";
-                let badgeColor = "";
-                let isCalculated = false;
+              {palpites!.map(
+                (p: {
+                  id: string;
+                  usuario_id: string;
+                  gols_casa?: number;
+                  gols_fora?: number;
+                  acertou?: boolean;
+                }) => {
+                  const nome = nomeMap.get(p.usuario_id) ?? "—";
+                  let pointsText = "";
+                  let badgeColor = "";
+                  let isCalculated = false;
 
-                if (p.gols_casa != null && p.gols_fora != null && jogo.placar_casa != null && jogo.placar_fora != null) {
-                  isCalculated = true;
-                  const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, jogo.placar_casa, jogo.placar_fora);
-                  if (res.acertouPlacar) {
-                    pointsText = "🎯 +3";
-                    badgeColor = "bg-success text-success-foreground font-bold";
-                  } else if (res.acertouResultado) {
-                    pointsText = "⚽ +1";
-                    badgeColor = "bg-primary/20 text-primary border border-primary/30";
-                  } else {
-                    pointsText = "❌ 0";
-                    badgeColor = "bg-secondary text-muted-foreground";
+                  if (
+                    p.gols_casa != null &&
+                    p.gols_fora != null &&
+                    jogo.placar_casa != null &&
+                    jogo.placar_fora != null
+                  ) {
+                    isCalculated = true;
+                    const res = calcularPontosPalpite(
+                      p.gols_casa,
+                      p.gols_fora,
+                      jogo.placar_casa,
+                      jogo.placar_fora,
+                    );
+                    if (res.acertouPlacar) {
+                      pointsText = "🎯 +3";
+                      badgeColor = "bg-success text-success-foreground font-bold";
+                    } else if (res.acertouResultado) {
+                      pointsText = "⚽ +1";
+                      badgeColor = "bg-primary/20 text-primary border border-primary/30";
+                    } else {
+                      pointsText = "❌ 0";
+                      badgeColor = "bg-secondary text-muted-foreground";
+                    }
                   }
-                }
 
-                return (
-                  <li key={p.id} className="flex justify-between items-center py-2.5 border-b border-border/30 last:border-0 hover:bg-secondary/10 px-2 rounded-md transition-colors">
-                    <span className="font-medium">
-                      {nome} {p.usuario_id === identidade?.id ? <span className="text-xs text-primary font-semibold">(Você)</span> : ""}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-sm">
-                        {p.gols_casa} × {p.gols_fora}
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex justify-between items-center py-2.5 border-b border-border/30 last:border-0 hover:bg-secondary/10 px-2 rounded-md transition-colors"
+                    >
+                      <span className="font-medium">
+                        {nome}{" "}
+                        {p.usuario_id === identidade?.id ? (
+                          <span className="text-xs text-primary font-semibold">(Você)</span>
+                        ) : (
+                          ""
+                        )}
                       </span>
-                      {isCalculated ? (
-                        <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
-                          {pointsText}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-sm">
+                          {p.gols_casa} × {p.gols_fora}
+                        </span>
+                        {isCalculated ? (
+                          <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
+                            {pointsText}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-[10px] italic">
+                            Aguardando
+                          </span>
+                        )}
+                      </div>
+                    </li>
+                  );
+                },
+              )}
             </ul>
           )}
         </CardContent>

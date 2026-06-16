@@ -4,7 +4,8 @@ import { admin } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   try {
     const { data: jogos } = await supabase
@@ -18,18 +19,26 @@ Deno.serve(async (req) => {
     for (const j of jogos ?? []) {
       // Verifica se já apurado
       const { data: existing } = await supabase
-        .from("bolao_premios").select("id").eq("referencia_id", j.id).eq("modalidade", "placar").limit(1);
+        .from("bolao_premios")
+        .select("id")
+        .eq("referencia_id", j.id)
+        .eq("modalidade", "placar")
+        .limit(1);
       if (existing && existing.length > 0) continue;
 
       const { data: palpites } = await supabase
-        .from("bolao_palpites").select("id, usuario_id, gols_casa, gols_fora").eq("jogo_id", j.id);
+        .from("bolao_palpites")
+        .select("id, usuario_id, gols_casa, gols_fora")
+        .eq("jogo_id", j.id);
 
       const participantes = palpites?.length ?? 0;
       const totalArrecadado = participantes * Number(j.valor_entrada);
       const acumuladoAnterior = Number(j.acumulado || 0);
       const pool = totalArrecadado + acumuladoAnterior;
 
-      const acertadores = (palpites ?? []).filter(p => p.gols_casa === j.placar_casa && p.gols_fora === j.placar_fora);
+      const acertadores = (palpites ?? []).filter(
+        (p) => p.gols_casa === j.placar_casa && p.gols_fora === j.placar_fora,
+      );
 
       // marca acertou
       for (const p of palpites ?? []) {
@@ -40,22 +49,35 @@ Deno.serve(async (req) => {
       if (acertadores.length === 0) {
         // Acumula para o próximo jogo cronológico
         const { data: prox } = await supabase
-          .from("bolao_jogos").select("id, acumulado")
-          .gt("data_hora", j.data_hora).eq("status", "pendente")
-          .order("data_hora").limit(1).maybeSingle();
+          .from("bolao_jogos")
+          .select("id, acumulado")
+          .gt("data_hora", j.data_hora)
+          .eq("status", "pendente")
+          .order("data_hora")
+          .limit(1)
+          .maybeSingle();
         if (prox) {
-          await supabase.from("bolao_jogos").update({ acumulado: Number(prox.acumulado || 0) + pool }).eq("id", prox.id);
+          await supabase
+            .from("bolao_jogos")
+            .update({ acumulado: Number(prox.acumulado || 0) + pool })
+            .eq("id", prox.id);
         }
         await supabase.from("bolao_premios").insert({
-          modalidade: "placar", referencia_id: j.id, usuario_id: null,
-          valor: pool, status: "acumulado",
+          modalidade: "placar",
+          referencia_id: j.id,
+          usuario_id: null,
+          valor: pool,
+          status: "acumulado",
         });
       } else {
         const valorIndividual = +(pool / acertadores.length).toFixed(2);
         for (const a of acertadores) {
           await supabase.from("bolao_premios").insert({
-            modalidade: "placar", referencia_id: j.id, usuario_id: a.usuario_id,
-            valor: valorIndividual, status: "pendente",
+            modalidade: "placar",
+            referencia_id: j.id,
+            usuario_id: a.usuario_id,
+            valor: valorIndividual,
+            status: "pendente",
           });
         }
       }
@@ -67,7 +89,7 @@ Deno.serve(async (req) => {
         body: `Jogo finalizado: ${j.time_casa} ${j.placar_casa} x ${j.placar_fora} ${j.time_fora}. Os pontos do bolão foram atualizados!`,
         url: `/jogos/${j.id}`,
         tag: `apurado_${j.id}`,
-      }).catch(err => console.error("Erro ao disparar push notification", err));
+      }).catch((err) => console.error("Erro ao disparar push notification", err));
 
       apurados++;
     }

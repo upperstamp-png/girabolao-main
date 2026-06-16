@@ -15,13 +15,7 @@ interface GoalToastProps {
   onDismiss: (timestamp: number) => void;
 }
 
-function GoalToastItem({
-  event,
-  onDismiss,
-}: {
-  event: GoalEvent;
-  onDismiss: () => void;
-}) {
+function GoalToastItem({ event, onDismiss }: { event: GoalEvent; onDismiss: () => void }) {
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
@@ -46,24 +40,17 @@ function GoalToastItem({
       <div className="goal-toast-content">
         <div className="goal-toast-headline">
           <span className="goal-toast-team">
-            {flag(event.team)} GOL{" "}
-            {event.side === "home" ? "DA CASA" : "DE FORA"} — {event.team}!
+            {flag(event.team)} GOL {event.side === "home" ? "DA CASA" : "DE FORA"} — {event.team}!
           </span>
         </div>
         <div className="goal-toast-score">
           Placar: {event.score}
-          {event.minute != null && (
-            <span className="goal-toast-minute"> · {event.minute}'</span>
-          )}
+          {event.minute != null && <span className="goal-toast-minute"> · {event.minute}'</span>}
         </div>
       </div>
 
       {/* Close button */}
-      <button
-        className="goal-toast-close"
-        onClick={onDismiss}
-        aria-label="Fechar"
-      >
+      <button className="goal-toast-close" onClick={onDismiss} aria-label="Fechar">
         ✕
       </button>
     </div>
@@ -77,11 +64,7 @@ export function GoalToastContainer({ events, onDismiss }: GoalToastProps) {
   return createPortal(
     <div className="goal-toast-container">
       {events.map((ev) => (
-        <GoalToastItem
-          key={ev.timestamp}
-          event={ev}
-          onDismiss={() => onDismiss(ev.timestamp)}
-        />
+        <GoalToastItem key={ev.timestamp} event={ev} onDismiss={() => onDismiss(ev.timestamp)} />
       ))}
     </div>,
     document.body,

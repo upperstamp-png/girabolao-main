@@ -11,18 +11,20 @@ function parseXml(xml: string) {
     const content = match[1];
 
     const titleMatch = content.match(/<title>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))<\/title>/);
-    const title = (titleMatch ? (titleMatch[1] || titleMatch[2]) : "").trim();
+    const title = (titleMatch ? titleMatch[1] || titleMatch[2] : "").trim();
 
     const linkMatch = content.match(/<link>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))<\/link>/);
-    const link = (linkMatch ? (linkMatch[1] || linkMatch[2]) : "").trim();
+    const link = (linkMatch ? linkMatch[1] || linkMatch[2] : "").trim();
 
-    const descMatch = content.match(/<description>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))<\/description>/);
-    let description = (descMatch ? (descMatch[1] || descMatch[2]) : "").trim();
+    const descMatch = content.match(
+      /<description>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))<\/description>/,
+    );
+    let description = (descMatch ? descMatch[1] || descMatch[2] : "").trim();
     // Remover tags HTML da descrição
     description = description.replace(/<[^>]*>/g, "").trim();
 
     const dateMatch = content.match(/<pubDate>(?:<!\[CDATA\[([\s\S]*?)\]\]>|([^<]*))<\/pubDate>/);
-    const pubDateStr = (dateMatch ? (dateMatch[1] || dateMatch[2]) : "").trim();
+    const pubDateStr = (dateMatch ? dateMatch[1] || dateMatch[2] : "").trim();
     let publicado_em = new Date();
     try {
       if (pubDateStr) publicado_em = new Date(pubDateStr);
@@ -51,7 +53,8 @@ function parseXml(xml: string) {
 }
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   const logs: string[] = [];
 
@@ -117,11 +120,13 @@ Deno.serve(async (req) => {
           feed_url: FEED_URL,
           total_encontrado: parsedItems.length,
           novas_adicionadas: noticiasAdicionadas,
-        }
+        },
       });
       logs.push(`Sincronização de notícias concluída. Adicionadas: ${noticiasAdicionadas}`);
     } else {
-      logs.push(`Cache de notícias ativo. Última sync foi há ${Math.round(tempoDecorrido / 1000)}s.`);
+      logs.push(
+        `Cache de notícias ativo. Última sync foi há ${Math.round(tempoDecorrido / 1000)}s.`,
+      );
     }
 
     return json({ ok: true, logs, noticias_adicionadas: noticiasAdicionadas });
@@ -130,7 +135,7 @@ Deno.serve(async (req) => {
     await supabase.from("bolao_automacoes_log").insert({
       acao: "automacao_erro",
       status: "erro",
-      detalhes: { erro: (err as Error).message }
+      detalhes: { erro: (err as Error).message },
     });
     return json({ error: (err as Error).message, logs }, 500);
   }

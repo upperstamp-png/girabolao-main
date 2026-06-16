@@ -1,7 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { supabase, flag, countdown, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
+import {
+  supabase,
+  flag,
+  countdown,
+  FASES_LABEL,
+  getIdentidade,
+  calcularPontosPalpite,
+} from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,15 +32,24 @@ function Page() {
 
   const { data: config } = useQuery({
     queryKey: ["config-global-index"],
-    queryFn: async () => (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
+    queryFn: async () =>
+      (await supabase.from("bolao_config").select("*").eq("id", 1).single()).data,
   });
 
-  const { data: jogos, isLoading: loadingJogos, isError: errJogos, refetch: refetchJogos } = useQuery({
+  const {
+    data: jogos,
+    isLoading: loadingJogos,
+    isError: errJogos,
+    refetch: refetchJogos,
+  } = useQuery({
     queryKey: ["jogos-all"],
-    queryFn: async () => (await supabase.from("bolao_jogos").select("*").order("data_hora")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("bolao_jogos").select("*").order("data_hora")).data ?? [],
     refetchInterval: (query) => {
       const list = query.state.data ?? [];
-      return list.some((j: { status?: string }) => j.status === "ao_vivo") ? POLL.LIVE : POLL.NORMAL;
+      return list.some((j: { status?: string }) => j.status === "ao_vivo")
+        ? POLL.LIVE
+        : POLL.NORMAL;
     },
   });
 
@@ -41,13 +57,16 @@ function Page() {
     queryKey: ["user-palpites", identidade?.id],
     queryFn: async () => {
       if (!identidade?.id) return [];
-      return (await supabase.from("bolao_palpites").select("*").eq("usuario_id", identidade.id)).data ?? [];
+      return (
+        (await supabase.from("bolao_palpites").select("*").eq("usuario_id", identidade.id)).data ??
+        []
+      );
     },
     enabled: !!identidade?.id,
   });
 
-  const filtrados = (jogos ?? []).filter(j => fase === "todos" || j.fase === fase);
-  
+  const filtrados = (jogos ?? []).filter((j) => fase === "todos" || j.fase === fase);
+
   // Group matches by date
   const groupedMatches = useMemo(() => {
     const map = new Map<string, typeof filtrados>();
@@ -69,8 +88,12 @@ function Page() {
   return (
     <div className="space-y-6 animate-in pb-12">
       <div>
-        <h1 className="text-display text-3xl sm:text-4xl text-foreground font-extrabold tracking-wide">Jogos da Copa</h1>
-        <p className="text-muted-foreground text-sm mt-1">Selecione uma partida para fazer ou alterar seu palpite.</p>
+        <h1 className="text-display text-3xl sm:text-4xl text-foreground font-extrabold tracking-wide">
+          Jogos da Copa
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Selecione uma partida para fazer ou alterar seu palpite.
+        </p>
       </div>
 
       {/* Custom Horizontal Scrollable Tabs Pills */}
@@ -94,26 +117,25 @@ function Page() {
 
       {isLoading && (
         <div className="grid sm:grid-cols-2 gap-3">
-          {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} lines={3} />)}
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <SkeletonCard key={i} lines={3} />
+          ))}
         </div>
       )}
 
       {isError && (
-        <ErrorState
-          message="Não foi possível carregar os jogos."
-          onRetry={() => refetch()}
-        />
+        <ErrorState message="Não foi possível carregar os jogos." onRetry={() => refetch()} />
       )}
 
-      {!isLoading && !isError && (
-        filtrados.length === 0 ? (
+      {!isLoading &&
+        !isError &&
+        (filtrados.length === 0 ? (
           <Card className="border-border">
             <CardContent className="py-12 text-center text-muted-foreground">
               <Calendar className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
               {jogos?.length === 0
                 ? "Nenhum jogo carregado. Sincronize na aba Admin."
-                : "Nenhum jogo cadastrado nesta fase."
-              }
+                : "Nenhum jogo cadastrado nesta fase."}
             </CardContent>
           </Card>
         ) : (
@@ -123,13 +145,15 @@ function Page() {
                 {/* Date separator */}
                 <div className="flex items-center gap-3 my-4">
                   <div className="h-px bg-border/40 flex-1" />
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground bg-background px-2">{dateLabel}</span>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground bg-background px-2">
+                    {dateLabel}
+                  </span>
                   <div className="h-px bg-border/40 flex-1" />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {games.map(j => {
-                    const palpite = userPalpites?.find(p => p.jogo_id === j.id);
+                  {games.map((j) => {
+                    const palpite = userPalpites?.find((p) => p.jogo_id === j.id);
                     const future = new Date(j.data_hora) > new Date();
                     const pendingPalpite = future && !palpite;
 
@@ -139,9 +163,15 @@ function Page() {
                       scoreColorClass = "score-live-pulse font-mono font-bold";
                     } else if (j.placar_casa != null && j.placar_fora != null) {
                       if (palpite) {
-                        const res = calcularPontosPalpite(palpite.gols_casa, palpite.gols_fora, j.placar_casa, j.placar_fora);
+                        const res = calcularPontosPalpite(
+                          palpite.gols_casa,
+                          palpite.gols_fora,
+                          j.placar_casa,
+                          j.placar_fora,
+                        );
                         if (res.acertouPlacar) {
-                          scoreColorClass = "text-gold font-mono font-bold drop-shadow-[0_0_10px_rgba(210,153,34,0.3)]";
+                          scoreColorClass =
+                            "text-gold font-mono font-bold drop-shadow-[0_0_10px_rgba(210,153,34,0.3)]";
                         } else if (res.acertouResultado) {
                           scoreColorClass = "text-primary font-mono font-bold";
                         } else {
@@ -155,25 +185,51 @@ function Page() {
                     // User prediction score indicator
                     let pointsBadge = null;
                     if (palpite && j.placar_casa != null && j.placar_fora != null) {
-                      const res = calcularPontosPalpite(palpite.gols_casa, palpite.gols_fora, j.placar_casa, j.placar_fora);
+                      const res = calcularPontosPalpite(
+                        palpite.gols_casa,
+                        palpite.gols_fora,
+                        j.placar_casa,
+                        j.placar_fora,
+                      );
                       if (res.acertouPlacar) {
-                        pointsBadge = <Badge className="bg-gold/15 text-gold border border-gold/30 font-mono text-[9px] py-0 px-1.5 h-4.5">🎯 +3 pts</Badge>;
+                        pointsBadge = (
+                          <Badge className="bg-gold/15 text-gold border border-gold/30 font-mono text-[9px] py-0 px-1.5 h-4.5">
+                            🎯 +3 pts
+                          </Badge>
+                        );
                       } else if (res.acertouResultado) {
-                        pointsBadge = <Badge className="bg-primary/15 text-primary border border-primary/30 font-mono text-[9px] py-0 px-1.5 h-4.5">⚽ +1 pt</Badge>;
+                        pointsBadge = (
+                          <Badge className="bg-primary/15 text-primary border border-primary/30 font-mono text-[9px] py-0 px-1.5 h-4.5">
+                            ⚽ +1 pt
+                          </Badge>
+                        );
                       } else {
-                        pointsBadge = <Badge variant="secondary" className="font-mono text-[9px] text-muted-foreground/60 border border-border/50 py-0 px-1.5 h-4.5">❌ 0 pts</Badge>;
+                        pointsBadge = (
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-[9px] text-muted-foreground/60 border border-border/50 py-0 px-1.5 h-4.5"
+                          >
+                            ❌ 0 pts
+                          </Badge>
+                        );
                       }
                     }
 
                     return (
                       <Link key={j.id} to="/jogos/$id" params={{ id: j.id }}>
-                        <Card className={`transition-all cursor-pointer active:scale-[0.99] border-border bg-card/60 backdrop-blur-sm shadow-card ${pendingPalpite ? "border-dashed border-primary/40 hover:border-primary/70" : "border hover:border-border-default"}`}>
+                        <Card
+                          className={`transition-all cursor-pointer active:scale-[0.99] border-border bg-card/60 backdrop-blur-sm shadow-card ${pendingPalpite ? "border-dashed border-primary/40 hover:border-primary/70" : "border hover:border-border-default"}`}
+                        >
                           <CardContent className="py-3 sm:py-4">
                             {/* Card Header metadata */}
                             <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono mb-2">
                               <span className="truncate uppercase">{FASES_LABEL[j.fase]}</span>
                               <span className="shrink-0 font-bold ml-2 text-foreground">
-                                {new Date(j.data_hora).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" })} HS
+                                {new Date(j.data_hora).toLocaleString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                HS
                               </span>
                             </div>
 
@@ -183,7 +239,9 @@ function Page() {
                                 {flag(j.time_casa)} {j.time_casa}
                               </div>
                               {j.placar_casa != null ? (
-                                <div className={`text-xl sm:text-2xl shrink-0 px-2.5 py-0.5 rounded bg-secondary/25 border border-border/30 ${scoreColorClass}`}>
+                                <div
+                                  className={`text-xl sm:text-2xl shrink-0 px-2.5 py-0.5 rounded bg-secondary/25 border border-border/30 ${scoreColorClass}`}
+                                >
                                   {j.placar_casa} : {j.placar_fora}
                                 </div>
                               ) : (
@@ -193,7 +251,9 @@ function Page() {
                                       <Clock className="h-3 w-3" />
                                       {countdown(j.data_hora)}
                                     </>
-                                  ) : "—"}
+                                  ) : (
+                                    "—"
+                                  )}
                                 </div>
                               )}
                               <div className="text-display text-sm sm:text-base flex-1 min-w-0 truncate text-right">
@@ -204,10 +264,33 @@ function Page() {
                             {/* Prediction indicators */}
                             <div className="mt-2.5 pt-2 border-t border-border-subtle flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                {j.e_brasil && <Badge className="bg-gold-gradient text-black text-[9px] py-0 px-1.5 h-4.5 font-bold font-mono">Brasil</Badge>}
-                                {j.status === "ao_vivo" && <Badge className="bg-destructive animate-pulse text-[9px] py-0 px-1.5 h-4.5 font-bold font-mono">AO VIVO</Badge>}
-                                {j.status === "apurado" && <Badge variant="secondary" className="text-[9px] py-0 px-1.5 h-4.5 font-mono">Apurado</Badge>}
-                                
+                                {j.e_brasil && (
+                                  <Badge className="bg-gold-gradient text-black text-[9px] py-0 px-1.5 h-4.5 font-bold font-mono">
+                                    Brasil
+                                  </Badge>
+                                )}
+                                {j.status === "ao_vivo" && (
+                                  <Badge className="bg-destructive animate-pulse text-[9px] py-0 px-1.5 h-4.5 font-bold font-mono">
+                                    AO VIVO
+                                  </Badge>
+                                )}
+                                {j.status === "apurado" && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] py-0 px-1.5 h-4.5 font-mono"
+                                  >
+                                    Apurado
+                                  </Badge>
+                                )}
+
+                                {/* Countdown de fechamento de palpites */}
+                                {future && !palpite && (
+                                  <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono text-[9px] py-0 px-1.5 h-4.5 font-semibold gap-1">
+                                    <Clock className="h-2.5 w-2.5" /> Fecha em{" "}
+                                    {countdown(j.data_hora)}
+                                  </Badge>
+                                )}
+
                                 {pendingPalpite && (
                                   <Badge className="bg-gold/10 text-gold border border-gold/20 font-mono text-[9px] py-0 px-1.5 h-4.5 font-semibold gap-1">
                                     <PenTool className="h-2.5 w-2.5" /> Palpite Pendente
@@ -218,7 +301,9 @@ function Page() {
                               {/* User Prediction summary inline */}
                               {palpite && (
                                 <div className="flex items-center gap-1.5 text-xs">
-                                  <span className="text-[10px] text-muted-foreground">Seu palpite:</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Seu palpite:
+                                  </span>
                                   <span className="font-mono font-bold text-foreground bg-secondary/35 border border-border/40 px-1.5 py-0.2 rounded text-[11px]">
                                     {palpite.gols_casa}×{palpite.gols_fora}
                                   </span>
@@ -235,8 +320,7 @@ function Page() {
               </div>
             ))}
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }

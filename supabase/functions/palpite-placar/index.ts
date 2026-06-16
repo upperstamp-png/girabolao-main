@@ -2,12 +2,15 @@ import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
 
-function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
+function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
+  console.log(
+    JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }),
+  );
 }
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
 
   try {
@@ -20,9 +23,14 @@ Deno.serve(async (req) => {
 
     // Validações básicas
     if (!jogo_id) return json({ error: "Jogo obrigatório" }, 400);
-    if (!Number.isInteger(gols_casa) || !Number.isInteger(gols_fora)
-      || gols_casa < 0 || gols_fora < 0
-      || gols_casa > 30 || gols_fora > 30) {
+    if (
+      !Number.isInteger(gols_casa) ||
+      !Number.isInteger(gols_fora) ||
+      gols_casa < 0 ||
+      gols_fora < 0 ||
+      gols_casa > 30 ||
+      gols_fora > 30
+    ) {
       return json({ error: "Placar inválido (0-30 por time)" }, 400);
     }
 
@@ -38,19 +46,66 @@ Deno.serve(async (req) => {
 
     const { data: jogo } = await supabase
       .from("bolao_jogos")
-      .select("id, data_hora, status, time_casa, time_fora, minuto_jogo")
+      .select("id, data_hora, status, time_casa, time_fora, minuto_jogo, bloqueado_manual")
       .eq("id", jogo_id)
       .single();
     if (!jogo) return json({ error: "Jogo não encontrado" }, 404);
 
+    // Bloquear alteração se jogo estiver bloqueado manualmente
+    if (jogo.bloqueado_manual) {
+      return json(
+        { error: "Palpites encerrados para este jogo (bloqueado manualmente pelo administrador)." },
+        400,
+      );
+    }
+
     // Bloquear alteração após resultado confirmado (encerrado ou apurado)
     if (jogo.status === "encerrado" || jogo.status === "apurado") {
-      return json({ error: "O resultado deste jogo já foi confirmado. Palpites não podem mais ser alterados." }, 400);
+      return json(
+        {
+          error: "O resultado deste jogo já foi confirmado. Palpites não podem mais ser alterados.",
+        },
+        400,
+      );
     }
 
     // Permitir apenas durante o primeiro tempo (até 45 min) — bloquear no intervalo ou segundo tempo
     if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) {
-      return json({ error: "Palpites encerrados — o intervalo já passou (limite: 1º tempo)." }, 400);
+      return json(
+        { error: "Palpites encerrados — o intervalo já passou (limite: 1º tempo)." },
+        400,
+      );
+    }
+
+    // Verificar se a exclusividade está ativada e se já existe palpite duplicado
+    const { data: cfg } = await supabase
+      .from("bolao_config")
+      .select("exclusividade_placar")
+      .eq("id", 1)
+      .single();
+
+    if (cfg?.exclusividade_placar) {
+      const { data: duplicado } = await supabase
+        .from("bolao_palpites")
+        .select("usuario_id")
+        .eq("jogo_id", jogo_id)
+        .eq("gols_casa", gols_casa)
+        .eq("gols_fora", gols_fora)
+        .neq("usuario_id", v.id)
+        .maybeSingle();
+
+      if (duplicado) {
+        const { data: outroUsuario } = await supabase
+          .from("bolao_usuarios")
+          .select("nome")
+          .eq("id", duplicado.usuario_id)
+          .maybeSingle();
+        const outroNome = outroUsuario?.nome ?? "outro participante";
+        return json(
+          { error: `Placar ${gols_casa}x${gols_fora} já foi escolhido por ${outroNome}.` },
+          400,
+        );
+      }
     }
 
     // Buscar palpite antigo antes do upsert para registrar auditoria
@@ -66,28 +121,30 @@ Deno.serve(async (req) => {
       .from("bolao_palpites")
       .upsert(
         { usuario_id: v.id, jogo_id, gols_casa, gols_fora },
-        { onConflict: "usuario_id,jogo_id" }
+        { onConflict: "usuario_id,jogo_id" },
       );
     if (error) throw error;
 
     // Registrar no histórico de alterações
     const acao = palpiteAntigo ? "alterar" : "criar";
-    const { error: histErr } = await supabase
-      .from("bolao_historico_alteracoes")
-      .insert({
-        usuario_id: v.id,
-        jogo_id,
-        acao,
-        gols_casa_antigo: palpiteAntigo ? palpiteAntigo.gols_casa : null,
-        gols_fora_antigo: palpiteAntigo ? palpiteAntigo.gols_fora : null,
-        gols_casa_novo: gols_casa,
-        gols_fora_novo: gols_fora,
-      });
+    const { error: histErr } = await supabase.from("bolao_historico_alteracoes").insert({
+      usuario_id: v.id,
+      jogo_id,
+      acao,
+      gols_casa_antigo: palpiteAntigo ? palpiteAntigo.gols_casa : null,
+      gols_fora_antigo: palpiteAntigo ? palpiteAntigo.gols_fora : null,
+      gols_casa_novo: gols_casa,
+      gols_fora_novo: gols_fora,
+    });
     if (histErr) {
       log("WARN", `Falha ao registrar historico para ${nome}: ${histErr.message}`);
     }
 
-    log("INFO", `Palpite registrado: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`, { jogo_id });
+    log(
+      "INFO",
+      `Palpite registrado: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`,
+      { jogo_id },
+    );
 
     // Disparar push de notificação
     const actionVerb = palpiteAntigo ? "alterou seu" : "registrou um";
@@ -96,7 +153,7 @@ Deno.serve(async (req) => {
       body: `${nome} ${actionVerb} palpite para ${jogo.time_casa} x ${jogo.time_fora}: ${gols_casa} x ${gols_fora}`,
       url: `/jogos/${jogo_id}`,
       tag: `palpite_${v.id}_${jogo_id}`,
-    }).catch(err => log("WARN", "Erro ao disparar push notification", err.message));
+    }).catch((err) => log("WARN", "Erro ao disparar push notification", err.message));
 
     return json({ ok: true });
   } catch (e) {

@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.sorteio]
 verify_jwt = false
+
+[functions.broadcast-mensagem]
+verify_jwt = false

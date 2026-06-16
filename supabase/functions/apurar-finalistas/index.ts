@@ -3,7 +3,8 @@ import { admin } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   try {
     const body = await req.json();
@@ -12,8 +13,14 @@ Deno.serve(async (req) => {
     if (!f1 || !f2) return json({ error: "Informe os dois finalistas" }, 400);
     const finais = [f1.toLowerCase(), f2.toLowerCase()];
 
-    const { data: cfg } = await supabase.from("bolao_config_finalistas").select("*").eq("id", 1).single();
-    const { data: apostas } = await supabase.from("bolao_apostas_finalistas").select("id, usuario_id, time1, time2");
+    const { data: cfg } = await supabase
+      .from("bolao_config_finalistas")
+      .select("*")
+      .eq("id", 1)
+      .single();
+    const { data: apostas } = await supabase
+      .from("bolao_apostas_finalistas")
+      .select("id, usuario_id, time1, time2");
 
     const participantes = apostas?.length ?? 0;
     const arrecadado = participantes * 10;
@@ -30,27 +37,43 @@ Deno.serve(async (req) => {
 
     const acertadores = (apostas ?? []).filter(acertaDois);
     for (const a of apostas ?? []) {
-      await supabase.from("bolao_apostas_finalistas").update({
-        acertou_os_dois: acertaDois(a), acertou_um: acertaUm(a),
-      }).eq("id", a.id);
+      await supabase
+        .from("bolao_apostas_finalistas")
+        .update({
+          acertou_os_dois: acertaDois(a),
+          acertou_um: acertaUm(a),
+        })
+        .eq("id", a.id);
     }
 
     if (acertadores.length === 0) {
       await supabase.from("bolao_premios").insert({
-        modalidade: "finalistas", usuario_id: null, valor: pool, status: "acumulado",
+        modalidade: "finalistas",
+        usuario_id: null,
+        valor: pool,
+        status: "acumulado",
       });
     } else {
       const valor = +(pool / acertadores.length).toFixed(2);
       for (const a of acertadores) {
         await supabase.from("bolao_premios").insert({
-          modalidade: "finalistas", usuario_id: a.usuario_id, valor, status: "pendente",
+          modalidade: "finalistas",
+          usuario_id: a.usuario_id,
+          valor,
+          status: "pendente",
         });
       }
     }
 
-    await supabase.from("bolao_config_finalistas").update({
-      status: "apurada", finalista1_real: f1, finalista2_real: f2, total_arrecadado: arrecadado,
-    }).eq("id", 1);
+    await supabase
+      .from("bolao_config_finalistas")
+      .update({
+        status: "apurada",
+        finalista1_real: f1,
+        finalista2_real: f2,
+        total_arrecadado: arrecadado,
+      })
+      .eq("id", 1);
 
     // Disparar push de notificação do resultado
     await notifyAllUsers(null, {
@@ -58,7 +81,7 @@ Deno.serve(async (req) => {
       body: `Os Finalistas oficiais foram definidos: ${f1} x ${f2}! ${acertadores.length} participante(s) acertaram os dois e dividiram o prêmio de R$ ${pool.toFixed(2)}.`,
       url: "/apostas-especiais",
       tag: "apurar_finalistas",
-    }).catch(err => console.error("Erro ao disparar push notification", err));
+    }).catch((err) => console.error("Erro ao disparar push notification", err));
 
     return json({ ok: true, pool, acertadores: acertadores.length });
   } catch (e) {

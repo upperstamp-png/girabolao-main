@@ -1,6 +1,11 @@
 import {
-  extractGrupoLetter, fetchWithTimeout, JogoSync, log,
-  mapStageToRound, mapStatus, normalizeTeamName,
+  extractGrupoLetter,
+  fetchWithTimeout,
+  JogoSync,
+  log,
+  mapStageToRound,
+  mapStatus,
+  normalizeTeamName,
 } from "../fetch.ts";
 
 const BASE = "https://api.football-data.org/v4";
@@ -42,35 +47,37 @@ export async function fetchMatches(): Promise<JogoSync[]> {
   const arr: unknown[] = data.matches || [];
   if (!arr.length) throw new Error("Football-Data retornou 0 jogos");
 
-  return arr.map((g: Record<string, unknown>): JogoSync | null => {
-    const home = g.homeTeam as Record<string, unknown> | undefined;
-    const away = g.awayTeam as Record<string, unknown> | undefined;
-    const score = g.score as Record<string, unknown> | undefined;
-    const ft = score?.fullTime as Record<string, unknown> | undefined;
-    const ht = score?.halfTime as Record<string, unknown> | undefined;
-    const id = Number(g.id ?? 0);
-    const casa = normalizeTeamName(String(home?.name ?? home?.shortName ?? "").trim());
-    const fora = normalizeTeamName(String(away?.name ?? away?.shortName ?? "").trim());
-    const dataHora = String(g.utcDate ?? "");
-    const stage = String(g.stage ?? "").trim();
-    const matchday = Number(g.matchday ?? 1);
-    if (!id || !casa || !fora || !dataHora) return null;
-    return {
-      api_jogo_id: id,
-      time_casa: casa,
-      time_fora: fora,
-      placar_casa: ft?.home != null ? Number(ft.home) : null,
-      placar_fora: ft?.away != null ? Number(ft.away) : null,
-      placar_casa_ht: ht?.home != null ? Number(ht.home) : null,
-      placar_fora_ht: ht?.away != null ? Number(ht.away) : null,
-      status_raw: String(g.status ?? ""),
-      data_hora: dataHora,
-      round: mapStageToRound(stage, matchday),
-      stadium: g.venue ? String(g.venue) : null,
-      grupo: extractGrupoLetter(String(g.group ?? "")),
-      fonte: "football-data",
-    };
-  }).filter((j): j is JogoSync => j !== null);
+  return arr
+    .map((g: Record<string, unknown>): JogoSync | null => {
+      const home = g.homeTeam as Record<string, unknown> | undefined;
+      const away = g.awayTeam as Record<string, unknown> | undefined;
+      const score = g.score as Record<string, unknown> | undefined;
+      const ft = score?.fullTime as Record<string, unknown> | undefined;
+      const ht = score?.halfTime as Record<string, unknown> | undefined;
+      const id = Number(g.id ?? 0);
+      const casa = normalizeTeamName(String(home?.name ?? home?.shortName ?? "").trim());
+      const fora = normalizeTeamName(String(away?.name ?? away?.shortName ?? "").trim());
+      const dataHora = String(g.utcDate ?? "");
+      const stage = String(g.stage ?? "").trim();
+      const matchday = Number(g.matchday ?? 1);
+      if (!id || !casa || !fora || !dataHora) return null;
+      return {
+        api_jogo_id: id,
+        time_casa: casa,
+        time_fora: fora,
+        placar_casa: ft?.home != null ? Number(ft.home) : null,
+        placar_fora: ft?.away != null ? Number(ft.away) : null,
+        placar_casa_ht: ht?.home != null ? Number(ht.home) : null,
+        placar_fora_ht: ht?.away != null ? Number(ht.away) : null,
+        status_raw: String(g.status ?? ""),
+        data_hora: dataHora,
+        round: mapStageToRound(stage, matchday),
+        stadium: g.venue ? String(g.venue) : null,
+        grupo: extractGrupoLetter(String(g.group ?? "")),
+        fonte: "football-data",
+      };
+    })
+    .filter((j): j is JogoSync => j !== null);
 }
 
 export async function fetchStandings(): Promise<StandingRow[]> {

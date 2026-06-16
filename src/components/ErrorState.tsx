@@ -13,15 +13,16 @@ export function ErrorState({ message, onRetry, offline = false, className = "" }
   return (
     <Card className={`border-destructive/40 ${className}`}>
       <CardContent className="py-8 flex flex-col items-center gap-3 text-center">
-        {offline
-          ? <WifiOff className="h-8 w-8 text-destructive" />
-          : <AlertTriangle className="h-8 w-8 text-destructive" />
-        }
+        {offline ? (
+          <WifiOff className="h-8 w-8 text-destructive" />
+        ) : (
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+        )}
         <p className="text-sm text-muted-foreground max-w-xs">
-          {message || (offline
-            ? "Sem conexão. Verifique sua internet e tente novamente."
-            : "Ocorreu um erro ao carregar os dados."
-          )}
+          {message ||
+            (offline
+              ? "Sem conexão. Verifique sua internet e tente novamente."
+              : "Ocorreu um erro ao carregar os dados.")}
         </p>
         {onRetry && (
           <Button size="sm" variant="outline" onClick={onRetry} className="gap-2">
@@ -34,7 +35,13 @@ export function ErrorState({ message, onRetry, offline = false, className = "" }
   );
 }
 
-export function EmptyState({ message = "Nenhum dado encontrado.", icon = "📭" }: { message?: string; icon?: string }) {
+export function EmptyState({
+  message = "Nenhum dado encontrado.",
+  icon = "📭",
+}: {
+  message?: string;
+  icon?: string;
+}) {
   return (
     <Card>
       <CardContent className="py-10 text-center text-muted-foreground">

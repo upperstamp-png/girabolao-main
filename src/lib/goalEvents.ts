@@ -10,9 +10,9 @@
 export interface GoalEvent {
   team: string;
   side: "home" | "away";
-  score: string;         // "2 : 1"
+  score: string; // "2 : 1"
   minute: number | null;
-  timestamp: number;     // Date.now()
+  timestamp: number; // Date.now()
 }
 
 export interface LiveScore {

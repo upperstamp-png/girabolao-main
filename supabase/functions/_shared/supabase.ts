@@ -1,27 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 export function admin() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  );
+  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export async function hashPin(pin: string): Promise<string> {
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(pin + "::bolao2026")
-  );
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin + "::bolao2026"));
   return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
 export async function validarUsuario(
   supabase: ReturnType<typeof admin>,
   nome: string,
-  pin: string | null
+  pin: string | null,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!nome) return { ok: false, error: "Nome obrigatório" };
   const { data: u } = await supabase
@@ -41,7 +36,7 @@ export async function validarUsuario(
 
 export async function validarAdmin(
   supabase: ReturnType<typeof admin>,
-  adminPin: string
+  adminPin: string,
 ): Promise<boolean> {
   if (!adminPin) return false;
   const { data: cfg } = await supabase
@@ -53,19 +48,17 @@ export async function validarAdmin(
 }
 
 export async function verificarBolaoAberto(
-  supabase: ReturnType<typeof admin>
+  supabase: ReturnType<typeof admin>,
 ): Promise<{ aberto: boolean; error?: string }> {
   // Verificar status da tabela bolao_config
-  const { data: cfg } = await supabase
-    .from("bolao_config")
-    .select("status")
-    .eq("id", 1)
-    .single();
+  const { data: cfg } = await supabase.from("bolao_config").select("status").eq("id", 1).single();
 
   if (cfg?.status === "FECHADO" || cfg?.status === "FINALIZADO") {
-    return { aberto: false, error: "O bolão está oficialmente FECHADO para novos palpites e alterações!" };
+    return {
+      aberto: false,
+      error: "O bolão está oficialmente FECHADO para novos palpites e alterações!",
+    };
   }
 
   return { aberto: true };
 }
-

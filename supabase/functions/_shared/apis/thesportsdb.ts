@@ -8,7 +8,12 @@ export type TeamMedia = {
   escudo_url: string | null;
   estadio: string | null;
   pais: string | null;
-  jogadores: { nome: string; posicao: string | null; foto_url: string | null; numero: number | null }[];
+  jogadores: {
+    nome: string;
+    posicao: string | null;
+    foto_url: string | null;
+    numero: number | null;
+  }[];
 };
 
 const TEAM_ALIASES: Record<string, string> = {
@@ -44,13 +49,19 @@ export async function searchTeam(nome: string): Promise<TeamMedia | null> {
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   return {
     nome: normalizeTeamName(nome),
     thesportsdb_id: teamId,
-    escudo_url: team.strTeamBadge ? String(team.strTeamBadge) : (team.strBadge ? String(team.strBadge) : null),
+    escudo_url: team.strTeamBadge
+      ? String(team.strTeamBadge)
+      : team.strBadge
+        ? String(team.strBadge)
+        : null,
     estadio: team.strStadium ? String(team.strStadium) : null,
     pais: team.strCountry ? String(team.strCountry) : null,
     jogadores,
@@ -68,7 +79,7 @@ export async function enrichTeams(
   log("INFO", "TheSportsDB: enriquecendo selecoes", { total: slice.length });
   for (const nome of slice) {
     try {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 300));
       const t = await searchTeam(nome);
       if (t) teams.push(t);
     } catch (e) {

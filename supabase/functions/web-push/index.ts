@@ -2,11 +2,14 @@ import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario } from "../_shared/supabase.ts";
 
 function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
+  console.log(
+    JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }),
+  );
 }
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
 
   try {
@@ -22,7 +25,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = String(body.action ?? "").trim();
-    
+
     // ===== REGISTER: Registrar ou renovar token de push =====
     if (action === "register") {
       const nome = String(body.nome ?? "").trim();
@@ -31,7 +34,12 @@ Deno.serve(async (req) => {
       const userAgent = String(body.user_agent ?? "").slice(0, 500);
 
       if (!nome) return json({ error: "Nome obrigatório" }, 400);
-      if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+      if (
+        !subscription ||
+        !subscription.endpoint ||
+        !subscription.keys?.p256dh ||
+        !subscription.keys?.auth
+      ) {
         return json({ error: "Inscrição de push inválida" }, 400);
       }
 
@@ -47,22 +55,22 @@ Deno.serve(async (req) => {
         .eq("endpoint", subscription.endpoint);
 
       // Salvar/reativar o token associado ao usuário validado
-      const { error } = await supabase
-        .from("bolao_push_tokens")
-        .upsert(
-          {
-            usuario_id: v.id,
-            endpoint: subscription.endpoint,
-            p256dh: subscription.keys.p256dh,
-            auth: subscription.keys.auth,
-            user_agent: userAgent,
-            is_active: true,
-          },
-          { onConflict: "endpoint" }
-        );
+      const { error } = await supabase.from("bolao_push_tokens").upsert(
+        {
+          usuario_id: v.id,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+          user_agent: userAgent,
+          is_active: true,
+        },
+        { onConflict: "endpoint" },
+      );
 
       if (error) throw error;
-      log("INFO", `Token registrado com sucesso para o usuário ${nome}`, { endpoint: subscription.endpoint });
+      log("INFO", `Token registrado com sucesso para o usuário ${nome}`, {
+        endpoint: subscription.endpoint,
+      });
       return json({ ok: true });
     }
 

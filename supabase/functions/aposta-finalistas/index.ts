@@ -3,7 +3,8 @@ import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase
 import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   try {
     const body = await req.json();
@@ -14,8 +15,13 @@ Deno.serve(async (req) => {
     if (!time1 || !time2) return json({ error: "Selecione dois times" }, 400);
     if (time1 === time2) return json({ error: "Times devem ser diferentes" }, 400);
 
-    const { data: cfg } = await supabase.from("bolao_config_finalistas").select("status").eq("id", 1).single();
-    if (cfg?.status === "apurada") return json({ error: "Finalistas já apurados — apostas encerradas." }, 400);
+    const { data: cfg } = await supabase
+      .from("bolao_config_finalistas")
+      .select("status")
+      .eq("id", 1)
+      .single();
+    if (cfg?.status === "apurada")
+      return json({ error: "Finalistas já apurados — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
@@ -27,14 +33,21 @@ Deno.serve(async (req) => {
     }
 
     // Validate unique selection and ensure edits are allowed
-    const { data: existing } = await supabase.from("bolao_apostas_finalistas").select("id, time1, time2, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    const { data: existing } = await supabase
+      .from("bolao_apostas_finalistas")
+      .select("id, time1, time2, bloqueado_em")
+      .eq("usuario_id", v.id)
+      .maybeSingle();
     if (existing && existing.bloqueado_em) {
       return json({ error: "Apostas de finalistas já bloqueadas para este usuário" }, 400);
     }
 
     const payload = { usuario_id: v.id, time1, time2 };
     if (existing) {
-      const { error } = await supabase.from("bolao_apostas_finalistas").update({ time1, time2 }).eq("id", existing.id);
+      const { error } = await supabase
+        .from("bolao_apostas_finalistas")
+        .update({ time1, time2 })
+        .eq("id", existing.id);
       if (error) throw error;
     } else {
       const { error } = await supabase.from("bolao_apostas_finalistas").insert(payload);
@@ -48,7 +61,7 @@ Deno.serve(async (req) => {
       body: `${nome} ${verb} aposta para os finalistas da Copa: ${time1} x ${time2}`,
       url: "/apostas-especiais",
       tag: `finalistas_${v.id}`,
-    }).catch(err => console.error("Erro ao disparar push notification", err));
+    }).catch((err) => console.error("Erro ao disparar push notification", err));
 
     return json({ ok: true });
   } catch (e) {
@@ -56,4 +69,3 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
-

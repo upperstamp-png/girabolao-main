@@ -11,9 +11,7 @@ export async function callFn<T = any>(
   retries = 1,
   query?: Record<string, string>,
 ): Promise<T> {
-  const qs = query && Object.keys(query).length
-    ? "?" + new URLSearchParams(query).toString()
-    : "";
+  const qs = query && Object.keys(query).length ? "?" + new URLSearchParams(query).toString() : "";
 
   const attempt = async (): Promise<Response> => {
     const ctrl = new AbortController();
@@ -48,7 +46,7 @@ export async function callFn<T = any>(
     } catch (err: any) {
       lastError = err;
       if (i < retries && err.message !== "Tempo esgotado. Verifique sua conexão.") {
-        await new Promise(r => setTimeout(r, 800 * (i + 1))); // backoff
+        await new Promise((r) => setTimeout(r, 800 * (i + 1))); // backoff
       }
     }
   }
@@ -62,7 +60,11 @@ export type Identidade = { id?: string; nome: string; pin?: string; tem_pin: boo
 const KEY_ID = "bolao_identidade";
 export function getIdentidade(): Identidade | null {
   if (typeof window === "undefined") return null;
-  try { return JSON.parse(localStorage.getItem(KEY_ID) || "null"); } catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem(KEY_ID) || "null");
+  } catch {
+    return null;
+  }
 }
 export function setIdentidade(i: Identidade | null) {
   if (typeof window === "undefined") return;
@@ -85,7 +87,8 @@ export const FASES_LABEL: Record<string, string> = {
 // Bandeiras emoji — cobertura completa Copa 2026 (48 seleções)
 const FLAGS: Record<string, string> = {
   // Grupo A
-  USA: "🇺🇸", "United States": "🇺🇸",
+  USA: "🇺🇸",
+  "United States": "🇺🇸",
   Panama: "🇵🇦",
   Canada: "🇨🇦",
   Honduras: "🇭🇳",
@@ -95,7 +98,8 @@ const FLAGS: Record<string, string> = {
   Uruguay: "🇺🇾",
   Bolivia: "🇧🇴",
   // Grupo C
-  Brazil: "🇧🇷", Brasil: "🇧🇷",
+  Brazil: "🇧🇷",
+  Brasil: "🇧🇷",
   Argentina: "🇦🇷",
   Paraguay: "🇵🇾",
   Peru: "🇵🇪",
@@ -145,9 +149,14 @@ const FLAGS: Record<string, string> = {
   Iraq: "🇮🇶",
   Qatar: "🇶🇦",
   // Extras
-  Wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", Ireland: "🇮🇪",
-  Ukraine: "🇺🇦", Austria: "🇦🇹", Sweden: "🇸🇪",
-  "United Arab Emirates": "🇦🇪", "Costa Rica": "🇨🇷",
+  Wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+  Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  Ireland: "🇮🇪",
+  Ukraine: "🇺🇦",
+  Austria: "🇦🇹",
+  Sweden: "🇸🇪",
+  "United Arab Emirates": "🇦🇪",
+  "Costa Rica": "🇨🇷",
 };
 export const flag = (nome: string | null | undefined) => (nome && FLAGS[nome]) || "⚽";
 
@@ -167,7 +176,7 @@ export function calcularPontosPalpite(
   golsCasaPalpite: number | null | undefined,
   golsForaPalpite: number | null | undefined,
   golsCasaReal: number | null | undefined,
-  golsForaReal: number | null | undefined
+  golsForaReal: number | null | undefined,
 ): { pontos: number; acertouPlacar: boolean; acertouResultado: boolean } {
   if (
     golsCasaPalpite == null ||
@@ -193,4 +202,3 @@ export function calcularPontosPalpite(
 
   return { pontos: 0, acertouPlacar: false, acertouResultado: false };
 }
-

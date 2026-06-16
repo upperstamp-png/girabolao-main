@@ -33,7 +33,9 @@ export function getNotificationPermissionState(): NotificationPermission {
 export function isIOSStandalone(): boolean {
   if (typeof window === "undefined") return false;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as any).standalone === true;
   return isIOS && isStandalone;
 }
 
@@ -53,11 +55,13 @@ export async function subscribeToPush(identidade: Identidade): Promise<PushSubsc
 
   // 2. Registra o Service Worker (se não estiver registrado)
   const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-  
+
   // Aguarda o SW ficar pronto com timeout
   await Promise.race([
     navigator.serviceWorker.ready,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout ao carregar Service Worker")), 8000))
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout ao carregar Service Worker")), 8000),
+    ),
   ]);
 
   // 3. Busca a chave pública VAPID do backend
@@ -71,7 +75,7 @@ export async function subscribeToPush(identidade: Identidade): Promise<PushSubsc
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey)
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
   }
 
@@ -83,9 +87,9 @@ export async function subscribeToPush(identidade: Identidade): Promise<PushSubsc
       nome: identidade.nome,
       pin: identidade.pin,
       subscription: sub.toJSON(),
-      user_agent: navigator.userAgent
+      user_agent: navigator.userAgent,
     },
-    "POST"
+    "POST",
   );
 
   return sub;
@@ -110,10 +114,10 @@ export async function unsubscribeFromPush(identidade: Identidade): Promise<void>
       action: "unregister",
       nome: identidade.nome,
       pin: identidade.pin,
-      endpoint: sub.endpoint
+      endpoint: sub.endpoint,
     },
-    "POST"
-  ).catch(err => console.warn("Erro ao desregistrar no backend:", err));
+    "POST",
+  ).catch((err) => console.warn("Erro ao desregistrar no backend:", err));
 
   // 2. Cancela no browser
   await sub.unsubscribe();

@@ -11,7 +11,9 @@ if (pubKey && privKey) {
 }
 
 function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
+  console.log(
+    JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }),
+  );
 }
 
 /**
@@ -19,7 +21,7 @@ function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
  */
 export async function sendPushNotification(
   usuarioId: string,
-  payload: { title: string; body: string; url?: string; tag?: string }
+  payload: { title: string; body: string; url?: string; tag?: string },
 ): Promise<{ success: boolean; sentCount: number }> {
   const supabase = admin();
 
@@ -67,10 +69,7 @@ export async function sendPushNotification(
       log("WARN", `Falha ao enviar push para token ${token.id}`, err.message);
       // Se der 404 (Not Found) ou 410 (Gone), a inscrição expirou no browser, então desativamos
       if (err.statusCode === 404 || err.statusCode === 410) {
-        await supabase
-          .from("bolao_push_tokens")
-          .update({ is_active: false })
-          .eq("id", token.id);
+        await supabase.from("bolao_push_tokens").update({ is_active: false }).eq("id", token.id);
         log("INFO", `Token ${token.id} desativado (404/410)`);
       }
     }
@@ -84,7 +83,7 @@ export async function sendPushNotification(
  */
 export async function notifyAllUsers(
   excluirUsuarioId: string | null,
-  payload: { title: string; body: string; url?: string; tag?: string }
+  payload: { title: string; body: string; url?: string; tag?: string },
 ): Promise<{ success: boolean; sentCount: number }> {
   const supabase = admin();
 
@@ -136,10 +135,7 @@ export async function notifyAllUsers(
     } catch (err: any) {
       log("WARN", `Falha ao enviar push para token ${token.id}`, err.message);
       if (err.statusCode === 404 || err.statusCode === 410) {
-        await supabase
-          .from("bolao_push_tokens")
-          .update({ is_active: false })
-          .eq("id", token.id);
+        await supabase.from("bolao_push_tokens").update({ is_active: false }).eq("id", token.id);
         log("INFO", `Token ${token.id} desativado (404/410)`);
       }
     }

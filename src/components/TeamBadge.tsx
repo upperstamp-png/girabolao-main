@@ -17,9 +17,15 @@ export function TeamBadge({
         alt={nome}
         className={`${px} object-contain shrink-0`}
         loading="lazy"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
       />
     );
   }
-  return <span className={size === "lg" ? "text-4xl" : size === "sm" ? "text-lg" : "text-2xl"}>{flag(nome)}</span>;
+  return (
+    <span className={size === "lg" ? "text-4xl" : size === "sm" ? "text-lg" : "text-2xl"}>
+      {flag(nome)}
+    </span>
+  );
 }

@@ -1,7 +1,9 @@
 export const TIMEOUT_MS = 30000;
 
 export function log(level: "INFO" | "WARN" | "ERROR", msg: string, data?: unknown) {
-  console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }));
+  console.log(
+    JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? { data } : {}) }),
+  );
 }
 
 export async function fetchWithTimeout(
@@ -29,13 +31,23 @@ export function normalizeTeamName(name: string): string {
 export function mapStatus(s: string): string {
   const x = (s || "").toUpperCase();
   if (x === "FINISHED" || x === "FT" || x === "AET" || x === "PEN") return "encerrado";
-  if (x === "LIVE" || x === "IN_PLAY" || x === "PAUSED" || x === "1H" || x === "2H" || x === "HT" || x === "ET") return "ao_vivo";
+  if (
+    x === "LIVE" ||
+    x === "IN_PLAY" ||
+    x === "PAUSED" ||
+    x === "1H" ||
+    x === "2H" ||
+    x === "HT" ||
+    x === "ET"
+  )
+    return "ao_vivo";
   return "pendente";
 }
 
 export function mapFase(round: string): string {
   const r = (round || "").toLowerCase();
-  if (r.includes("group") || r.includes("grupo") || r.includes("matchday") || r.includes("jornada")) return "grupos";
+  if (r.includes("group") || r.includes("grupo") || r.includes("matchday") || r.includes("jornada"))
+    return "grupos";
   if (r.includes("round of 16") || r.includes("oitava") || r.includes("last 16")) return "oitavas";
   if (r.includes("quarter") || r.includes("quarta")) return "quartas";
   if (r.includes("semi")) return "semis";
@@ -57,7 +69,10 @@ export function mapStageToRound(stage: string, matchday: number): string {
 
 export function extractGrupoLetter(groupStr: string | null | undefined): string | null {
   if (!groupStr) return null;
-  const m = groupStr.match(/GROUP_([A-L])/i) || groupStr.match(/grupo\s*([A-L])/i) || groupStr.match(/^([A-L])$/i);
+  const m =
+    groupStr.match(/GROUP_([A-L])/i) ||
+    groupStr.match(/grupo\s*([A-L])/i) ||
+    groupStr.match(/^([A-L])$/i);
   return m ? m[1].toUpperCase() : null;
 }
 

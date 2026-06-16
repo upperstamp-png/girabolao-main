@@ -3,7 +3,8 @@ import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase
 import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
-  const pre = preflight(req); if (pre) return pre;
+  const pre = preflight(req);
+  if (pre) return pre;
   const supabase = admin();
   try {
     const body = await req.json();
@@ -12,8 +13,13 @@ Deno.serve(async (req) => {
     const time = String(body.time ?? "").trim();
     if (!time) return json({ error: "Time inválido" }, 400);
 
-    const { data: cfg } = await supabase.from("bolao_config_campeao").select("status").eq("id", 1).single();
-    if (cfg?.status === "apurada") return json({ error: "Campeão já apurado — apostas encerradas." }, 400);
+    const { data: cfg } = await supabase
+      .from("bolao_config_campeao")
+      .select("status")
+      .eq("id", 1)
+      .single();
+    if (cfg?.status === "apurada")
+      return json({ error: "Campeão já apurado — apostas encerradas." }, 400);
 
     const v = await validarUsuario(supabase, nome, pin);
     if (!v.ok) return json({ error: v.error }, 401);
@@ -24,16 +30,25 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    const { data: existing } = await supabase.from("bolao_apostas_campeao").select("id, time_campeao, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    const { data: existing } = await supabase
+      .from("bolao_apostas_campeao")
+      .select("id, time_campeao, bloqueado_em")
+      .eq("usuario_id", v.id)
+      .maybeSingle();
     if (existing && existing.bloqueado_em) {
       return json({ error: "Aposta de campeão já bloqueada para este usuário" }, 400);
     }
 
     if (existing) {
-      const { error } = await supabase.from("bolao_apostas_campeao").update({ time_campeao: time }).eq("id", existing.id);
+      const { error } = await supabase
+        .from("bolao_apostas_campeao")
+        .update({ time_campeao: time })
+        .eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("bolao_apostas_campeao").insert({ usuario_id: v.id, time_campeao: time });
+      const { error } = await supabase
+        .from("bolao_apostas_campeao")
+        .insert({ usuario_id: v.id, time_campeao: time });
       if (error) throw error;
     }
 
@@ -44,7 +59,7 @@ Deno.serve(async (req) => {
       body: `${nome} ${verb} aposta para Campeã da Copa em: ${time}`,
       url: "/apostas-especiais",
       tag: `campeao_${v.id}`,
-    }).catch(err => console.error("Erro ao disparar push notification", err));
+    }).catch((err) => console.error("Erro ao disparar push notification", err));
 
     return json({ ok: true });
   } catch (e) {
@@ -52,4 +67,3 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
-
