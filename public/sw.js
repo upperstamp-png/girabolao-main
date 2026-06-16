@@ -47,7 +47,9 @@ self.addEventListener("fetch", (event) => {
   // 1. Estratégia para chamadas à API do Supabase (dados em tempo real/tabelas)
   // Network-First com timeout curto. Se cair/offline, cai no Cache.
   if (url.hostname.includes("supabase.co") && url.pathname.includes("/rest/v1/")) {
-    event.respondWith(networkFirstWithTimeout(req, 2500));
+    const isLiveQuery = url.search.includes("status=eq.ao_vivo");
+    const timeout = isLiveQuery ? 15000 : 5000;
+    event.respondWith(networkFirstWithTimeout(req, timeout));
     return;
   }
 
@@ -76,6 +78,12 @@ self.addEventListener("fetch", (event) => {
 async function networkFirstWithTimeout(request, timeoutMs) {
   const cache = await caches.open(CACHE_NAME);
 
+  // Se o navegador reportar que está offline de forma confiável, vai direto pro cache
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -88,6 +96,8 @@ async function networkFirstWithTimeout(request, timeoutMs) {
     return response;
   } catch (err) {
     clearTimeout(timeoutId);
+    
+    // Se falhar ou der timeout, tenta buscar do cache
     const cached = await cache.match(request);
     if (cached) {
       return cached;

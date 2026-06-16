@@ -27,6 +27,8 @@ import {
   Star,
   Trophy,
   Megaphone,
+  Play,
+  Tv2,
 } from "lucide-react";
 import { SkeletonCard } from "@/components/SkeletonCard";
 
@@ -49,16 +51,51 @@ const YT_LIVE_URL = `https://www.youtube.com/@${YT_CHANNEL_HANDLE}/live`;
 
 function YouTubePlayer() {
   return (
-    <div className="relative w-full aspect-video overflow-hidden bg-black">
-      <iframe
-        src="https://www.youtube.com/embed/live_stream?channel=UC2uVqTzZp8r9Qp0wZ-Xy4hQ"
-        title="CazéTV Live Stream"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        className="absolute top-0 left-0 w-full h-full"
+    <a
+      href={YT_LIVE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="relative block w-full aspect-video overflow-hidden cursor-pointer group bg-black"
+      aria-label="Assistir ao vivo na CazéTV"
+    >
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 z-10" />
+
+      {/* Thumbnail background */}
+      <img
+        src="https://i.ytimg.com/vi/live_stream/hqdefault.jpg"
+        alt="CazéTV Live"
+        className="absolute inset-0 w-full h-full object-cover blur-[0.5px] scale-100 group-hover:scale-105 transition-transform duration-500"
+        onError={(e) => {
+          // fallback: hide if YouTube is blocked or image fails to load
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
       />
-    </div>
+
+      {/* Branded center content */}
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
+        {/* CazéTV logo / title */}
+        <div className="flex items-center gap-1.5 bg-black/60 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm">
+          <Tv2 className="h-4 w-4 text-white/80" />
+          <span className="text-white/90 font-bold text-xs uppercase tracking-widest">CazéTV</span>
+        </div>
+
+        {/* Big play button */}
+        <div
+          className="flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-red-600 group-hover:bg-red-500 active:scale-95 transition-all shadow-[0_0_30px_rgba(239,68,68,0.5)] group-hover:scale-105"
+        >
+          <Play className="h-7 w-7 sm:h-9 sm:w-9 text-white fill-white ml-1" />
+        </div>
+
+        {/* Status badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/90 border border-red-500/60 mt-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+          <span className="text-white text-[10px] font-bold uppercase tracking-wider">Ver no YouTube</span>
+        </div>
+
+        <p className="text-white/50 text-[10px] mt-1">Toque para abrir a transmissão</p>
+      </div>
+    </a>
   );
 }
 
@@ -326,15 +363,26 @@ function Index() {
   // ── Supabase Realtime subscription for live games ──────────────────────
   useEffect(() => {
     // Mark initial load after first data fetch completes
-    if (aoVivo && !initialLoadRef.current) {
-      // Seed the score cache with current scores without triggering toasts
+    if (jogos && aoVivo && !initialLoadRef.current) {
+      // Seed the score cache with current scores for all games without triggering toasts
+      for (const g of jogos) {
+        detectGoals({
+          id: g.id,
+          placar_casa: g.placar_casa,
+          placar_fora: g.placar_fora,
+          time_casa: "",
+          time_fora: "",
+          minuto_jogo: null,
+        });
+      }
+      // Also seed live games just in case (to have team names / details)
       for (const g of aoVivo) {
-        detectGoals(g); // Seeds cache — no events because initialLoadDone is false
+        detectGoals(g);
       }
       markInitialLoadDone();
       initialLoadRef.current = true;
     }
-  }, [aoVivo]);
+  }, [jogos, aoVivo]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
