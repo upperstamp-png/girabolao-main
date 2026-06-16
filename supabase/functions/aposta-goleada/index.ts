@@ -1,5 +1,6 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
+import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -43,6 +44,16 @@ Deno.serve(async (req) => {
       const { error } = await supabase.from("bolao_apostas_goleada").insert({ usuario_id: v.id, time_casa, time_fora, gols_casa, gols_fora });
       if (error) throw error;
     }
+
+    // Disparar push de notificação
+    const verb = existing ? "alterou sua" : "registrou uma nova";
+    await notifyAllUsers(v.id, {
+      title: "🔥 Aposta em Goleada da Copa!",
+      body: `${nome} ${verb} aposta de Goleada no jogo ${time_casa} x ${time_fora}: ${gols_casa} x ${gols_fora}`,
+      url: "/apostas-especiais",
+      tag: `goleada_${v.id}`,
+    }).catch(err => console.error("Erro ao disparar push notification", err));
+
     return json({ ok: true });
   } catch (e) {
     console.error(e);

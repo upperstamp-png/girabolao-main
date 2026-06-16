@@ -1,6 +1,7 @@
 // Percorre jogos encerrados ainda não apurados, marca acertou e gera prêmios.
 import { json, preflight } from "../_shared/cors.ts";
 import { admin } from "../_shared/supabase.ts";
+import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -59,6 +60,15 @@ Deno.serve(async (req) => {
         }
       }
       await supabase.from("bolao_jogos").update({ status: "apurado" }).eq("id", j.id);
+
+      // Disparar push noticiando o resultado final
+      await notifyAllUsers(null, {
+        title: "🏁 Resultado Final Apurado!",
+        body: `Jogo finalizado: ${j.time_casa} ${j.placar_casa} x ${j.placar_fora} ${j.time_fora}. Os pontos do bolão foram atualizados!`,
+        url: `/jogos/${j.id}`,
+        tag: `apurado_${j.id}`,
+      }).catch(err => console.error("Erro ao disparar push notification", err));
+
       apurados++;
     }
     return json({ ok: true, apurados });

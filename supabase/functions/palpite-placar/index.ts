@@ -1,5 +1,6 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
+import { notifyAllUsers } from "../_shared/push.ts";
 
 function log(level: "INFO"|"WARN"|"ERROR", msg: string, data?: unknown) {
   console.log(JSON.stringify({ level, ts: new Date().toISOString(), msg, ...(data ? {data} : {}) }));
@@ -87,6 +88,16 @@ Deno.serve(async (req) => {
     }
 
     log("INFO", `Palpite registrado: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`, { jogo_id });
+
+    // Disparar push de notificação
+    const actionVerb = palpiteAntigo ? "alterou seu" : "registrou um";
+    await notifyAllUsers(v.id, {
+      title: "⚽ Novo Palpite Registrado!",
+      body: `${nome} ${actionVerb} palpite para ${jogo.time_casa} x ${jogo.time_fora}: ${gols_casa} x ${gols_fora}`,
+      url: `/jogos/${jogo_id}`,
+      tag: `palpite_${v.id}_${jogo_id}`,
+    }).catch(err => log("WARN", "Erro ao disparar push notification", err.message));
+
     return json({ ok: true });
   } catch (e) {
     log("ERROR", "Erro no palpite-placar", (e as Error).message);
