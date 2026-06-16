@@ -4,6 +4,7 @@ import { supabase, fmtBRL, flag, countdown, FASES_LABEL } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
 import { EnableWebPushBanner } from "@/components/notifications/EnableWebPushBanner";
@@ -92,11 +93,41 @@ function Index() {
       <EnableWebPushBanner />
 
       {(aoVivo?.length ?? 0) > 0 && (
-        <section>
-          <h2 className="text-display text-2xl sm:text-3xl mb-3 flex items-center gap-2">
+        <section className="space-y-4">
+          <h2 className="text-display text-2xl sm:text-3xl mb-1 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             Ao vivo agora
           </h2>
+
+          <Card className="overflow-hidden border-destructive/30 shadow-glow animate-in fade-in-50 duration-300">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                📺 Transmissão ao vivo — CazéTV
+              </CardTitle>
+              <Button asChild size="sm" variant="outline" className="text-xs shrink-0 gap-1.5 h-8">
+                <a href="https://www.youtube.com/@CazeTV/live" target="_blank" rel="noopener noreferrer">
+                  Abrir no YouTube ↗
+                </a>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0 sm:p-4">
+              <div className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden border border-border">
+                <iframe
+                  src="https://www.youtube.com/embed/live_stream?channel=UCiUpYtTjV6P-H-3qOq-1WIA"
+                  title="CazéTV Live Stream"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="absolute top-0 left-0 w-full h-full"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground p-3 text-center sm:pt-2 sm:pb-0">
+                Se o vídeo acima aparecer como indisponível devido a restrições de direitos autorais do YouTube, clique no botão para assistir diretamente no canal da CazéTV.
+              </p>
+            </CardContent>
+          </Card>
+
           <div className="grid sm:grid-cols-2 gap-3">
             {aoVivo!.map(j => (
               <Link key={j.id} to="/jogos/$id" params={{ id: j.id }}>

@@ -218,11 +218,16 @@ function Page() {
 
       {jogo.status === "ao_vivo" && (
         <Card className="overflow-hidden border-destructive/30 shadow-glow animate-in fade-in-50 duration-300">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-4">
             <CardTitle className="text-lg flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
               📺 Transmissão ao vivo — CazéTV
             </CardTitle>
+            <Button asChild size="sm" variant="outline" className="text-xs shrink-0 gap-1.5 h-8">
+              <a href="https://www.youtube.com/@CazeTV/live" target="_blank" rel="noopener noreferrer">
+                Abrir no YouTube ↗
+              </a>
+            </Button>
           </CardHeader>
           <CardContent className="p-0 sm:p-4">
             <div className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden border border-border">
@@ -235,6 +240,9 @@ function Page() {
                 className="absolute top-0 left-0 w-full h-full"
               />
             </div>
+            <p className="text-xs text-muted-foreground p-3 text-center sm:pt-2 sm:pb-0">
+              Se o vídeo acima aparecer como indisponível devido a restrições de direitos autorais do YouTube, clique no botão para assistir diretamente no canal da CazéTV.
+            </p>
           </CardContent>
         </Card>
       )}
