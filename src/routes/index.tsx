@@ -475,14 +475,25 @@ function Index() {
     // Current positions map
     const currentPos = new Map(rankingData.map((r, i) => [r.id, i + 1]));
 
-    // Load previous ranking from localStorage
-    let prevRanking: { id: string; nome: string; pontos: number }[] = [];
+    // Load previous ranking from localStorage (supports old array and new record formats)
+    let prevPosObj: Record<string, number> = {};
     try {
       const raw = localStorage.getItem("bolao_ranking_prev");
-      if (raw) prevRanking = JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          if (Array.isArray(parsed)) {
+            parsed.forEach((r, i) => {
+              if (r && r.id) prevPosObj[r.id] = i + 1;
+            });
+          } else {
+            prevPosObj = parsed;
+          }
+        }
+      }
     } catch {}
 
-    const prevPos = new Map(prevRanking.map((r, i) => [r.id, i + 1]));
+    const prevPos = new Map<string, number>(Object.entries(prevPosObj));
 
     // Leader message
     if (rankingData[0]) {
