@@ -359,7 +359,7 @@ function Page() {
                 <BetsList
                   bets={apostasArt}
                   nomeMap={nomeMap}
-                  renderValue={(a) => <span>{a.revelado ? a.jogador_apostado : "🔒 oculto até o fim"}</span>}
+                  renderValue={(a) => <span>{a.jogador_apostado}</span>}
                   isAcertou={(a) => a.acertou}
                 />
               }
@@ -428,7 +428,7 @@ function Page() {
                   nomeMap={nomeMap}
                   renderValue={(a) => (
                     <span>
-                      {a.revelado ? `${flag(a.time1)} ${a.time1} × ${a.time2} ${flag(a.time2)}` : "🔒 oculto até a final"}
+                      {flag(a.time1)} {a.time1} × {a.time2} {flag(a.time2)}
                     </span>
                   )}
                   isAcertou={(a) => a.acertou_os_dois}
@@ -487,7 +487,7 @@ function Page() {
                 <BetsList
                   bets={apostasCam}
                   nomeMap={nomeMap}
-                  renderValue={(a) => <span>{a.revelado ? `${flag(a.time_campeao)} ${a.time_campeao}` : "🔒 oculto"}</span>}
+                  renderValue={(a) => <span>{flag(a.time_campeao)} {a.time_campeao}</span>}
                   isAcertou={(a) => a.acertou}
                 />
               }
@@ -543,7 +543,7 @@ function Page() {
                 <BetsList
                   bets={apostasZeb}
                   nomeMap={nomeMap}
-                  renderValue={(a) => <span>{a.revelado ? `${flag(a.zebra_apostada)} ${a.zebra_apostada}` : "🔒 oculto"}</span>}
+                  renderValue={(a) => <span>{flag(a.zebra_apostada)} {a.zebra_apostada}</span>}
                   isAcertou={(a) => a.acertou}
                 />
               }
@@ -652,7 +652,7 @@ function Page() {
                   nomeMap={nomeMap}
                   renderValue={(a) => (
                     <span>
-                      {a.revelado ? `${flag(a.time_casa)} ${a.time_casa} ${a.gols_casa} × ${a.gols_fora} ${a.time_fora} ${flag(a.time_fora)}` : "🔒 oculto"}
+                      {flag(a.time_casa)} {a.time_casa} {a.gols_casa} × {a.gols_fora} {a.time_fora} {flag(a.time_fora)}
                     </span>
                   )}
                   isAcertou={(a) => a.acertou}
@@ -755,7 +755,7 @@ function SpecialBetTab({
             <span>Regras de Auditoria & Prazo</span>
           </div>
           <p className="text-muted-foreground leading-normal">
-            As apostas especiais ficam ocultas para os demais participantes até o encerramento do prazo ou apuração oficial.
+            As apostas especiais estão liberadas para consulta pública e podem ser visualizadas por todos os participantes a qualquer momento.
             Garantimos a integridade total do banco de dados contra alterações após o prazo configurado.
           </p>
         </div>

@@ -116,7 +116,7 @@ function Page() {
               {apostas!.map((a: any) => (
                 <li key={a.id} className={`flex justify-between py-2 ${a.acertou_os_dois ? "text-success font-bold" : ""}`}>
                   <span>{nomeMap.get(a.usuario_id) ?? "—"}</span>
-                  <span>{a.revelado ? `${flag(a.time1)} ${a.time1} × ${a.time2} ${flag(a.time2)}` : "🔒 oculto até apuração"}{a.acertou_os_dois && " ✓✓"}{!a.acertou_os_dois && a.acertou_um && " ✓"}</span>
+                  <span>{`${flag(a.time1)} ${a.time1} × ${a.time2} ${flag(a.time2)}`}{a.acertou_os_dois && " ✓✓"}{!a.acertou_os_dois && a.acertou_um && " ✓"}</span>
                 </li>
               ))}
             </ul>

@@ -86,7 +86,7 @@ function Page() {
               {apostas!.map((a: any) => (
                 <li key={a.id} className={`flex justify-between py-2 ${a.acertou ? "text-success font-bold" : ""}`}>
                   <span>{nomeMap.get(a.usuario_id) ?? "—"}</span>
-                  <span>{a.revelado ? a.jogador_apostado : "🔒 oculto até o fim da Copa"}{a.acertou && " ✓"}</span>
+                  <span>{a.jogador_apostado || "Sem aposta"}{a.acertou && " ✓"}</span>
                 </li>
               ))}
             </ul>

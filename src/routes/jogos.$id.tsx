@@ -170,7 +170,7 @@ function Page() {
   }
 
   const future = new Date(jogo.data_hora) > new Date();
-  const revelado = !future;
+  const revelado = true;
   const acumulado = Number(jogo.acumulado || 0);
   const nP = palpites?.length ?? 0;
   const poolEstimado = nP * Number(jogo.valor_entrada) + acumulado;

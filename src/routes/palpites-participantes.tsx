@@ -200,9 +200,7 @@ function Page() {
                 {bolaoFechado ? "Bolão Oficialmente Fechado!" : "Bolão Aberto para Palpites"}
               </h3>
               <p className="text-xs text-muted-foreground">
-                {bolaoFechado
-                  ? "Todos os palpites e escolhas especiais agora estão públicos para comparação."
-                  : "Os palpites dos outros participantes ficarão ocultos até o encerramento do prazo."}
+                Todos os palpites e escolhas especiais de todos os participantes estão públicos e liberados para consulta.
               </p>
             </div>
           </div>
@@ -219,11 +217,9 @@ function Page() {
             </div>
           )}
 
-          {bolaoFechado && (
-            <Badge className="bg-success text-success-foreground font-semibold px-3 py-1 scale-105">
-              Consulta Pública Liberada
-            </Badge>
-          )}
+          <Badge className="bg-success text-success-foreground font-semibold px-3 py-1 scale-105 shrink-0">
+            Consulta Pública Liberada
+          </Badge>
         </CardContent>
       </Card>
 
@@ -287,45 +283,39 @@ function Page() {
                       <div className="flex justify-between items-center py-1.5 border-b border-border">
                         <span className="text-muted-foreground">Artilheiro:</span>
                         <span className="font-semibold">
-                          {userEspeciais?.art?.revelado
-                            ? userEspeciais.art.jogador_apostado || "Nenhum"
-                            : bolaoFechado ? "Sem aposta" : "🔒 Oculto"}
+                          {userEspeciais?.art?.jogador_apostado || "Sem aposta"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1.5 border-b border-border">
                         <span className="text-muted-foreground">Campeão:</span>
                         <span className="font-semibold">
-                          {userEspeciais?.cam?.revelado
-                            ? (userEspeciais.cam.time_campeao ? `${flag(userEspeciais.cam.time_campeao)} ${userEspeciais.cam.time_campeao}` : "Nenhum")
-                            : bolaoFechado ? "Sem aposta" : "🔒 Oculto"}
+                          {userEspeciais?.cam?.time_campeao
+                            ? `${flag(userEspeciais.cam.time_campeao)} ${userEspeciais.cam.time_campeao}`
+                            : "Sem aposta"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1.5 border-b border-border">
                         <span className="text-muted-foreground">Dois Finalistas:</span>
                         <span className="font-semibold text-right">
-                          {userEspeciais?.fin?.revelado
-                            ? (userEspeciais.fin.time1 && userEspeciais.fin.time2
-                              ? `${flag(userEspeciais.fin.time1)} ${userEspeciais.fin.time1} × ${flag(userEspeciais.fin.time2)} ${userEspeciais.fin.time2}`
-                              : "Nenhum")
-                            : bolaoFechado ? "Sem aposta" : "🔒 Oculto"}
+                          {userEspeciais?.fin?.time1 && userEspeciais?.fin?.time2
+                            ? `${flag(userEspeciais.fin.time1)} ${userEspeciais.fin.time1} × ${flag(userEspeciais.fin.time2)} ${userEspeciais.fin.time2}`
+                            : "Sem aposta"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1.5 border-b border-border">
                         <span className="text-muted-foreground">Zebra:</span>
                         <span className="font-semibold">
-                          {userEspeciais?.zeb?.revelado
-                            ? (userEspeciais.zeb.zebra_apostada ? `${flag(userEspeciais.zeb.zebra_apostada)} ${userEspeciais.zeb.zebra_apostada}` : "Nenhuma")
-                            : bolaoFechado ? "Sem aposta" : "🔒 Oculto"}
+                          {userEspeciais?.zeb?.zebra_apostada
+                            ? `${flag(userEspeciais.zeb.zebra_apostada)} ${userEspeciais.zeb.zebra_apostada}`
+                            : "Sem aposta"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1.5">
                         <span className="text-muted-foreground">Maior Goleada:</span>
                         <span className="font-semibold text-right">
-                          {userEspeciais?.gol?.revelado
-                            ? (userEspeciais.gol.time_casa && userEspeciais.gol.time_fora
-                              ? `${flag(userEspeciais.gol.time_casa)} ${userEspeciais.gol.time_casa} ${userEspeciais.gol.gols_casa}x${userEspeciais.gol.gols_fora} ${userEspeciais.gol.time_fora} ${flag(userEspeciais.gol.time_fora)}`
-                              : "Nenhum")
-                            : bolaoFechado ? "Sem aposta" : "🔒 Oculto"}
+                          {userEspeciais?.gol?.time_casa && userEspeciais?.gol?.time_fora
+                            ? `${flag(userEspeciais.gol.time_casa)} ${userEspeciais.gol.time_casa} ${userEspeciais.gol.gols_casa}x${userEspeciais.gol.gols_fora} ${userEspeciais.gol.time_fora} ${flag(userEspeciais.gol.time_fora)}`
+                            : "Sem aposta"}
                         </span>
                       </div>
                     </CardContent>
@@ -357,7 +347,7 @@ function Page() {
 
                               let palpString = "—";
                               if (p) {
-                                palpString = p.revelado ? `${p.gols_casa} × ${p.gols_fora}` : "🔒 Oculto";
+                                palpString = `${p.gols_casa} × ${p.gols_fora}`;
                               }
 
                               const oficialString = j.placar_casa != null && j.placar_fora != null
@@ -375,7 +365,7 @@ function Page() {
                                   <td className="py-2.5 text-center font-mono font-bold">{palpString}</td>
                                   <td className="py-2.5 text-center font-mono text-muted-foreground text-xs">{oficialString}</td>
                                   <td className="py-2.5 text-right">
-                                    {p?.revelado && j.status === "apurado" ? (
+                                    {j.status === "apurado" ? (
                                       p.acertou ? <Badge className="bg-success text-success-foreground scale-95">✓</Badge> : <span className="text-muted-foreground text-xs">✗</span>
                                     ) : "—"}
                                   </td>
@@ -473,8 +463,8 @@ function Page() {
                           let acertou = false;
 
                           if (p) {
-                            labelVal = p.revelado ? `${p.gols_casa} × ${p.gols_fora}` : "🔒 Oculto";
-                            acertou = p.revelado && p.acertou === true;
+                            labelVal = `${p.gols_casa} × ${p.gols_fora}`;
+                            acertou = p.acertou === true;
                           }
 
                           return (
