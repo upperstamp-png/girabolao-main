@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { supabase, flag, calcularPontosPalpite, getIdentidade, FASES_LABEL } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
 import { Badge } from "@/components/ui/badge";
@@ -242,14 +243,14 @@ function Page() {
   const { data: apostasArt } = useQuery({
     queryKey: ["apostas-art-all"],
     queryFn: async () =>
-      (await supabase.from("bolao_apostas_artilheiro").select("usuario_id, acertou")).data ?? [],
+      (await (supabase as any).from("bolao_apostas_artilheiro").select("usuario_id, acertou")).data ?? [],
   });
 
   const { data: apostasFin } = useQuery({
     queryKey: ["apostas-fin-all"],
     queryFn: async () =>
       (
-        await supabase
+        await (supabase as any)
           .from("bolao_apostas_finalistas")
           .select("usuario_id, acertou_os_dois, acertou_um")
       ).data ?? [],
@@ -258,25 +259,25 @@ function Page() {
   const { data: apostasCam } = useQuery({
     queryKey: ["apostas-cam-all"],
     queryFn: async () =>
-      (await supabase.from("bolao_apostas_campeao").select("usuario_id, acertou")).data ?? [],
+      (await (supabase as any).from("bolao_apostas_campeao").select("usuario_id, acertou")).data ?? [],
   });
 
   const { data: apostasZeb } = useQuery({
     queryKey: ["apostas-zeb-all"],
     queryFn: async () =>
-      (await supabase.from("bolao_apostas_zebra").select("usuario_id, acertou")).data ?? [],
+      (await (supabase as any).from("bolao_apostas_zebra").select("usuario_id, acertou")).data ?? [],
   });
 
   const { data: apostasGol } = useQuery({
     queryKey: ["apostas-gol-all"],
     queryFn: async () =>
-      (await supabase.from("bolao_apostas_goleada").select("usuario_id, acertou")).data ?? [],
+      (await (supabase as any).from("bolao_apostas_goleada").select("usuario_id, acertou")).data ?? [],
   });
 
   const { data: bolaoConfig } = useQuery({
     queryKey: ["bolao-config-ranking"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("bolao_config")
         .select("premio_descricao")
         .eq("id", 1)

@@ -51,7 +51,7 @@ function YouTubePlayer() {
   return (
     <div className="relative w-full aspect-video overflow-hidden bg-black">
       <iframe
-        src="https://www.youtube.com/embed/live_stream?channel=UCiUpYtTjV6P-H-3qOq-1WIA"
+        src="https://www.youtube.com/embed/live_stream?channel=UC2uVqTzZp8r9Qp0wZ-Xy4hQ"
         title="CazéTV Live Stream"
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
