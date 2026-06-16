@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
 import { EnableWebPushBanner } from "@/components/notifications/EnableWebPushBanner";
-import { Trophy, Users, Activity, RefreshCw, Target, Star, Calendar, ChevronRight } from "lucide-react";
+import { Trophy, Users, Activity, RefreshCw, Star, Calendar, ChevronRight, Play, ExternalLink, Tv2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,6 +20,84 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
+
+// ── YouTube Click-to-Play ──────────────────────────────────────────────────
+// The CazéTV live channel ID on YouTube is UCiUpYtTjV6P-H-3qOq-1WIA.
+// We show a branded poster (YouTube thumbnail API) with a Play button.
+// Only when the user explicitly clicks do we inject the real iframe
+// with autoplay=1, which browsers allow because it's a user gesture.
+const YT_CHANNEL_ID = "UCiUpYtTjV6P-H-3qOq-1WIA";
+const YT_CHANNEL_HANDLE = "CazeTV";
+// maxresdefault thumbnail from the channel's live stream
+const YT_THUMB = `https://img.youtube.com/vi/live_stream/hqdefault.jpg`;
+
+function YouTubePlayer() {
+  const [playing, setPlaying] = useState(false);
+
+  if (playing) {
+    return (
+      <div className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/live_stream?channel=${YT_CHANNEL_ID}&autoplay=1&rel=0&modestbranding=1`}
+          title="CazéTV Live Stream"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden cursor-pointer group bg-black"
+      onClick={() => setPlaying(true)}
+      role="button"
+      aria-label="Assistir ao vivo na CazéTV"
+    >
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 z-10" />
+
+      {/* Thumbnail background */}
+      <img
+        src={`https://i.ytimg.com/vi/live_stream/hqdefault.jpg`}
+        alt="CazéTV Live"
+        className="absolute inset-0 w-full h-full object-cover blur-[1px] scale-105"
+        onError={(e) => {
+          // fallback: dark branded placeholder
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
+      />
+
+      {/* Branded center content */}
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
+        {/* CazéTV logo / title */}
+        <div className="flex items-center gap-2 mb-1">
+          <Tv2 className="h-5 w-5 text-white/80" />
+          <span className="text-white/80 font-bold text-sm uppercase tracking-widest">CazéTV</span>
+        </div>
+
+        {/* Big play button */}
+        <button
+          className="flex items-center justify-center h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all shadow-[0_0_30px_rgba(239,68,68,0.6)] group-hover:scale-110"
+          onClick={(e) => { e.stopPropagation(); setPlaying(true); }}
+          aria-label="Reproduzir transmissão ao vivo"
+        >
+          <Play className="h-7 w-7 sm:h-9 sm:w-9 text-white fill-white ml-1" />
+        </button>
+
+        {/* Status badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/90 border border-red-500/60 mt-1">
+          <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+          <span className="text-white text-xs font-bold uppercase tracking-wider">Ao Vivo</span>
+        </div>
+
+        <p className="text-white/50 text-[11px] mt-2">Toque para assistir</p>
+      </div>
+    </div>
+  );
+}
 
 function CountdownTimer({ date }: { date: string }) {
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
@@ -197,31 +275,26 @@ function Index() {
             Ao vivo agora
           </h2>
 
-          <Card className="overflow-hidden border-border bg-card/60 backdrop-blur-md shadow-card">
+          <Card className="overflow-hidden border-red-500/30 bg-card/60 backdrop-blur-md shadow-card">
             <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4 border-b border-border/40">
               <CardTitle className="text-sm font-semibold uppercase flex items-center gap-2 text-foreground">
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 Transmissão ao vivo — CazéTV
               </CardTitle>
-              <Button asChild size="sm" variant="secondary" className="text-xs shrink-0 gap-1.5 h-8 font-mono bg-secondary hover:bg-bg-muted border border-border rounded-md">
-                <a href="https://www.youtube.com/@CazeTV/live" target="_blank" rel="noopener noreferrer">
-                  Assistir no YouTube ↗
-                </a>
-              </Button>
+              <a
+                href={`https://www.youtube.com/@${YT_CHANNEL_HANDLE}/live`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold bg-secondary hover:bg-secondary/70 border border-border transition-colors shrink-0"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Abrir no YouTube
+              </a>
             </CardHeader>
-            <CardContent className="p-0 sm:p-4">
-              <div className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden border border-border/80">
-                <iframe
-                  src="https://www.youtube.com/embed/live_stream?channel=UCiUpYtTjV6P-H-3qOq-1WIA"
-                  title="CazéTV Live Stream"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="absolute top-0 left-0 w-full h-full"
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground p-3 text-center sm:pt-2 sm:pb-0">
-                Caso a transmissão esteja indisponível devido a bloqueios locais do YouTube, clique no botão acima para assistir diretamente no canal da CazéTV.
+            <CardContent className="p-0">
+              <YouTubePlayer />
+              <p className="text-[11px] text-muted-foreground px-4 py-2.5 text-center border-t border-border/30">
+                Se o vídeo não carregar, abra diretamente no YouTube pelo botão acima.
               </p>
             </CardContent>
           </Card>

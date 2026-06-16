@@ -323,7 +323,9 @@ function Page() {
 
                             let badge = null;
                             if (p && j.placar_casa != null && j.placar_fora != null) {
-                              const res = pontuarPalpite(p.gols_casa, p.gols_fora, j.placar_casa, j.placar_fora);
+                              const rCasa: number = j.placar_casa;
+                              const rFora: number = j.placar_fora;
+                              const res = pontuarPalpite(p.gols_casa, p.gols_fora, rCasa, rFora);
                               if (res.acertouPlacar) badge = { text: "🎯 +3", cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" };
                               else if (res.acertouResultado) badge = { text: "⚽ +1", cls: "bg-primary/15 text-primary border-primary/30" };
                               else badge = { text: "❌ 0", cls: "bg-secondary/30 text-muted-foreground border-border" };
@@ -442,7 +444,9 @@ function Page() {
                             if (p) {
                               labelVal = `${p.gols_casa} × ${p.gols_fora}`;
                               if (jogoEscolhidoObj.placar_casa != null && jogoEscolhidoObj.placar_fora != null) {
-                                const res = pontuarPalpite(p.gols_casa, p.gols_fora, jogoEscolhidoObj.placar_casa, jogoEscolhidoObj.placar_fora);
+                                const rCasa: number = jogoEscolhidoObj.placar_casa;
+                                const rFora: number = jogoEscolhidoObj.placar_fora;
+                                const res = pontuarPalpite(p.gols_casa, p.gols_fora, rCasa, rFora);
                                 if (res.acertouPlacar) badge = { text: "🎯 +3", cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" };
                                 else if (res.acertouResultado) badge = { text: "⚽ +1", cls: "bg-primary/15 text-primary border-primary/30" };
                                 else badge = { text: "❌ 0", cls: "bg-secondary/30 text-muted-foreground border-border" };
