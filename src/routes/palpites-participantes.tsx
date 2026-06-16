@@ -205,375 +205,351 @@ function Page() {
   }, [selectedJogo, jogos]);
 
   const isLoading = loadingUs || loadingJo || loadingPa;
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-in">
-      <div>
-        <h1 className="text-display text-3xl sm:text-4xl flex items-center gap-2">
-          <Users className="h-8 w-8 text-primary" />
-          📋 Palpites dos Participantes
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Veja as apostas de cada um e compare as previsões para o campeonato.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-display text-3xl sm:text-4xl flex items-center gap-2">
+            <Users className="h-8 w-8 text-primary" />
+            📋 Palpites dos Participantes
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Compare as previsões de todos os participantes e veja quem está acertando.
+          </p>
+        </div>
       </div>
 
       {/* STATUS HEADER CARD */}
-      <Card className={`border ${bolaoFechado ? "bg-success/5 border-success/30" : isUrgent ? "bg-amber-500/5 border-amber-500/30" : "bg-card border-border"}`}>
-        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${bolaoFechado ? "bg-success/15 text-success" : isUrgent ? "bg-amber-500/15 text-amber-500" : "bg-primary/10 text-primary"}`}>
-              {bolaoFechado ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base">
-                {bolaoFechado ? "Bolão Oficialmente Fechado!" : "Bolão Aberto para Palpites"}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Todos os palpites e escolhas especiais de todos os participantes estão públicos e liberados para consulta.
-              </p>
-            </div>
+      <div className={`flex flex-col sm:flex-row items-center justify-between p-3.5 rounded-xl border text-xs gap-3 ${bolaoFechado ? "bg-success/5 border-success/20 text-success" : isUrgent ? "bg-amber-500/5 border-amber-500/20" : "bg-primary/5 border-primary/20 text-primary"}`}>
+        <div className="flex items-center gap-2">
+          {bolaoFechado ? <Lock className="h-4 w-4 shrink-0" /> : <Unlock className="h-4 w-4 shrink-0" />}
+          <span className="font-semibold text-foreground">
+            {bolaoFechado ? "Bolão Oficialmente Fechado" : "Bolão Aberto para Palpites"}
+          </span>
+          <span className="text-muted-foreground/80 hidden sm:inline">• Todos os palpites são públicos e auditados.</span>
+        </div>
+
+        {!bolaoFechado && primeiroJogo && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary/50 border border-border shrink-0 font-mono text-[11px] font-semibold text-foreground">
+            <Timer className={`h-3.5 w-3.5 ${isUrgent ? "text-amber-500 animate-pulse" : "text-primary"}`} />
+            <span>Fecha em: {timeRemaining}</span>
           </div>
-
-          {!bolaoFechado && primeiroJogo && (
-            <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-lg shrink-0 border border-border">
-              <Timer className={`h-4 w-4 ${isUrgent ? "text-amber-500 animate-pulse" : "text-primary"}`} />
-              <div className="text-right">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none">Fecha em:</div>
-                <div className={`font-mono font-bold text-sm sm:text-base ${isUrgent ? "text-amber-500" : "text-foreground"}`}>
-                  {timeRemaining}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <Badge className="bg-success text-success-foreground font-semibold px-3 py-1 scale-105 shrink-0">
-            Consulta Pública Liberada
-          </Badge>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {isLoading && <SkeletonCard lines={6} />}
-      {errUs && <ErrorState message="Erro ao carregar dados dos participantes." onRetry={() => qc.invalidateQueries({ queryKey: ["usuarios-palpites"] })} />}
+      {errUs && <ErrorState message="Erro ao carregar dados dos participantes." onRetry={() => {}} />}
 
       {!isLoading && !errUs && (
         <div className="space-y-4 w-full">
           {/* LEGENDA DE PONTUAÇÃO BANNER */}
-          <div className="p-3 bg-secondary/20 rounded-lg border border-border text-xs flex flex-wrap gap-x-6 gap-y-2 justify-center items-center">
-            <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Como pontuar:</span>
-            <span className="flex items-center gap-1.5"><span className="text-sm">🎯</span> <strong>Placar Exato:</strong> 3 pontos</span>
-            <span className="flex items-center gap-1.5"><span className="text-sm">⚽</span> <strong>Vencedor/Empate:</strong> 1 ponto</span>
-            <span className="flex items-center gap-1.5"><span className="text-sm">❌</span> <strong>Erro:</strong> 0 pontos</span>
+          <div className="py-1 px-2 text-[10px] text-muted-foreground/80 flex flex-wrap gap-x-4 gap-y-1 justify-center items-center border-b border-border/20 pb-2">
+            <span className="font-semibold uppercase tracking-wider text-[9px]">Legenda:</span>
+            <span className="flex items-center gap-1">🎯 Placar Exato = 3 pts</span>
+            <span className="flex items-center gap-1">⚽ Vencedor/Empate = 1 pt</span>
+            <span className="flex items-center gap-1">❌ Erro = 0 pts</span>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="usuario" className="py-2.5">👤 Por Participante</TabsTrigger>
-              <TabsTrigger value="jogo" className="py-2.5">⚽ Por Jogo</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-secondary/35 p-1 rounded-xl max-w-md mx-auto">
+              <TabsTrigger value="usuario" className="py-2 rounded-lg">👤 Por Participante</TabsTrigger>
+              <TabsTrigger value="jogo" className="py-2 rounded-lg">⚽ Por Jogo</TabsTrigger>
             </TabsList>
 
-          {/* TAB: POR PARTICIPANTE */}
-          <TabsContent value="usuario" className="space-y-4 mt-4">
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground shrink-0">Selecione o participante:</span>
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="w-full sm:max-w-xs">
-                  <SelectValue placeholder="Participante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {usuarios?.map(u => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.nome} {u.id === identidadeLogada?.id ? "(Você)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedUser && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* PARTICIPANTE ACUMULADO CARD */}
-                <div className="md:col-span-1 space-y-4">
-                  <Card className="bg-pitch border-border text-center overflow-hidden">
-                    <CardHeader className="pb-1">
-                      <Award className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <CardTitle className="text-lg">{nomeMap.get(selectedUser) ?? "—"}</CardTitle>
-                      <CardDescription>Pontuação Acumulada</CardDescription>
-                    </CardHeader>
-                    <CardContent className="py-4">
-                      <div className="text-display text-3xl sm:text-4xl text-primary font-bold">
-                        {scoresMap.get(selectedUser) ?? 0} pts
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Soma total obtida nas apurações
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* APOSTAS ESPECIAIS CARD */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Trophy className="h-5 w-5 text-amber-500" />
-                        Apostas Especiais
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                      <div className="flex justify-between items-center py-1.5 border-b border-border">
-                        <span className="text-muted-foreground">Artilheiro:</span>
-                        <span className="font-semibold">
-                          {userEspeciais?.art?.jogador_apostado || "Sem aposta"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1.5 border-b border-border">
-                        <span className="text-muted-foreground">Campeão:</span>
-                        <span className="font-semibold">
-                          {userEspeciais?.cam?.time_campeao
-                            ? `${flag(userEspeciais.cam.time_campeao)} ${userEspeciais.cam.time_campeao}`
-                            : "Sem aposta"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1.5 border-b border-border">
-                        <span className="text-muted-foreground">Dois Finalistas:</span>
-                        <span className="font-semibold text-right">
-                          {userEspeciais?.fin?.time1 && userEspeciais?.fin?.time2
-                            ? `${flag(userEspeciais.fin.time1)} ${userEspeciais.fin.time1} × ${flag(userEspeciais.fin.time2)} ${userEspeciais.fin.time2}`
-                            : "Sem aposta"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1.5 border-b border-border">
-                        <span className="text-muted-foreground">Zebra:</span>
-                        <span className="font-semibold">
-                          {userEspeciais?.zeb?.zebra_apostada
-                            ? `${flag(userEspeciais.zeb.zebra_apostada)} ${userEspeciais.zeb.zebra_apostada}`
-                            : "Sem aposta"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-1.5">
-                        <span className="text-muted-foreground">Maior Goleada:</span>
-                        <span className="font-semibold text-right">
-                          {userEspeciais?.gol?.time_casa && userEspeciais?.gol?.time_fora
-                            ? `${flag(userEspeciais.gol.time_casa)} ${userEspeciais.gol.time_casa} ${userEspeciais.gol.gols_casa}x${userEspeciais.gol.gols_fora} ${userEspeciais.gol.time_fora} ${flag(userEspeciais.gol.time_fora)}`
-                            : "Sem aposta"}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* PALPITES DOS JOGOS */}
-                <div className="md:col-span-2">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">Palpites nos Jogos</CardTitle>
-                      <CardDescription>Placares apostados pelo participante.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="table-scroll px-4 max-h-[500px]">
-                        <table className="w-full text-sm">
-                          <thead className="bg-secondary/40 sticky top-0 z-10">
-                            <tr className="border-b border-border text-muted-foreground text-xs uppercase">
-                              <th className="py-2 text-left font-medium">Jogo</th>
-                              <th className="py-2 text-center font-medium w-24">Palpite</th>
-                              <th className="py-2 text-center font-medium w-24">Oficial</th>
-                              <th className="py-2 text-right font-medium w-16">Acertou</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {(jogos ?? []).map(j => {
-                              const p = userPalpites.find(palpite => palpite.jogo_id === j.id);
-                              const gameLabel = `${flag(j.time_casa)} ${j.time_casa} vs ${j.time_fora} ${flag(j.time_fora)}`;
-
-                              let palpString = "—";
-                              if (p) {
-                                palpString = `${p.gols_casa} × ${p.gols_fora}`;
-                              }
-
-                              const oficialString = j.placar_casa != null && j.placar_fora != null
-                                ? `${j.placar_casa} × ${j.placar_fora}`
-                                : "Aguard.";
-
-                              let pointsText = "";
-                              let badgeColor = "";
-                              let isCalculated = false;
-
-                              if (p && j.placar_casa != null && j.placar_fora != null) {
-                                isCalculated = true;
-                                const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, j.placar_casa, j.placar_fora);
-                                if (res.acertouPlacar) {
-                                  pointsText = "🎯 +3";
-                                  badgeColor = "bg-success text-success-foreground font-bold";
-                                } else if (res.acertouResultado) {
-                                  pointsText = "⚽ +1";
-                                  badgeColor = "bg-primary/20 text-primary border border-primary/30";
-                                } else {
-                                  pointsText = "❌ 0";
-                                  badgeColor = "bg-secondary text-muted-foreground";
-                                }
-                              }
-
-                              return (
-                                <tr key={j.id} className="hover:bg-secondary/10">
-                                  <td className="py-2.5 text-xs sm:text-sm">
-                                    <div className="font-medium">{gameLabel}</div>
-                                    <div className="text-[10px] text-muted-foreground">
-                                      {new Date(j.data_hora).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 text-center font-mono font-bold">{palpString}</td>
-                                  <td className="py-2.5 text-center font-mono text-muted-foreground text-xs">{oficialString}</td>
-                                  <td className="py-2.5 text-right">
-                                    {isCalculated ? (
-                                      <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5`}>
-                                        {pointsText}
-                                      </Badge>
-                                    ) : p ? (
-                                      <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
-                                    ) : (
-                                      "—"
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                            {(jogos ?? []).length === 0 && (
-                              <tr>
-                                <td colSpan={4} className="text-center py-6 text-muted-foreground">
-                                  Nenhum jogo cadastrado.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+            {/* TAB: POR PARTICIPANTE */}
+            <TabsContent value="usuario" className="space-y-4 mt-6">
+              <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Participante:</span>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger className="w-full sm:max-w-xs h-9">
+                    <SelectValue placeholder="Selecione o participante" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usuarios?.map(u => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.nome} {u.id === identidadeLogada?.id ? "(Você)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </TabsContent>
 
-          {/* TAB: POR JOGO */}
-          <TabsContent value="jogo" className="space-y-4 mt-4">
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground shrink-0">Selecione a partida:</span>
-              <Select value={selectedJogo} onValueChange={setSelectedJogo}>
-                <SelectTrigger className="w-full sm:max-w-md">
-                  <SelectValue placeholder="Partida" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jogos?.map(j => (
-                    <SelectItem key={j.id} value={j.id}>
-                      {flag(j.time_casa)} {j.time_casa} vs {j.time_fora} {flag(j.time_fora)} ({new Date(j.data_hora).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedJogo && jogoEscolhidoObj && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* JOGO DETALHES CARD */}
-                <div className="md:col-span-1 space-y-4">
-                  <Card className="bg-secondary/15 border-border">
-                    <CardHeader className="text-center pb-2">
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">
-                        {jogoEscolhidoObj.fase}
-                      </div>
-                      <CardTitle className="text-base sm:text-lg">
-                        {flag(jogoEscolhidoObj.time_casa)} vs {flag(jogoEscolhidoObj.time_fora)}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center pb-4 space-y-3">
-                      <div className="text-display text-2xl font-bold flex justify-center items-center gap-4">
-                        <span className="font-mono">{jogoEscolhidoObj.time_casa}</span>
-                        <span className="bg-secondary/40 px-2 py-0.5 rounded text-lg">
-                          {jogoEscolhidoObj.placar_casa ?? "—"}
-                        </span>
-                        <span>×</span>
-                        <span className="bg-secondary/40 px-2 py-0.5 rounded text-lg">
-                          {jogoEscolhidoObj.placar_fora ?? "—"}
-                        </span>
-                        <span className="font-mono">{jogoEscolhidoObj.time_fora}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
-                        <div>{jogoEscolhidoObj.estadio || "Estádio pendente"}</div>
-                        <div>
-                          {new Date(jogoEscolhidoObj.data_hora).toLocaleString("pt-BR", {
-                            day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
-                          })}
+              {selectedUser && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* PARTICIPANTE ACUMULADO & ESPECIAIS CARD */}
+                  <div className="md:col-span-1 space-y-4">
+                    <Card className="bg-pitch border-border text-center overflow-hidden shadow-sm">
+                      <CardHeader className="pb-1 pt-4">
+                        <Award className="h-6 w-6 text-primary mx-auto mb-1" />
+                        <CardTitle className="text-base font-bold">{nomeMap.get(selectedUser) ?? "—"}</CardTitle>
+                        <CardDescription className="text-xs">Pontuação Acumulada</CardDescription>
+                      </CardHeader>
+                      <CardContent className="py-3">
+                        <div className="text-display text-3xl text-primary font-bold">
+                          {scoresMap.get(selectedUser) ?? 0} pts
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          Soma total obtida no ranking
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                {/* COMPARAÇÃO DOS PALPITES */}
-                <div className="md:col-span-2">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Star className="h-5 w-5 text-primary" />
-                        Palpites da Galera
-                      </CardTitle>
-                      <CardDescription>O que cada participante palpitou para este jogo.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="divide-y divide-border">
-                        {(usuarios ?? []).map(u => {
-                          const p = jogoPalpites.find(palpite => palpite.usuario_id === u.id);
+                    {/* APOSTAS ESPECIAIS */}
+                    <Card className="border-border shadow-sm">
+                      <CardHeader className="py-3 px-4 border-b border-border/20 bg-secondary/5">
+                        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                          <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                          Escolhas Especiais
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 rounded-lg border border-border/40 bg-secondary/5 flex flex-col gap-0.5">
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">⚽ Artilheiro</span>
+                          <span className="font-semibold truncate text-[11px]">{userEspeciais?.art?.jogador_apostado || "—"}</span>
+                        </div>
+                        <div className="p-2 rounded-lg border border-border/40 bg-secondary/5 flex flex-col gap-0.5">
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">🥇 Campeão</span>
+                          <span className="font-semibold truncate text-[11px]">
+                            {userEspeciais?.cam?.time_campeao
+                              ? `${flag(userEspeciais.cam.time_campeao)} ${userEspeciais.cam.time_campeao}`
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-lg border border-border/40 bg-secondary/5 flex flex-col gap-0.5 col-span-2">
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">🏆 Dois Finalistas</span>
+                          <span className="font-semibold truncate text-[11px]">
+                            {userEspeciais?.fin?.time1 && userEspeciais?.fin?.time2
+                              ? `${flag(userEspeciais.fin.time1)} ${userEspeciais.fin.time1} × ${flag(userEspeciais.fin.time2)} ${userEspeciais.fin.time2}`
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-lg border border-border/40 bg-secondary/5 flex flex-col gap-0.5">
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">🦓 Zebra</span>
+                          <span className="font-semibold truncate text-[11px]">
+                            {userEspeciais?.zeb?.zebra_apostada
+                              ? `${flag(userEspeciais.zeb.zebra_apostada)} ${userEspeciais.zeb.zebra_apostada}`
+                              : "—"}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-lg border border-border/40 bg-secondary/5 flex flex-col gap-0.5">
+                          <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">🔥 Goleada</span>
+                          <span className="font-semibold truncate text-[11px]">
+                            {userEspeciais?.gol?.time_casa && userEspeciais?.gol?.time_fora
+                              ? `${flag(userEspeciais.gol.time_casa)} ${userEspeciais.gol.time_casa} ${userEspeciais.gol.gols_casa}x${userEspeciais.gol.gols_fora} ${userEspeciais.gol.time_fora}`
+                              : "—"}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-                          let labelVal = "Sem palpite";
-                          let isCalculated = false;
-                          let pointsText = "";
-                          let badgeColor = "";
+                  {/* PALPITES DOS JOGOS */}
+                  <div className="md:col-span-2">
+                    <Card className="border-border shadow-sm">
+                      <CardHeader className="py-3 px-4 border-b border-border/20 bg-secondary/5 flex justify-between items-center flex-row">
+                        <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Palpites nos Jogos</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                          {(jogos ?? []).map(j => {
+                            const p = userPalpites.find(palpite => palpite.jogo_id === j.id);
+                            const gameLabel = `${flag(j.time_casa)} ${j.time_casa} vs ${j.time_fora} ${flag(j.time_fora)}`;
 
-                          if (p) {
-                            labelVal = `${p.gols_casa} × ${p.gols_fora}`;
-                            if (jogoEscolhidoObj.placar_casa != null && jogoEscolhidoObj.placar_fora != null) {
+                            let palpString = "—";
+                            if (p) {
+                              palpString = `${p.gols_casa} × ${p.gols_fora}`;
+                            }
+
+                            const oficialString = j.placar_casa != null && j.placar_fora != null
+                              ? `${j.placar_casa} × ${j.placar_fora}`
+                              : "Aguardando";
+
+                            let pointsText = "";
+                            let badgeColor = "";
+                            let isCalculated = false;
+
+                            if (p && j.placar_casa != null && j.placar_fora != null) {
                               isCalculated = true;
-                              const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, jogoEscolhidoObj.placar_casa, jogoEscolhidoObj.placar_fora);
+                              const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, j.placar_casa, j.placar_fora);
                               if (res.acertouPlacar) {
                                 pointsText = "🎯 +3";
-                                badgeColor = "bg-success text-success-foreground font-bold";
+                                badgeColor = "bg-success text-success-foreground font-bold border-0";
                               } else if (res.acertouResultado) {
                                 pointsText = "⚽ +1";
                                 badgeColor = "bg-primary/20 text-primary border border-primary/30";
                               } else {
                                 pointsText = "❌ 0";
-                                badgeColor = "bg-secondary text-muted-foreground";
+                                badgeColor = "bg-secondary text-muted-foreground border-0";
                               }
                             }
-                          }
 
-                          return (
-                            <div key={u.id} className="flex justify-between items-center py-2.5 text-sm border-b border-border/30 last:border-0 hover:bg-secondary/10 px-2 rounded-md transition-colors">
-                              <span className="font-medium">
-                                {u.nome} {u.id === identidadeLogada?.id ? <span className="text-xs text-primary font-semibold">(Você)</span> : ""}
-                              </span>
-                              <div className="flex items-center gap-3">
-                                <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-sm">
-                                  {labelVal}
-                                </span>
-                                {isCalculated ? (
-                                  <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
-                                    {pointsText}
-                                  </Badge>
-                                ) : p ? (
-                                  <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
-                                ) : null}
+                            return (
+                              <div key={j.id} className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 hover:bg-secondary/20 transition-all gap-3 text-xs">
+                                {/* Confronto */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 font-bold truncate">
+                                    <span>{flag(j.time_casa)} {j.time_casa}</span>
+                                    <span className="text-muted-foreground text-[10px]">vs</span>
+                                    <span>{j.time_fora} {flag(j.time_fora)}</span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                                    {new Date(j.data_hora).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                  </div>
+                                </div>
+
+                                {/* Pontuações / Palpites */}
+                                <div className="flex items-center gap-4 shrink-0">
+                                  <div className="text-right">
+                                    <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Palpite</div>
+                                    <div className="font-mono font-bold">{palpString}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">Placar</div>
+                                    <div className="font-mono text-[11px] text-muted-foreground bg-secondary/35 px-1.5 py-0.5 rounded">{oficialString}</div>
+                                  </div>
+                                  <div className="w-12 text-right">
+                                    {isCalculated ? (
+                                      <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
+                                        {pointsText}
+                                      </Badge>
+                                    ) : p ? (
+                                      <span className="text-muted-foreground text-[9px] italic shrink-0">Aguardando</span>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
+                            );
+                          })}
+                          {(jogos ?? []).length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-6">Nenhum jogo cadastrado.</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
+              )}
+            </TabsContent>
+
+            {/* TAB: POR JOGO */}
+            <TabsContent value="jogo" className="space-y-4 mt-6">
+              <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider shrink-0">Partida:</span>
+                <Select value={selectedJogo} onValueChange={setSelectedJogo}>
+                  <SelectTrigger className="w-full sm:max-w-md h-9">
+                    <SelectValue placeholder="Selecione a partida" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jogos?.map(j => (
+                      <SelectItem key={j.id} value={j.id}>
+                        {flag(j.time_casa)} {j.time_casa} vs {j.time_fora} {flag(j.time_fora)} ({new Date(j.data_hora).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+
+              {selectedJogo && jogoEscolhidoObj && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* JOGO DETALHES CARD */}
+                  <div className="md:col-span-1 space-y-4">
+                    <Card className="bg-secondary/15 border-border shadow-sm">
+                      <CardHeader className="text-center pb-2 pt-4">
+                        <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">
+                          {jogoEscolhidoObj.fase}
+                        </div>
+                        <CardTitle className="text-sm font-bold flex items-center justify-center gap-1.5">
+                          {flag(jogoEscolhidoObj.time_casa)} vs {flag(jogoEscolhidoObj.time_fora)}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-center pb-4 space-y-2">
+                        <div className="text-display text-xl font-bold flex justify-center items-center gap-2">
+                          <span className="truncate max-w-24 text-xs font-semibold">{jogoEscolhidoObj.time_casa}</span>
+                          <span className="bg-secondary/40 px-2 py-0.5 rounded text-sm font-mono">
+                            {jogoEscolhidoObj.placar_casa ?? "—"}
+                          </span>
+                          <span>×</span>
+                          <span className="bg-secondary/40 px-2 py-0.5 rounded text-sm font-mono">
+                            {jogoEscolhidoObj.placar_fora ?? "—"}
+                          </span>
+                          <span className="truncate max-w-24 text-xs font-semibold">{jogoEscolhidoObj.time_fora}</span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground space-y-0.5">
+                          <div>{jogoEscolhidoObj.estadio || "Estádio pendente"}</div>
+                          <div>
+                            {new Date(jogoEscolhidoObj.data_hora).toLocaleString("pt-BR", {
+                              day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* COMPARAÇÃO DOS PALPITES */}
+                  <div className="md:col-span-2">
+                    <Card className="border-border shadow-sm">
+                      <CardHeader className="py-3 px-4 border-b border-border/20 bg-secondary/5">
+                        <CardTitle className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Palpites da Galera</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto pr-1">
+                          {(usuarios ?? []).map(u => {
+                            const p = jogoPalpites.find(palpite => palpite.usuario_id === u.id);
+
+                            let labelVal = "Sem palpite";
+                            let isCalculated = false;
+                            let pointsText = "";
+                            let badgeColor = "";
+
+                            if (p) {
+                              labelVal = `${p.gols_casa} × ${p.gols_fora}`;
+                              if (jogoEscolhidoObj.placar_casa != null && jogoEscolhidoObj.placar_fora != null) {
+                                isCalculated = true;
+                                const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, jogoEscolhidoObj.placar_casa, jogoEscolhidoObj.placar_fora);
+                                if (res.acertouPlacar) {
+                                  pointsText = "🎯 +3";
+                                  badgeColor = "bg-success text-success-foreground font-bold border-0";
+                                } else if (res.acertouResultado) {
+                                  pointsText = "⚽ +1";
+                                  badgeColor = "bg-primary/20 text-primary border border-primary/30";
+                                } else {
+                                  pointsText = "❌ 0";
+                                  badgeColor = "bg-secondary text-muted-foreground border-0";
+                                }
+                              }
+                            }
+
+                            return (
+                              <div key={u.id} className="flex justify-between items-center p-2.5 rounded-xl border border-border/40 hover:bg-secondary/20 transition-all text-xs">
+                                <span className="font-semibold text-muted-foreground/90 truncate mr-2">
+                                  {u.nome} {u.id === identidadeLogada?.id ? <span className="text-[10px] text-primary font-bold">(Você)</span> : ""}
+                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-[11px]">
+                                    {labelVal}
+                                  </span>
+                                  {isCalculated ? (
+                                    <Badge className={`${badgeColor} text-[9px] py-0.5 px-1.5 shrink-0`}>
+                                      {pointsText}
+                                    </Badge>
+                                  ) : p ? (
+                                    <span className="text-[9px] text-muted-foreground italic shrink-0">Aguardando</span>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>

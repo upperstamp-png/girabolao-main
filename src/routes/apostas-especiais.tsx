@@ -241,12 +241,12 @@ function Page() {
             🎰 Apostas Especiais
           </h1>
           <p className="text-muted-foreground text-sm">
-            Módulos especiais do bolão. Palpites corretos concedem pontos extras cruciais no ranking geral!
+            Palpites extras que valem pontos valiosos para subir no ranking geral.
           </p>
         </div>
       </div>
 
-      <Card className="border-border">
+      <Card className="border-border shadow-sm max-w-2xl mx-auto">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Quem está apostando?</CardTitle>
           <CardDescription>
@@ -258,28 +258,28 @@ function Page() {
         </CardContent>
       </Card>
 
-      <div className="table-scroll pb-1">
+      <div className="max-w-2xl mx-auto">
         <Tabs defaultValue="artilheiro" className="w-full">
-          <TabsList className="flex h-auto w-max min-w-full">
-            <TabsTrigger value="artilheiro" className="shrink-0 flex items-center gap-1.5 py-2">⚽ Artilheiro</TabsTrigger>
-            <TabsTrigger value="finalistas" className="shrink-0 flex items-center gap-1.5 py-2">🏆 Finalistas</TabsTrigger>
-            <TabsTrigger value="campeao" className="shrink-0 flex items-center gap-1.5 py-2">🥇 Campeão</TabsTrigger>
-            <TabsTrigger value="zebra" className="shrink-0 flex items-center gap-1.5 py-2">🦓 Zebra</TabsTrigger>
-            <TabsTrigger value="goleada" className="shrink-0 flex items-center gap-1.5 py-2">🔥 Goleada</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 bg-secondary/35 p-1 rounded-xl">
+            <TabsTrigger value="artilheiro" className="text-xs py-2 rounded-lg">⚽ Art.</TabsTrigger>
+            <TabsTrigger value="finalistas" className="text-xs py-2 rounded-lg">🏆 Fin.</TabsTrigger>
+            <TabsTrigger value="campeao" className="text-xs py-2 rounded-lg">🥇 Cam.</TabsTrigger>
+            <TabsTrigger value="zebra" className="text-xs py-2 rounded-lg">🦓 Zeb.</TabsTrigger>
+            <TabsTrigger value="goleada" className="text-xs py-2 rounded-lg">🔥 Gol.</TabsTrigger>
           </TabsList>
 
           {/* TAB: ARTILHEIRO */}
           <TabsContent value="artilheiro" className="space-y-4 mt-4">
             <SpecialBetTab
               title="Artilheiro da Copa"
-              description="Aposte em quem será o maior goleador da Copa do Mundo 2026."
+              description="Aposte em quem será o maior goleador da Copa do Mundo 2026. (Acerto vale +10 pts)"
               status={cfgArt.status}
               prazoFim={cfgArt.prazo_fim}
               pointsText="+10 pts"
               resultadoReal={cfgArt.artilheiro_real}
               form={
                 !isArtilheiroClosed ? (
-                  <div className="space-y-4 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3 border-t border-border/40">
                     {minhaApostaArt?.jogador_apostado && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
                         Seu palpite atual: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong>
@@ -287,10 +287,9 @@ function Page() {
                     )}
                     
                     {/* Seleção do País */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="artilheiro-selecao">1. Selecione a Seleção</Label>
+                    <div className="space-y-1">
                       <Select value={selectedSelecaoId} onValueChange={(val) => { setSelectedSelecaoId(val); setSelectedJogadorId(""); setJogadorSearch(""); }}>
-                        <SelectTrigger id="artilheiro-selecao"><SelectValue placeholder="Escolha uma seleção..." /></SelectTrigger>
+                        <SelectTrigger id="artilheiro-selecao"><SelectValue placeholder="1. Escolha a Seleção..." /></SelectTrigger>
                         <SelectContent>
                           {selecoes?.map(s => <SelectItem key={s.id} value={s.id}>{flag(s.nome)} {s.nome}</SelectItem>)}
                         </SelectContent>
@@ -299,33 +298,30 @@ function Page() {
 
                     {/* Autocomplete de Jogadores */}
                     {selectedSelecaoId && (
-                      <div className="space-y-2">
-                        <Label htmlFor="jogador-search">2. Selecione o Jogador</Label>
+                      <div className="space-y-2 pt-2">
                         <Input
                           id="jogador-search"
-                          placeholder="Digite para filtrar..."
+                          placeholder="2. Digite para filtrar os jogadores..."
                           value={jogadorSearch}
                           onChange={e => setJogadorSearch(e.target.value)}
+                          className="text-xs"
                         />
                         
                         {loadingElenco ? (
-                          <div className="text-xs text-muted-foreground">Carregando elenco...</div>
+                          <div className="text-xs text-muted-foreground animate-pulse">Carregando elenco...</div>
                         ) : filteredElenco.length === 0 ? (
-                          <div className="text-xs text-muted-foreground italic">Nenhum jogador encontrado.</div>
+                          <div className="text-xs text-muted-foreground italic text-center py-2">Nenhum jogador encontrado.</div>
                         ) : (
-                          <div className="border border-border rounded-lg max-h-48 overflow-y-auto divide-y divide-border">
+                          <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1.5 border border-border/40 rounded-lg bg-secondary/5">
                             {filteredElenco.map(p => (
-                              <button
+                              <Badge
                                 key={p.id}
-                                type="button"
+                                variant={selectedJogadorId === p.id ? "default" : "outline"}
+                                className="cursor-pointer py-1 px-2 text-[10px] transition-all hover:scale-105 active:scale-95 border-border/80"
                                 onClick={() => setSelectedJogadorId(p.id)}
-                                className={`w-full text-left px-3 py-2 text-xs flex justify-between items-center transition-colors hover:bg-secondary/40 ${selectedJogadorId === p.id ? "bg-primary/10 text-primary font-semibold" : ""}`}
                               >
-                                <span>{p.jogador_nome}</span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {p.posicao || "Posição N/D"} {p.numero_camisa ? `(nº ${p.numero_camisa})` : ""}
-                                </span>
-                              </button>
+                                {p.jogador_nome} {p.numero_camisa ? `(${p.numero_camisa})` : ""}
+                              </Badge>
                             ))}
                           </div>
                         )}
@@ -335,19 +331,19 @@ function Page() {
                     <Button
                       disabled={!identidade?.nome || !selectedJogadorId || postArt.isPending}
                       onClick={() => postArt.mutate()}
-                      className="w-full btn-touch"
+                      className="w-full btn-touch text-xs mt-2"
                     >
-                      {postArt.isPending ? "Salvando..." : "Salvar Palpite de Artilheiro"}
+                      {postArt.isPending ? "Salvando..." : "Confirmar Palpite de Artilheiro"}
                     </Button>
                   </div>
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaArt?.jogador_apostado ? (
                       <div>
-                        <span>Você apostou em: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong> (Apostas de artilheiro encerradas)</span>
+                        <span>Você apostou em: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong> (Apostas encerradas)</span>
                       </div>
                     ) : (
-                      <span>Apostas de artilheiro encerradas.</span>
+                      <span>Apostas encerradas.</span>
                     )}
                   </div>
                 )
@@ -376,33 +372,36 @@ function Page() {
           <TabsContent value="finalistas" className="space-y-4 mt-4">
             <SpecialBetTab
               title="Dois Finalistas"
-              description="Aposte nas duas equipes que farão a grande final."
+              description="Aposte nas duas equipes que farão a grande final. (5 pts por acerto, 10 pts se acertar ambas)"
               status={cfgFin.status}
               prazoFim={cfgFin.prazo_fim}
               pointsText="+5 / +10 pts"
               resultadoReal={cfgFin.finalista1_real && cfgFin.finalista2_real ? `${flag(cfgFin.finalista1_real)} ${cfgFin.finalista1_real} x ${cfgFin.finalista2_real} ${flag(cfgFin.finalista2_real)}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgFin.status !== "apurada") ? (
-                  <div className="space-y-3 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3 border-t border-border/40">
                     {minhaApostaFin?.time1 && minhaApostaFin?.time2 && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
                         Seu palpite atual: <strong className="text-primary">{flag(minhaApostaFin.time1)} {minhaApostaFin.time1} × {minhaApostaFin.time2} {flag(minhaApostaFin.time2)}</strong>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="fin1-select">Finalista 1</Label>
+                    <div className="flex items-center gap-3 justify-center py-1">
+                      <div className="flex-1">
                         <Select value={fin1} onValueChange={setFin1}>
-                          <SelectTrigger id="fin1-select"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger id="fin1-select" className="w-full">
+                            <SelectValue placeholder="Finalista 1" />
+                          </SelectTrigger>
                           <SelectContent>
                             {times?.map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
-                      <div>
-                        <Label htmlFor="fin2-select">Finalista 2</Label>
+                      <span className="text-muted-foreground font-bold text-sm">vs</span>
+                      <div className="flex-1">
                         <Select value={fin2} onValueChange={setFin2}>
-                          <SelectTrigger id="fin2-select"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger id="fin2-select" className="w-full">
+                            <SelectValue placeholder="Finalista 2" />
+                          </SelectTrigger>
                           <SelectContent>
                             {times?.filter(t => t !== fin1).map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                           </SelectContent>
@@ -412,17 +411,17 @@ function Page() {
                     <Button
                       disabled={!identidade?.nome || !fin1 || !fin2 || postFin.isPending}
                       onClick={() => postFin.mutate()}
-                      className="w-full btn-touch"
+                      className="w-full btn-touch text-xs mt-2"
                     >
-                      {postFin.isPending ? "Salvando..." : "Salvar Palpite de Finalistas"}
+                      {postFin.isPending ? "Salvando..." : "Confirmar Palpite de Finalistas"}
                     </Button>
                   </div>
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaFin?.time1 && minhaApostaFin?.time2 ? (
-                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaFin.time1)} {minhaApostaFin.time1} × {minhaApostaFin.time2} {flag(minhaApostaFin.time2)}</strong> (Apostas de finalistas encerradas)</span>
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaFin.time1)} {minhaApostaFin.time1} × {minhaApostaFin.time2} {flag(minhaApostaFin.time2)}</strong> (Apostas encerradas)</span>
                     ) : (
-                      <span>Apostas de finalistas encerradas.</span>
+                      <span>Apostas encerradas.</span>
                     )}
                   </div>
                 )
@@ -457,23 +456,22 @@ function Page() {
           <TabsContent value="campeao" className="space-y-4 mt-4">
             <SpecialBetTab
               title="Campeão Mundial"
-              description="Aposte na seleção que levantará a taça de campeã do mundo."
+              description="Aposte na seleção que levantará a taça de campeã do mundo. (Acerto vale +10 pts)"
               status={cfgCam.status}
               prazoFim={cfgCam.prazo_fim}
               pointsText="+10 pts"
               resultadoReal={cfgCam.campeao_real ? `${flag(cfgCam.campeao_real)} ${cfgCam.campeao_real}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgCam.status !== "apurada") ? (
-                  <div className="space-y-3 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3 border-t border-border/40">
                     {minhaApostaCam?.time_campeao && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
                         Seu palpite atual: <strong className="text-primary">{flag(minhaApostaCam.time_campeao)} {minhaApostaCam.time_campeao}</strong>
                       </div>
                     )}
-                    <div>
-                      <Label htmlFor="campeao-select">Seleção Campeã</Label>
+                    <div className="py-1">
                       <Select value={campeao} onValueChange={setCampeao}>
-                        <SelectTrigger id="campeao-select"><SelectValue placeholder="Selecione uma seleção" /></SelectTrigger>
+                        <SelectTrigger id="campeao-select" className="w-full"><SelectValue placeholder="Escolha a Seleção Campeã" /></SelectTrigger>
                         <SelectContent>
                           {times?.map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                         </SelectContent>
@@ -482,17 +480,17 @@ function Page() {
                     <Button
                       disabled={!identidade?.nome || !campeao || postCam.isPending}
                       onClick={() => postCam.mutate()}
-                      className="w-full btn-touch"
+                      className="w-full btn-touch text-xs mt-2"
                     >
-                      {postCam.isPending ? "Salvando..." : "Salvar Palpite de Campeão"}
+                      {postCam.isPending ? "Salvando..." : "Confirmar Palpite de Campeão"}
                     </Button>
                   </div>
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaCam?.time_campeao ? (
-                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaCam.time_campeao)} {minhaApostaCam.time_campeao}</strong> (Apostas de campeão encerradas)</span>
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaCam.time_campeao)} {minhaApostaCam.time_campeao}</strong> (Apostas encerradas)</span>
                     ) : (
-                      <span>Apostas de campeão encerradas.</span>
+                      <span>Apostas encerradas.</span>
                     )}
                   </div>
                 )
@@ -521,23 +519,22 @@ function Page() {
           <TabsContent value="zebra" className="space-y-4 mt-4">
             <SpecialBetTab
               title="Zebra do Torneio"
-              description="Qual seleção surpreenderá o mundo indo mais longe do que o esperado?"
+              description="Qual seleção surpreenderá o mundo indo mais longe do que o esperado? (Acerto vale +10 pts)"
               status={cfgZeb.status}
               prazoFim={cfgZeb.prazo_fim}
               pointsText="+10 pts"
               resultadoReal={cfgZeb.zebra_real ? `${flag(cfgZeb.zebra_real)} ${cfgZeb.zebra_real}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgZeb.status !== "apurada") ? (
-                  <div className="space-y-3 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3 border-t border-border/40">
                     {minhaApostaZeb?.zebra_apostada && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
                         Seu palpite atual: <strong className="text-primary">{flag(minhaApostaZeb.zebra_apostada)} {minhaApostaZeb.zebra_apostada}</strong>
                       </div>
                     )}
-                    <div>
-                      <Label htmlFor="zebra-select">Seleção Zebra</Label>
+                    <div className="py-1">
                       <Select value={zebra} onValueChange={setZebra}>
-                        <SelectTrigger id="zebra-select"><SelectValue placeholder="Selecione a Zebra" /></SelectTrigger>
+                        <SelectTrigger id="zebra-select" className="w-full"><SelectValue placeholder="Escolha a Seleção Zebra" /></SelectTrigger>
                         <SelectContent>
                           {times?.map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                         </SelectContent>
@@ -546,17 +543,17 @@ function Page() {
                     <Button
                       disabled={!identidade?.nome || !zebra || postZeb.isPending}
                       onClick={() => postZeb.mutate()}
-                      className="w-full btn-touch"
+                      className="w-full btn-touch text-xs mt-2"
                     >
-                      {postZeb.isPending ? "Salvando..." : "Salvar Palpite de Zebra"}
+                      {postZeb.isPending ? "Salvando..." : "Confirmar Palpite de Zebra"}
                     </Button>
                   </div>
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaZeb?.zebra_apostada ? (
-                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaZeb.zebra_apostada)} {minhaApostaZeb.zebra_apostada}</strong> (Apostas de zebra encerradas)</span>
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaZeb.zebra_apostada)} {minhaApostaZeb.zebra_apostada}</strong> (Apostas encerradas)</span>
                     ) : (
-                      <span>Apostas de zebra encerradas.</span>
+                      <span>Apostas encerradas.</span>
                     )}
                   </div>
                 )
@@ -585,93 +582,82 @@ function Page() {
           <TabsContent value="goleada" className="space-y-4 mt-4">
             <SpecialBetTab
               title="Maior Goleada da Copa"
-              description="Aposte em qual será o placar mais elástico de toda a competição."
+              description="Aposte em qual será o placar mais elástico de toda a competição. (Acerto vale +10 pts)"
               status={cfgGol.status}
               prazoFim={cfgGol.prazo_fim}
               pointsText="+10 pts"
               resultadoReal={cfgGol.goleada_time_casa_real ? `${flag(cfgGol.goleada_time_casa_real)} ${cfgGol.goleada_time_casa_real} ${cfgGol.goleada_gols_casa_real} x ${cfgGol.goleada_gols_fora_real} ${cfgGol.goleada_time_fora_real} ${flag(cfgGol.goleada_time_fora_real)}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgGol.status !== "apurada") ? (
-                  <div className="space-y-4 pt-3 border-t border-border">
+                  <div className="space-y-3 pt-3 border-t border-border/40">
                     {minhaApostaGol?.time_casa && minhaApostaGol?.time_fora && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
                         Seu palpite atual: <strong className="text-primary">{flag(minhaApostaGol.time_casa)} {minhaApostaGol.time_casa} {minhaApostaGol.gols_casa} × {minhaApostaGol.gols_fora} {minhaApostaGol.time_fora} {flag(minhaApostaGol.time_fora)}</strong>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Mandante */}
-                      <div className="space-y-2">
-                        <Label htmlFor="gol-casa-select">Time Casa</Label>
+                    <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-secondary/10 border border-border/50">
+                      {/* Casa */}
+                      <div className="flex-1 flex flex-col items-center gap-2">
                         <Select value={golCasa} onValueChange={setGolCasa}>
-                          <SelectTrigger id="gol-casa-select"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger className="w-full h-9"><SelectValue placeholder="Mandante" /></SelectTrigger>
                           <SelectContent>
                             {times?.map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        <div className="flex items-center gap-2 justify-center pt-2">
-                          <Button
+                        <div className="flex items-center gap-2">
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
                             onClick={() => setGolGolsCasa(Math.max(0, golGolsCasa - 1))}
-                            className="h-8 w-8 rounded-full"
-                          >-</Button>
-                          <span className="text-xl font-bold font-mono w-6 text-center">{golGolsCasa}</span>
-                          <Button
+                            className="h-8 w-8 rounded-full bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center text-sm font-bold"
+                          >-</button>
+                          <span className="text-2xl font-bold font-mono w-6 text-center">{golGolsCasa}</span>
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
                             onClick={() => setGolGolsCasa(golGolsCasa + 1)}
-                            className="h-8 w-8 rounded-full"
-                          >+</Button>
+                            className="h-8 w-8 rounded-full bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center text-sm font-bold"
+                          >+</button>
                         </div>
                       </div>
 
-                      {/* Visitante */}
-                      <div className="space-y-2">
-                        <Label htmlFor="gol-fora-select">Time Fora</Label>
+                      <span className="text-2xl font-bold text-muted-foreground self-center">×</span>
+
+                      {/* Fora */}
+                      <div className="flex-1 flex flex-col items-center gap-2">
                         <Select value={golFora} onValueChange={setGolFora}>
-                          <SelectTrigger id="gol-fora-select"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectTrigger className="w-full h-9"><SelectValue placeholder="Visitante" /></SelectTrigger>
                           <SelectContent>
                             {times?.filter(t => t !== golCasa).map(t => <SelectItem key={t} value={t}>{flag(t)} {t}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        <div className="flex items-center gap-2 justify-center pt-2">
-                          <Button
+                        <div className="flex items-center gap-2">
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
                             onClick={() => setGolGolsFora(Math.max(0, golGolsFora - 1))}
-                            className="h-8 w-8 rounded-full"
-                          >-</Button>
-                          <span className="text-xl font-bold font-mono w-6 text-center">{golGolsFora}</span>
-                          <Button
+                            className="h-8 w-8 rounded-full bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center text-sm font-bold"
+                          >-</button>
+                          <span className="text-2xl font-bold font-mono w-6 text-center">{golGolsFora}</span>
+                          <button
                             type="button"
-                            variant="secondary"
-                            size="sm"
                             onClick={() => setGolGolsFora(golGolsFora + 1)}
-                            className="h-8 w-8 rounded-full"
-                          >+</Button>
+                            className="h-8 w-8 rounded-full bg-secondary hover:bg-secondary/80 border border-border flex items-center justify-center text-sm font-bold"
+                          >+</button>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-center text-lg font-semibold bg-secondary/20 p-2 rounded">
-                      Goleada: {golCasa || "Time Casa"} {golGolsCasa} x {golGolsFora} {golFora || "Time Fora"}
                     </div>
                     <Button
                       disabled={!identidade?.nome || !golCasa || !golFora || postGol.isPending}
                       onClick={() => postGol.mutate()}
-                      className="w-full btn-touch"
+                      className="w-full btn-touch text-xs mt-2"
                     >
-                      {postGol.isPending ? "Salvando..." : "Salvar Palpite de Maior Goleada"}
+                      {postGol.isPending ? "Salvando..." : "Confirmar Palpite de Maior Goleada"}
                     </Button>
                   </div>
                 ) : (
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaGol?.time_casa && minhaApostaGol?.time_fora ? (
-                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaGol.time_casa)} {minhaApostaGol.time_casa} {minhaApostaGol.gols_casa} × {minhaApostaGol.gols_fora} {minhaApostaGol.time_fora} {flag(minhaApostaGol.time_fora)}</strong> (Apostas de maior goleada encerradas)</span>
+                      <span>Você apostou em: <strong className="text-primary">{flag(minhaApostaGol.time_casa)} {minhaApostaGol.time_casa} {minhaApostaGol.gols_casa} × {minhaApostaGol.gols_fora} {minhaApostaGol.time_fora} {flag(minhaApostaGol.time_fora)}</strong> (Apostas encerradas)</span>
                     ) : (
-                      <span>Apostas de maior goleada encerradas.</span>
+                      <span>Apostas encerradas.</span>
                     )}
                   </div>
                 )
@@ -700,6 +686,10 @@ function Page() {
             />
           </TabsContent>
         </Tabs>
+      </div>
+
+      <div className="max-w-2xl mx-auto text-center text-[10px] text-muted-foreground/80 mt-12 p-4 border-t border-border/30">
+        🔒 Todas as apostas especiais são auditadas automaticamente e abertas publicamente para garantir a total integridade dos resultados.
       </div>
     </div>
   );
@@ -731,84 +721,52 @@ function SpecialBetTab({
   const isAberta = status === "aberta";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2 space-y-4">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start gap-4 flex-wrap">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {title}
-                  <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 text-sm font-semibold">
-                    {pointsText}
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="mt-1">{description}</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2 flex-wrap items-center">
-              <Badge variant={isAberta ? "success" : "secondary"} className="capitalize">
-                {status}
-              </Badge>
-              {isAberta && prazoFim && new Date(prazoFim).getFullYear() < 2090 && (
-                <Badge variant="outline" className="text-xs">
-                  Fecha em: {countdown(prazoFim)}
+    <div className="space-y-4">
+      <Card className="border-border shadow-sm overflow-hidden">
+        <CardHeader className="pb-4 bg-secondary/10 border-b border-border/30">
+          <div className="flex justify-between items-start gap-4 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                {title}
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0 text-xs font-semibold py-0.5 px-2">
+                  {pointsText}
                 </Badge>
-              )}
+              </CardTitle>
+              <CardDescription className="mt-1 text-xs sm:text-sm text-muted-foreground">{description}</CardDescription>
             </div>
-
-            {resultadoReal && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-200">
-                Resultado Oficial: <strong>{resultadoReal}</strong>
-              </div>
-            )}
-
-            {!isAberta && status === "fechada" && (
-              <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded border border-border text-sm text-muted-foreground">
-                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                <span>As apostas para este módulo estão atualmente fechadas.</span>
-              </div>
-            )}
-
-            {form}
-          </CardContent>
-        </Card>
-
-        {bets}
-      </div>
-
-      <div className="space-y-4">
-        {/* Regras de Pontuação */}
-        <Card className="bg-pitch border-primary/20">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-center font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pontuação Extra</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center py-4 space-y-2">
-            <div className="text-display text-4xl sm:text-5xl text-primary font-bold">{pointsText}</div>
-            <div className="text-xs text-muted-foreground mt-2">
-              Pontos adicionados ao ranking geral para quem acertar esta aposta especial.
-            </div>
-            {title.includes("Finalistas") && (
-              <div className="text-[10px] text-muted-foreground italic">
-                * 5 pts se acertar 1 time, 10 pts se acertar os 2.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2 text-xs">
-          <div className="flex items-center gap-1 font-semibold text-primary">
-            <ShieldAlert className="h-4 w-4 shrink-0" />
-            <span>Regras de Auditoria & Prazo</span>
           </div>
-          <p className="text-muted-foreground leading-normal">
-            As apostas especiais estão liberadas para consulta pública e podem ser visualizadas por todos os participantes a qualquer momento.
-            Garantimos a integridade total do banco de dados contra alterações após o prazo configurado.
-          </p>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          <div className="flex gap-2 flex-wrap items-center">
+            <Badge variant={isAberta ? "success" : "secondary"} className="capitalize text-[10px] py-0.5 px-2">
+              {isAberta ? "🔓 Aberto" : "🔒 Fechado"}
+            </Badge>
+            {isAberta && prazoFim && new Date(prazoFim).getFullYear() < 2090 && (
+              <Badge variant="outline" className="text-[10px] py-0.5 px-2 text-muted-foreground border-border/80">
+                Fecha em: {countdown(prazoFim)}
+              </Badge>
+            )}
+          </div>
+
+          {resultadoReal && (
+            <div className="p-3 bg-success/10 border border-success/20 rounded-lg text-xs sm:text-sm text-success flex items-center gap-2">
+              <span className="text-base">🎯</span>
+              <span>Resultado Oficial: <strong>{resultadoReal}</strong></span>
+            </div>
+          )}
+
+          {!isAberta && status === "fechada" && (
+            <div className="flex items-center gap-2 p-3 bg-secondary/35 rounded-lg border border-border text-xs text-muted-foreground">
+              <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+              <span>As apostas para este módulo estão atualmente fechadas.</span>
+            </div>
+          )}
+
+          {form}
+        </CardContent>
+      </Card>
+
+      {bets}
     </div>
   );
 }
@@ -824,25 +782,25 @@ interface BetsListProps {
 
 function BetsList({ bets = [], nomeMap, renderValue, isAcertou, acertouBadge, loggedUserId }: BetsListProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Palpites Registrados ({bets.length})</CardTitle>
+    <Card className="border-border shadow-sm">
+      <CardHeader className="py-3.5 border-b border-border/20 bg-secondary/5">
+        <CardTitle className="text-sm font-semibold text-muted-foreground">Palpites Registrados ({bets.length})</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2 px-3 pb-3">
         {bets.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Nenhum palpite registrado ainda.</p>
+          <p className="text-xs text-muted-foreground text-center py-6">Nenhum palpite registrado ainda.</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-border/40">
             {bets.map((a: any) => {
               const acertou = isAcertou ? isAcertou(a) === true : false;
               const isMe = loggedUserId && a.usuario_id === loggedUserId;
               return (
-                <li key={a.id} className={`flex justify-between items-center py-2 px-2 text-sm rounded-md transition-colors ${isMe ? "bg-primary/5 border border-primary/20" : ""}`}>
+                <li key={a.id} className={`flex justify-between items-center py-2 px-2 text-xs rounded-lg transition-colors ${isMe ? "bg-primary/5 border border-primary/20" : "hover:bg-secondary/20"}`}>
                   <span className={`font-medium ${acertou ? "text-success font-bold" : ""} ${isMe ? "text-primary font-semibold" : ""}`}>
-                    {nomeMap.get(a.usuario_id) ?? "—"} {isMe && <span className="text-[10px] text-primary font-semibold">(Você)</span>}
+                    {nomeMap.get(a.usuario_id) ?? "—"} {isMe && <span className="text-[9px] text-primary font-semibold ml-1">(Você)</span>}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className={acertou ? "text-success font-bold" : ""}>
+                    <span className={`font-medium ${acertou ? "text-success font-bold" : "text-foreground"}`}>
                       {renderValue(a)}
                     </span>
                     {acertouBadge ? acertouBadge(a) : (acertou && <Badge className="bg-success scale-90">✓</Badge>)}
