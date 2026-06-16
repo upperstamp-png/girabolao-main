@@ -14,8 +14,6 @@ import {
   type GoalEvent,
 } from "@/lib/goalEvents";
 import {
-  Tv2,
-  Play,
   ExternalLink,
   ChevronRight,
   Pencil,
@@ -44,73 +42,22 @@ export const Route = createFileRoute("/")({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // YouTube Live Player
-// A CazéTV bloqueia embedding via X-Frame-Options. Abrimos o YouTube nativo.
+// Incorpora o player diretamente na página para reprodução in-app.
 // ─────────────────────────────────────────────────────────────────────────────
 const YT_CHANNEL_HANDLE = "CazeTV";
 const YT_LIVE_URL = `https://www.youtube.com/@${YT_CHANNEL_HANDLE}/live`;
 
 function YouTubePlayer() {
-  const [clicked, setClicked] = useState(false);
-
-  function handlePlay() {
-    setClicked(true);
-    window.open(YT_LIVE_URL, "_blank", "noopener,noreferrer");
-    setTimeout(() => setClicked(false), 3000);
-  }
-
   return (
-    <div
-      className="relative w-full aspect-video overflow-hidden bg-black group cursor-pointer"
-      onClick={!clicked ? handlePlay : undefined}
-    >
-      {/* Branded gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-950/70 via-zinc-900 to-black" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-10" />
-
-      {/* Center content */}
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 text-center px-4">
-        {/* CazéTV brand */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-600">
-            <Tv2 className="h-3.5 w-3.5 text-white" />
-          </div>
-          <span className="text-white font-black text-base tracking-[0.12em] uppercase">
-            CazéTV
-          </span>
-        </div>
-
-        {/* LIVE badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600">
-          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          <span className="text-white text-[10px] font-black uppercase tracking-[0.1em]">
-            Ao Vivo
-          </span>
-        </div>
-
-        {/* Play / feedback */}
-        {clicked ? (
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-600/20 border-2 border-green-500/60">
-              <ExternalLink className="h-6 w-6 text-green-400" />
-            </div>
-            <p className="text-green-400 text-xs font-bold">Abrindo no YouTube...</p>
-          </div>
-        ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlay();
-            }}
-            className="flex items-center justify-center h-14 w-14 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 transition-all shadow-[0_0_32px_rgba(220,38,38,0.55)] group-hover:scale-110"
-            aria-label="Assistir ao vivo na CazéTV"
-          >
-            <Play className="h-7 w-7 text-white fill-white ml-1" />
-          </button>
-        )}
-        <p className="text-white/35 text-[10px]">
-          {clicked ? "Se não abrir, use o link acima" : "Toque para abrir no YouTube"}
-        </p>
-      </div>
+    <div className="relative w-full aspect-video overflow-hidden bg-black">
+      <iframe
+        src="https://www.youtube.com/embed/live_stream?channel=UCiUpYtTjV6P-H-3qOq-1WIA"
+        title="CazéTV Live Stream"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        className="absolute top-0 left-0 w-full h-full"
+      />
     </div>
   );
 }
@@ -647,41 +594,38 @@ function Index() {
               </span>
             </div>
 
-            {/* Video + score overlay */}
-            <div className="relative">
-              <YouTubePlayer />
-              {/* Scoreboard overlay — bottom of video */}
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center z-30 pointer-events-none px-4">
-                <div className="flex items-stretch overflow-hidden rounded-xl shadow-2xl">
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-black/85">
-                    <span className="text-base leading-none">{flag(liveGame.time_casa)}</span>
-                    <span className="text-white text-[11px] font-bold uppercase tracking-wide hidden sm:block">
-                      {liveGame.time_casa}
+            {/* Scoreboard banner */}
+            <div className="flex items-center justify-center py-4 bg-zinc-950/60 border-b border-border/30 px-4">
+              <div className="flex items-stretch overflow-hidden rounded-xl border border-border bg-black shadow-lg">
+                <div className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900/40">
+                  <span className="text-lg leading-none">{flag(liveGame.time_casa)}</span>
+                  <span className="text-white text-[11px] font-bold uppercase tracking-wide hidden sm:block">
+                    {liveGame.time_casa}
+                  </span>
+                </div>
+                <div className="flex items-center px-5 py-2 bg-black border-x border-border">
+                  <span className="font-mono text-xl font-bold text-primary tabular-nums">
+                    <span className={homeFlash ? "score-goal-flash inline-block" : "inline-block"}>
+                      {liveGame.placar_casa ?? 0}
                     </span>
-                  </div>
-                  <div className="flex items-center px-4 py-2 bg-black/95 border-x border-white/10">
-                    <span className="font-mono text-xl font-bold text-primary tabular-nums">
-                      <span
-                        className={homeFlash ? "score-goal-flash inline-block" : "inline-block"}
-                      >
-                        {liveGame.placar_casa ?? 0}
-                      </span>
-                      <span className="text-muted-foreground mx-1.5 text-lg">:</span>
-                      <span
-                        className={awayFlash ? "score-goal-flash inline-block" : "inline-block"}
-                      >
-                        {liveGame.placar_fora ?? 0}
-                      </span>
+                    <span className="text-muted-foreground mx-2 text-lg">:</span>
+                    <span className={awayFlash ? "score-goal-flash inline-block" : "inline-block"}>
+                      {liveGame.placar_fora ?? 0}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-black/85">
-                    <span className="text-white text-[11px] font-bold uppercase tracking-wide hidden sm:block">
-                      {liveGame.time_fora}
-                    </span>
-                    <span className="text-base leading-none">{flag(liveGame.time_fora)}</span>
-                  </div>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-900/40">
+                  <span className="text-white text-[11px] font-bold uppercase tracking-wide hidden sm:block">
+                    {liveGame.time_fora}
+                  </span>
+                  <span className="text-lg leading-none">{flag(liveGame.time_fora)}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Video player */}
+            <div className="relative">
+              <YouTubePlayer />
             </div>
 
             {/* Footer */}
