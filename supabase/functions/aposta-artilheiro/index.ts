@@ -39,21 +39,29 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    // Artilheiro: escolha imutável — se já existir, recusar alteração
-    const { data: existing } = await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado").eq("usuario_id", v.id).maybeSingle();
-    if (existing) {
-      return json({ error: "A escolha do artilheiro não pode ser alterada." }, 400);
+    // Artilheiro: permitir alteração se não estiver bloqueado
+    const { data: existing } = await supabase.from("bolao_apostas_artilheiro").select("id, jogador_apostado, bloqueado_em").eq("usuario_id", v.id).maybeSingle();
+    if (existing && existing.bloqueado_em) {
+      return json({ error: "Aposta de artilheiro já bloqueada para este usuário" }, 400);
     }
 
-    const { error } = await supabase.from("bolao_apostas_artilheiro").insert(
-      { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id }
-    );
-    if (error) throw error;
+    if (existing) {
+      const { error } = await supabase.from("bolao_apostas_artilheiro").update(
+        { jogador_apostado: jogadorNome, jogador_id: jogador_id }
+      ).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("bolao_apostas_artilheiro").insert(
+        { usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id }
+      );
+      if (error) throw error;
+    }
 
     // Disparar push de notificação
+    const actionVerb = existing ? "alterou sua aposta para" : "apostou em";
     await notifyAllUsers(null, {
       title: "🏆 Aposta em Artilheiro da Copa!",
-      body: `${nome} apostou em ${jogadorNome} para Artilheiro da Copa`,
+      body: `${nome} ${actionVerb} ${jogadorNome} para Artilheiro da Copa`,
       url: "/apostas-especiais",
       tag: `artilheiro_${v.id}`,
     }).catch(err => console.error("Erro ao disparar push notification", err));

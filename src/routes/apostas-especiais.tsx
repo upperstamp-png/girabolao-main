@@ -230,9 +230,8 @@ function Page() {
     return config?.status === "FECHADO" || config?.status === "FINALIZADO";
   }, [config]);
 
-  // Artilheiro: bloqueado apenas se o bolão estiver fechado globalmente, ou a aposta já foi apurada, ou já apostou (imutável)
-  const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status === "apurada";
-  const isArtilheiroImmutable = !!minhaApostaArt?.jogador_apostado;
+  // Artilheiro: bloqueado apenas se o bolão estiver fechado globalmente, ou a aposta já foi apurada, ou já bloqueada
+  const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status === "apurada" || !!minhaApostaArt?.bloqueado_em;
 
 
   return (
@@ -282,7 +281,7 @@ function Page() {
               nP={nP}
               resultadoReal={cfgArt.artilheiro_real}
               form={
-                (!isArtilheiroClosed && !isArtilheiroImmutable) ? (
+                !isArtilheiroClosed ? (
                   <div className="space-y-4 pt-3 border-t border-border">
                     {minhaApostaArt?.jogador_apostado && (
                       <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-md text-xs">
@@ -348,8 +347,7 @@ function Page() {
                   <div className="p-3 bg-secondary/20 rounded-md border border-border text-xs text-muted-foreground">
                     {minhaApostaArt?.jogador_apostado ? (
                       <div>
-                        <span>Você escolheu: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong></span>
-                        <div className="text-xs text-muted-foreground mt-1">Essa escolha é definitiva e não pode ser alterada.</div>
+                        <span>Você apostou em: <strong className="text-primary">{minhaApostaArt.jogador_apostado}</strong> (Apostas de artilheiro encerradas)</span>
                       </div>
                     ) : (
                       <span>Apostas de artilheiro encerradas.</span>
