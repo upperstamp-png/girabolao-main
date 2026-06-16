@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     // Disparar push de notificação
     const verb = existing ? "alterou sua" : "registrou uma nova";
-    await notifyAllUsers(v.id, {
+    await notifyAllUsers(null, {
       title: "🔥 Aposta em Goleada da Copa!",
       body: `${nome} ${verb} aposta de Goleada no jogo ${time_casa} x ${time_fora}: ${gols_casa} x ${gols_fora}`,
       url: "/apostas-especiais",

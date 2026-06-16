@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
 
     // Disparar push de notificação
     const actionVerb = palpiteAntigo ? "alterou seu" : "registrou um";
-    await notifyAllUsers(v.id, {
+    await notifyAllUsers(null, {
       title: "⚽ Novo Palpite Registrado!",
       body: `${nome} ${actionVerb} palpite para ${jogo.time_casa} x ${jogo.time_fora}: ${gols_casa} x ${gols_fora}`,
       url: `/jogos/${jogo_id}`,

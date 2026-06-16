@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     // Disparar push de notificação
-    await notifyAllUsers(v.id, {
+    await notifyAllUsers(null, {
       title: "🏆 Aposta em Artilheiro da Copa!",
       body: `${nome} apostou em ${jogadorNome} para Artilheiro da Copa`,
       url: "/apostas-especiais",

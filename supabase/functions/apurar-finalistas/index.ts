@@ -1,5 +1,6 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin } from "../_shared/supabase.ts";
+import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -50,6 +51,15 @@ Deno.serve(async (req) => {
     await supabase.from("bolao_config_finalistas").update({
       status: "apurada", finalista1_real: f1, finalista2_real: f2, total_arrecadado: arrecadado,
     }).eq("id", 1);
+
+    // Disparar push de notificação do resultado
+    await notifyAllUsers(null, {
+      title: "⚔️ Finalistas da Copa Apurados!",
+      body: `Os Finalistas oficiais foram definidos: ${f1} x ${f2}! ${acertadores.length} participante(s) acertaram os dois e dividiram o prêmio de R$ ${pool.toFixed(2)}.`,
+      url: "/apostas-especiais",
+      tag: "apurar_finalistas",
+    }).catch(err => console.error("Erro ao disparar push notification", err));
+
     return json({ ok: true, pool, acertadores: acertadores.length });
   } catch (e) {
     console.error(e);

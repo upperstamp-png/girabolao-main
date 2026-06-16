@@ -1,5 +1,6 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin } from "../_shared/supabase.ts";
+import { notifyAllUsers } from "../_shared/push.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req); if (pre) return pre;
@@ -38,6 +39,15 @@ Deno.serve(async (req) => {
     await supabase.from("bolao_config_artilheiro").update({
       status: "apurada", artilheiro_real: artilheiro, total_arrecadado: arrecadado,
     }).eq("id", 1);
+
+    // Disparar push de notificação do resultado
+    await notifyAllUsers(null, {
+      title: "🏆 Artilheiro da Copa Apurado!",
+      body: `O Artilheiro oficial foi definido: ${artilheiro}! ${acertadores.length} participante(s) acertaram e dividiram o prêmio de R$ ${pool.toFixed(2)}.`,
+      url: "/apostas-especiais",
+      tag: "apurar_artilheiro",
+    }).catch(err => console.error("Erro ao disparar push notification", err));
+
     return json({ ok: true, pool, acertadores: acertadores.length });
   } catch (e) {
     console.error(e);
