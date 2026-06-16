@@ -216,6 +216,29 @@ function Page() {
         </CardContent>
       </Card>
 
+      {jogo.status === "ao_vivo" && (
+        <Card className="overflow-hidden border-destructive/30 shadow-glow animate-in fade-in-50 duration-300">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              📺 Transmissão ao vivo — CazéTV
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 sm:p-4">
+            <div className="relative w-full aspect-video rounded-b-lg sm:rounded-lg overflow-hidden border border-border">
+              <iframe
+                src="https://www.youtube.com/embed/live_stream?channel=UCiUpYtTjV6P-H-3qOq-1WIA"
+                title="CazéTV Live Stream"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="absolute top-0 left-0 w-full h-full"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {jogo.status === "ao_vivo" && stats && (
         <Card className="border-destructive/30">
           <CardHeader className="pb-2">
