@@ -164,23 +164,33 @@ function Page() {
 
   if (!isAuthed) {
     return (
-      <div className="max-w-md mx-auto mt-10 p-4">
-        <Card>
+      <div className="admin-bg fixed inset-0 z-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm border-border bg-card/60 backdrop-blur-md shadow-card">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <Lock className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle className="text-xl">Acesso Restrito</CardTitle>
-            <CardDescription>PIN de 6 dígitos para acessar o painel.</CardDescription>
+            <CardTitle className="text-xl font-display text-foreground">Acesso Restrito</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs">PIN de 6 dígitos para acessar o painel.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Visual Dot Indicators */}
+            <div className="pin-dots">
+              {[0, 1, 2, 3, 4, 5].map((idx) => (
+                <span
+                  key={idx}
+                  className={idx < typedPin.length ? "filled" : ""}
+                />
+              ))}
+            </div>
+
             <Input
               id="admin-pin-input"
               type="password"
               inputMode="numeric"
               maxLength={6}
               placeholder="••••••"
-              className="text-center text-lg tracking-widest font-mono"
+              className="text-center text-lg tracking-widest font-mono bg-secondary/20 border-border"
               value={typedPin}
               onChange={e => setTypedPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
               onKeyDown={e => {
@@ -190,7 +200,7 @@ function Page() {
                 }
               }}
             />
-            <Button className="w-full btn-touch" disabled={typedPin.length !== 6}
+            <Button className="w-full btn-touch font-display bg-primary text-background hover:bg-primary/90" disabled={typedPin.length !== 6}
               onClick={() => {
                 if (config && typedPin === config.admin_pin) { sessionStorage.setItem("admin_pin", typedPin); setAdminPin(typedPin); toast.success("Acesso autorizado"); }
                 else toast.error("PIN incorreto");

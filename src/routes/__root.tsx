@@ -72,7 +72,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "https://img.icons8.com/color/192/trophy.png" },
     ],
@@ -126,7 +126,7 @@ function Nav() {
   const linkActive = `${linkBase} text-primary bg-primary/10 font-semibold`;
 
   return (
-    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "pt-[40px]" : ""}`}>
+    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "ios-pwa" : ""}`}>
       {/* Main bar */}
       <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-14 gap-2">
         {/* Logo */}

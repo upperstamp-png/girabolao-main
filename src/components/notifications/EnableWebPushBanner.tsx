@@ -63,35 +63,35 @@ export function EnableWebPushBanner() {
   if (!show) return null;
 
   return (
-    <Card className="border-primary/40 bg-secondary/20 shadow-glow animate-in mb-6">
-      <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/20 p-2.5 rounded-full text-primary shrink-0">
-            <Bell className="h-5 w-5 animate-bounce" />
+    <Card className="border-border bg-card/60 backdrop-blur-sm animate-in mb-6">
+      <CardContent className="p-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="bg-secondary p-2 rounded-lg text-primary shrink-0">
+            <Bell className="h-4.5 w-4.5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm sm:text-base">Fique por dentro dos palpites!</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <h3 className="font-semibold text-sm text-foreground">Receba alertas em tempo real</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {isIOS && !isStandalone
-                ? "No iOS/Safari, você precisa instalar o aplicativo primeiro para receber notificações."
-                : "Ative as notificações para saber em tempo real quando os seus amigos palpitarem ou alterarem palpites!"}
+                ? "No iOS/Safari, instale o app (Adicionar à Tela de Início) para receber notificações."
+                : "Saiba quando seus amigos palpitarem ou quando os resultados forem apurados."}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
           {isIOS && !isStandalone ? (
-            <div className="flex items-center gap-1.5 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-md">
-              <span>Para ativar: toque em</span>
-              <Share className="h-3.5 w-3.5 inline text-primary" />
-              <span>e depois em <strong>&quot;Adicionar à Tela de Início&quot;</strong></span>
+            <div className="flex items-center gap-1.5 text-[11px] text-amber-500 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1.5 rounded-md">
+              <span>Toque em</span>
+              <Share className="h-3 w-3 inline text-primary" />
+              <span>e em <strong>&quot;Tela de Início&quot;</strong></span>
             </div>
           ) : (
             <Button
               size="sm"
               onClick={handleEnable}
               disabled={loading}
-              className="btn-touch w-full sm:w-auto font-semibold"
+              className="btn-touch w-full sm:w-auto font-display bg-primary text-background hover:bg-primary/95 text-xs px-4 h-8.5 rounded-md"
             >
               {loading ? "Ativando..." : "Ativar Notificações"}
             </Button>
@@ -100,7 +100,7 @@ export function EnableWebPushBanner() {
             variant="ghost"
             size="icon"
             onClick={handleDismiss}
-            className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0 btn-touch"
+            className="h-8.5 w-8.5 text-muted-foreground hover:text-foreground shrink-0 btn-touch rounded-md"
             aria-label="Dispensar"
           >
             <X className="h-4 w-4" />

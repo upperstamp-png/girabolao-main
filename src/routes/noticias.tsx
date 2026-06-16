@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, callFn } from "@/lib/bolao";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorState } from "@/components/ErrorState";
-import { Newspaper, RefreshCw, Calendar, ExternalLink } from "lucide-react";
+import { Newspaper, RefreshCw, ExternalLink, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/noticias")({
@@ -45,36 +44,41 @@ function Page() {
   });
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-display text-3xl sm:text-4xl flex items-center gap-2">
-            <Newspaper className="h-8 w-8 text-primary" />
-            📰 Notícias da Copa
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Fique por dentro de tudo o que acontece na Copa do Mundo 2026.
-          </p>
+    <div className="max-w-4xl mx-auto pb-16 animate-in space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+            <Newspaper className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-display text-2xl sm:text-3xl leading-none">Notícias da Copa</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Copa do Mundo 2026 — Cobertura completa</p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="sm"
           disabled={syncMutation.isPending}
           onClick={() => syncMutation.mutate()}
-          className="w-full sm:w-auto flex items-center gap-2"
+          className="shrink-0 flex items-center gap-1.5 h-8 text-xs"
         >
-          <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-          {syncMutation.isPending ? "Atualizando..." : "Sincronizar"}
+          <RefreshCw className={`h-3.5 w-3.5 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+          {syncMutation.isPending ? "Sincronizando..." : "Sincronizar"}
         </Button>
       </div>
 
+      {/* Loading */}
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
           <SkeletonCard lines={4} />
           <SkeletonCard lines={4} />
         </div>
       )}
 
+      {/* Error */}
       {isError && (
         <ErrorState
           message="Não foi possível carregar as notícias. Execute a migração do banco para criar a tabela bolao_noticias."
@@ -82,74 +86,97 @@ function Page() {
         />
       )}
 
+      {/* Empty state */}
       {!isLoading && !isError && (noticias?.length ?? 0) === 0 && (
-        <Card className="text-center py-12 border-dashed">
-          <CardContent className="space-y-4">
-            <Newspaper className="h-12 w-12 mx-auto text-muted-foreground" />
-            <div className="space-y-1">
-              <h3 className="font-semibold text-lg">Nenhuma notícia encontrada</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                Clique no botão de sincronizar para buscar notícias atualizadas da Copa do Mundo.
-              </p>
-            </div>
-            <Button onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
-              Buscar Notícias
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/30 border border-border">
+            <Newspaper className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-base">Nenhuma notícia encontrada</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+              Clique em Sincronizar para buscar notícias atualizadas da Copa.
+            </p>
+          </div>
+          <Button
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className="mt-2"
+          >
+            Buscar Notícias
+          </Button>
+        </div>
       )}
 
+      {/* News grid */}
       {!isLoading && !isError && (noticias?.length ?? 0) > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {noticias!.map((n: any) => {
-            const dataPub = new Date(n.publicado_em).toLocaleString("pt-BR", {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {noticias!.map((n: any, i: number) => {
+            const dataPub = new Date(n.publicado_em).toLocaleDateString("pt-BR", {
               day: "2-digit",
-              month: "2-digit",
+              month: "short",
               year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
             });
 
+            // Derive a category tag from fonte or a fallback
+            const categoria = n.fonte ?? "Copa 2026";
+
             return (
-              <Card key={n.id} className="overflow-hidden flex flex-col justify-between hover:border-primary/50 transition-all shadow-card h-full">
-                <div>
-                  {n.imagem_url && (
-                    <div className="aspect-video w-full overflow-hidden bg-secondary/30 relative">
-                      <img
-                        src={n.imagem_url}
-                        alt={n.titulo}
-                        className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{dataPub}</span>
-                    </div>
-                    <CardTitle className="text-base font-semibold leading-snug line-clamp-2">
-                      {n.titulo}
-                    </CardTitle>
-                  </CardHeader>
+              <a
+                key={n.id}
+                href={n.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group block rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${i === 0 ? "md:col-span-2" : ""}`}
+              >
+                {/* Image */}
+                {n.imagem_url ? (
+                  <div className={`w-full overflow-hidden bg-secondary/20 ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}>
+                    <img
+                      src={n.imagem_url}
+                      alt={n.titulo}
+                      className="object-cover w-full h-full group-hover:scale-[1.02] transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className={`w-full bg-gradient-to-br from-secondary/40 to-background flex items-center justify-center ${i === 0 ? "aspect-[21/9]" : "aspect-video"}`}>
+                    <Newspaper className="h-12 w-12 text-muted-foreground/30" />
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className="p-4 space-y-2">
+                  {/* Meta row */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                      🟢 {categoria.toUpperCase()}
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <CalendarDays className="h-3 w-3" />
+                      {dataPub}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <h2 className={`font-display font-bold leading-snug group-hover:text-primary transition-colors ${i === 0 ? "text-xl sm:text-2xl" : "text-base"} line-clamp-2`}>
+                    {n.titulo}
+                  </h2>
+
+                  {/* Summary */}
                   {n.resumo && (
-                    <CardContent className="p-4 pt-0 text-sm text-muted-foreground line-clamp-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                       {n.resumo}
-                    </CardContent>
+                    </p>
                   )}
-                </div>
-                <div className="p-4 pt-0">
-                  <a
-                    href={n.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1 mt-2"
-                  >
+
+                  {/* Link */}
+                  <div className="flex items-center gap-1 text-xs text-primary font-semibold pt-1 group-hover:gap-2 transition-all">
                     Ler matéria completa
                     <ExternalLink className="h-3 w-3" />
-                  </a>
+                  </div>
                 </div>
-              </Card>
+              </a>
             );
           })}
         </div>
