@@ -438,7 +438,8 @@ function Page() {
   const prevPositions = useMemo<Record<string, number>>(() => {
     try {
       const raw = localStorage.getItem(RANKING_PREV_KEY);
-      return raw ? JSON.parse(raw) : {};
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === "object" ? parsed : {};
     } catch {
       return {};
     }

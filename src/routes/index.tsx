@@ -306,8 +306,7 @@ function Index() {
       const { data } = await supabase
         .from("bolao_noticias")
         .select("id, titulo, resumo, imagem_url, link, publicado_em, fonte")
-        .order("publicado_em", { ascending: false })
-        .limit(2);
+        .order("publicado_em", { ascending: false });
       return data ?? [];
     },
     staleTime: 60000,
@@ -912,7 +911,7 @@ function Index() {
             to="/noticias"
           />
           <div className="grid grid-cols-2 gap-2">
-            {noticias!.map((n: any) => (
+            {noticias!.slice(0, 2).map((n: any) => (
               <a
                 key={n.id}
                 href={n.link}

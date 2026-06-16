@@ -8,10 +8,12 @@ CREATE TABLE IF NOT EXISTS bolao_reacoes (
   UNIQUE(jogo_id, usuario_id, emoji)
 );
 
--- RLS
 ALTER TABLE bolao_reacoes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Reacoes visíveis para todos" ON bolao_reacoes;
 CREATE POLICY "Reacoes visíveis para todos" ON bolao_reacoes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Reacoes inseríveis por todos" ON bolao_reacoes;
 CREATE POLICY "Reacoes inseríveis por todos" ON bolao_reacoes FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Reacoes deletáveis por dono" ON bolao_reacoes;
 CREATE POLICY "Reacoes deletáveis por dono" ON bolao_reacoes FOR DELETE USING (true);
 
 -- Realtime

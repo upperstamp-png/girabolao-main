@@ -24,6 +24,8 @@ export function Sparkline({
   color = "#3FB950",
   fillColor = "rgba(63,185,80,0.15)",
 }: SparklineProps) {
+  const safeId = useMemo(() => color.replace("#", ""), [color]);
+
   const pathD = useMemo(() => {
     if (data.length < 2) return "";
 
@@ -81,12 +83,12 @@ export function Sparkline({
     <svg width={width} height={height} className="shrink-0" style={{ overflow: "visible" }}>
       {/* Gradient fill */}
       <defs>
-        <linearGradient id={`spark-fill-${color}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`spark-fill-${safeId}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={fillColor} />
           <stop offset="100%" stopColor="transparent" />
         </linearGradient>
       </defs>
-      <path d={fillPathD} fill={`url(#spark-fill-${color})`} />
+      <path d={fillPathD} fill={`url(#spark-fill-${safeId})`} />
       <path
         d={pathD}
         fill="none"
