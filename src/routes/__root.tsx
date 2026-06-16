@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { callFn, getIdentidade, setIdentidade, type Identidade } from "@/lib/bolao";
+import { isPushSupported, getNotificationPermissionState, subscribeToPush, unsubscribeFromPush } from "@/lib/webPush";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -72,6 +73,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "https://img.icons8.com/color/192/trophy.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -139,7 +142,12 @@ function Nav() {
           {/* User/logout — desktop */}
           <button
             className="hidden md:flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch"
-            onClick={() => { setIdentidade(null); window.location.reload(); }}
+            onClick={async () => {
+              const id = getIdentidade();
+              if (id) await unsubscribeFromPush(id).catch(console.error);
+              setIdentidade(null);
+              window.location.reload();
+            }}
             title="Sair"
           >
             <span className="max-w-24 truncate">{identidade?.nome}</span>
@@ -177,7 +185,12 @@ function Nav() {
           <div className="border-t border-border mt-2 pt-2">
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch"
-              onClick={() => { setIdentidade(null); window.location.reload(); }}
+              onClick={async () => {
+                const id = getIdentidade();
+                if (id) await unsubscribeFromPush(id).catch(console.error);
+                setIdentidade(null);
+                window.location.reload();
+              }}
             >
               <LogOut className="h-4 w-4" />
               <span>Sair ({identidade?.nome})</span>
@@ -191,6 +204,14 @@ function Nav() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const identity = getIdentidade();
+    if (identity?.nome && isPushSupported() && getNotificationPermissionState() === "granted") {
+      subscribeToPush(identity).catch(err => console.warn("Erro ao auto-renovar token push:", err));
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthGate>

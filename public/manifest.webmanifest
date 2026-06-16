@@ -1,0 +1,21 @@
+{
+  "name": "Bolão Copa do Mundo 2026",
+  "short_name": "Bolão Copa 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121a2e",
+  "theme_color": "#1a2847",
+  "description": "Bolão entre amigos para a Copa do Mundo 2026 — placar exato, artilheiro e finalistas.",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/trophy.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/trophy.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
