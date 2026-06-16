@@ -126,7 +126,7 @@ function Nav() {
   const linkActive = `${linkBase} text-primary bg-primary/10 font-semibold`;
 
   return (
-    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "pt-[20px]" : ""}`}>
+    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "pt-[40px]" : ""}`}>
       {/* Main bar */}
       <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-14 gap-2">
         {/* Logo */}
