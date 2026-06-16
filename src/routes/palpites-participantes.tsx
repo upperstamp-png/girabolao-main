@@ -257,11 +257,20 @@ function Page() {
       {errUs && <ErrorState message="Erro ao carregar dados dos participantes." onRetry={() => qc.invalidateQueries({ queryKey: ["usuarios-palpites"] })} />}
 
       {!isLoading && !errUs && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="usuario" className="py-2.5">👤 Por Participante</TabsTrigger>
-            <TabsTrigger value="jogo" className="py-2.5">⚽ Por Jogo</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4 w-full">
+          {/* LEGENDA DE PONTUAÇÃO BANNER */}
+          <div className="p-3 bg-secondary/20 rounded-lg border border-border text-xs flex flex-wrap gap-x-6 gap-y-2 justify-center items-center">
+            <span className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Como pontuar:</span>
+            <span className="flex items-center gap-1.5"><span className="text-sm">🎯</span> <strong>Placar Exato:</strong> 3 pontos</span>
+            <span className="flex items-center gap-1.5"><span className="text-sm">⚽</span> <strong>Vencedor/Empate:</strong> 1 ponto</span>
+            <span className="flex items-center gap-1.5"><span className="text-sm">❌</span> <strong>Erro:</strong> 0 pontos</span>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="usuario" className="py-2.5">👤 Por Participante</TabsTrigger>
+              <TabsTrigger value="jogo" className="py-2.5">⚽ Por Jogo</TabsTrigger>
+            </TabsList>
 
           {/* TAB: POR PARTICIPANTE */}
           <TabsContent value="usuario" className="space-y-4 mt-4">
@@ -384,6 +393,25 @@ function Page() {
                                 ? `${j.placar_casa} × ${j.placar_fora}`
                                 : "Aguard.";
 
+                              let pointsText = "";
+                              let badgeColor = "";
+                              let isCalculated = false;
+
+                              if (p && j.placar_casa != null && j.placar_fora != null) {
+                                isCalculated = true;
+                                const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, j.placar_casa, j.placar_fora);
+                                if (res.acertouPlacar) {
+                                  pointsText = "🎯 +3";
+                                  badgeColor = "bg-success text-success-foreground font-bold";
+                                } else if (res.acertouResultado) {
+                                  pointsText = "⚽ +1";
+                                  badgeColor = "bg-primary/20 text-primary border border-primary/30";
+                                } else {
+                                  pointsText = "❌ 0";
+                                  badgeColor = "bg-secondary text-muted-foreground";
+                                }
+                              }
+
                               return (
                                 <tr key={j.id} className="hover:bg-secondary/10">
                                   <td className="py-2.5 text-xs sm:text-sm">
@@ -395,9 +423,15 @@ function Page() {
                                   <td className="py-2.5 text-center font-mono font-bold">{palpString}</td>
                                   <td className="py-2.5 text-center font-mono text-muted-foreground text-xs">{oficialString}</td>
                                   <td className="py-2.5 text-right">
-                                    {j.status === "apurado" ? (
-                                      p.acertou ? <Badge className="bg-success text-success-foreground scale-95">✓</Badge> : <span className="text-muted-foreground text-xs">✗</span>
-                                    ) : "—"}
+                                    {isCalculated ? (
+                                      <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5`}>
+                                        {pointsText}
+                                      </Badge>
+                                    ) : p ? (
+                                      <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
+                                    ) : (
+                                      "—"
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -490,23 +524,44 @@ function Page() {
                           const p = jogoPalpites.find(palpite => palpite.usuario_id === u.id);
 
                           let labelVal = "Sem palpite";
-                          let acertou = false;
+                          let isCalculated = false;
+                          let pointsText = "";
+                          let badgeColor = "";
 
                           if (p) {
                             labelVal = `${p.gols_casa} × ${p.gols_fora}`;
-                            acertou = p.acertou === true;
+                            if (jogoEscolhidoObj.placar_casa != null && jogoEscolhidoObj.placar_fora != null) {
+                              isCalculated = true;
+                              const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, jogoEscolhidoObj.placar_casa, jogoEscolhidoObj.placar_fora);
+                              if (res.acertouPlacar) {
+                                pointsText = "🎯 +3";
+                                badgeColor = "bg-success text-success-foreground font-bold";
+                              } else if (res.acertouResultado) {
+                                pointsText = "⚽ +1";
+                                badgeColor = "bg-primary/20 text-primary border border-primary/30";
+                              } else {
+                                pointsText = "❌ 0";
+                                badgeColor = "bg-secondary text-muted-foreground";
+                              }
+                            }
                           }
 
                           return (
-                            <div key={u.id} className="flex justify-between items-center py-2.5 text-sm">
-                              <span className={`font-medium ${acertou ? "text-success font-bold" : ""}`}>
-                                {u.nome} {u.id === identidadeLogada?.id ? "(Você)" : ""}
+                            <div key={u.id} className="flex justify-between items-center py-2.5 text-sm border-b border-border/30 last:border-0 hover:bg-secondary/10 px-2 rounded-md transition-colors">
+                              <span className="font-medium">
+                                {u.nome} {u.id === identidadeLogada?.id ? <span className="text-xs text-primary font-semibold">(Você)</span> : ""}
                               </span>
-                              <div className="flex items-center gap-2">
-                                <span className={`font-mono font-semibold ${acertou ? "text-success font-bold text-base" : ""}`}>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-sm">
                                   {labelVal}
                                 </span>
-                                {acertou && <Badge className="bg-success text-success-foreground scale-90">✓</Badge>}
+                                {isCalculated ? (
+                                  <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
+                                    {pointsText}
+                                  </Badge>
+                                ) : p ? (
+                                  <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
+                                ) : null}
                               </div>
                             </div>
                           );
@@ -519,6 +574,7 @@ function Page() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       )}
     </div>
   );

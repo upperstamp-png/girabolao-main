@@ -230,9 +230,7 @@ function Page() {
     return config?.status === "FECHADO" || config?.status === "FINALIZADO";
   }, [config]);
 
-  // Artilheiro: bloqueado apenas se o bolão estiver fechado globalmente, ou a aposta já foi apurada, ou já bloqueada
   const isArtilheiroClosed = isBolaoFechadoGlobal || cfgArt.status === "apurada" || !!minhaApostaArt?.bloqueado_em;
-
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12 animate-in">
@@ -243,7 +241,7 @@ function Page() {
             🎰 Apostas Especiais
           </h1>
           <p className="text-muted-foreground text-sm">
-            Módulos especiais do bolão. Cada módulo custa R$10 adicionais por participante.
+            Módulos especiais do bolão. Palpites corretos concedem pontos extras cruciais no ranking geral!
           </p>
         </div>
       </div>
@@ -277,8 +275,7 @@ function Page() {
               description="Aposte em quem será o maior goleador da Copa do Mundo 2026."
               status={cfgArt.status}
               prazoFim={cfgArt.prazo_fim}
-              acumulado={cfgArt.acumulado_anterior}
-              nP={nP}
+              pointsText="+10 pts"
               resultadoReal={cfgArt.artilheiro_real}
               form={
                 !isArtilheiroClosed ? (
@@ -361,6 +358,15 @@ function Page() {
                   nomeMap={nomeMap}
                   renderValue={(a) => <span>{a.jogador_apostado}</span>}
                   isAcertou={(a) => a.acertou}
+                  acertouBadge={(a) => {
+                    if (cfgArt.status !== "apurada") return null;
+                    return a.acertou ? (
+                      <Badge className="bg-success text-success-foreground font-bold scale-90">+10 pts</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="scale-90 text-muted-foreground">0 pts</Badge>
+                    );
+                  }}
+                  loggedUserId={identidade?.id}
                 />
               }
             />
@@ -373,8 +379,7 @@ function Page() {
               description="Aposte nas duas equipes que farão a grande final."
               status={cfgFin.status}
               prazoFim={cfgFin.prazo_fim}
-              acumulado={cfgFin.acumulado_anterior}
-              nP={nP}
+              pointsText="+5 / +10 pts"
               resultadoReal={cfgFin.finalista1_real && cfgFin.finalista2_real ? `${flag(cfgFin.finalista1_real)} ${cfgFin.finalista1_real} x ${cfgFin.finalista2_real} ${flag(cfgFin.finalista2_real)}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgFin.status !== "apurada") ? (
@@ -431,8 +436,18 @@ function Page() {
                       {flag(a.time1)} {a.time1} × {a.time2} {flag(a.time2)}
                     </span>
                   )}
-                  isAcertou={(a) => a.acertou_os_dois}
-                  acertouBadge={(a) => a.acertou_os_dois ? <Badge className="bg-success scale-90">Acertou 2</Badge> : a.acertou_um ? <Badge variant="secondary" className="scale-90">Acertou 1</Badge> : null}
+                  isAcertou={(a) => a.acertou_os_dois || a.acertou_um}
+                  acertouBadge={(a) => {
+                    if (cfgFin.status !== "apurada") return null;
+                    if (a.acertou_os_dois) {
+                      return <Badge className="bg-success text-success-foreground font-bold scale-90">+10 pts</Badge>;
+                    }
+                    if (a.acertou_um) {
+                      return <Badge className="bg-primary/20 text-primary border border-primary/30 font-semibold scale-90">+5 pts</Badge>;
+                    }
+                    return <Badge variant="secondary" className="scale-90 text-muted-foreground">0 pts</Badge>;
+                  }}
+                  loggedUserId={identidade?.id}
                 />
               }
             />
@@ -445,8 +460,7 @@ function Page() {
               description="Aposte na seleção que levantará a taça de campeã do mundo."
               status={cfgCam.status}
               prazoFim={cfgCam.prazo_fim}
-              acumulado={cfgCam.acumulado_anterior}
-              nP={nP}
+              pointsText="+10 pts"
               resultadoReal={cfgCam.campeao_real ? `${flag(cfgCam.campeao_real)} ${cfgCam.campeao_real}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgCam.status !== "apurada") ? (
@@ -489,6 +503,15 @@ function Page() {
                   nomeMap={nomeMap}
                   renderValue={(a) => <span>{flag(a.time_campeao)} {a.time_campeao}</span>}
                   isAcertou={(a) => a.acertou}
+                  acertouBadge={(a) => {
+                    if (cfgCam.status !== "apurada") return null;
+                    return a.acertou ? (
+                      <Badge className="bg-success text-success-foreground font-bold scale-90">+10 pts</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="scale-90 text-muted-foreground">0 pts</Badge>
+                    );
+                  }}
+                  loggedUserId={identidade?.id}
                 />
               }
             />
@@ -501,8 +524,7 @@ function Page() {
               description="Qual seleção surpreenderá o mundo indo mais longe do que o esperado?"
               status={cfgZeb.status}
               prazoFim={cfgZeb.prazo_fim}
-              acumulado={cfgZeb.acumulado_anterior}
-              nP={nP}
+              pointsText="+10 pts"
               resultadoReal={cfgZeb.zebra_real ? `${flag(cfgZeb.zebra_real)} ${cfgZeb.zebra_real}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgZeb.status !== "apurada") ? (
@@ -545,6 +567,15 @@ function Page() {
                   nomeMap={nomeMap}
                   renderValue={(a) => <span>{flag(a.zebra_apostada)} {a.zebra_apostada}</span>}
                   isAcertou={(a) => a.acertou}
+                  acertouBadge={(a) => {
+                    if (cfgZeb.status !== "apurada") return null;
+                    return a.acertou ? (
+                      <Badge className="bg-success text-success-foreground font-bold scale-90">+10 pts</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="scale-90 text-muted-foreground">0 pts</Badge>
+                    );
+                  }}
+                  loggedUserId={identidade?.id}
                 />
               }
             />
@@ -557,8 +588,7 @@ function Page() {
               description="Aposte em qual será o placar mais elástico de toda a competição."
               status={cfgGol.status}
               prazoFim={cfgGol.prazo_fim}
-              acumulado={cfgGol.acumulado_anterior}
-              nP={nP}
+              pointsText="+10 pts"
               resultadoReal={cfgGol.goleada_time_casa_real ? `${flag(cfgGol.goleada_time_casa_real)} ${cfgGol.goleada_time_casa_real} ${cfgGol.goleada_gols_casa_real} x ${cfgGol.goleada_gols_fora_real} ${cfgGol.goleada_time_fora_real} ${flag(cfgGol.goleada_time_fora_real)}` : null}
               form={
                 (!isBolaoFechadoGlobal && cfgGol.status !== "apurada") ? (
@@ -656,6 +686,15 @@ function Page() {
                     </span>
                   )}
                   isAcertou={(a) => a.acertou}
+                  acertouBadge={(a) => {
+                    if (cfgGol.status !== "apurada") return null;
+                    return a.acertou ? (
+                      <Badge className="bg-success text-success-foreground font-bold scale-90">+10 pts</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="scale-90 text-muted-foreground">0 pts</Badge>
+                    );
+                  }}
+                  loggedUserId={identidade?.id}
                 />
               }
             />
@@ -673,8 +712,7 @@ interface SpecialBetTabProps {
   description: string;
   status: string;
   prazoFim: string | Date | null;
-  acumulado: number | string;
-  nP: number;
+  pointsText: string;
   resultadoReal: string | null;
   form: React.ReactNode;
   bets: React.ReactNode;
@@ -685,13 +723,11 @@ function SpecialBetTab({
   description,
   status,
   prazoFim,
-  acumulado,
-  nP,
+  pointsText,
   resultadoReal,
   form,
   bets,
 }: SpecialBetTabProps) {
-  const poolVal = nP * 10 + Number(acumulado || 0);
   const isAberta = status === "aberta";
 
   return (
@@ -699,8 +735,17 @@ function SpecialBetTab({
       <div className="md:col-span-2 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+            <div className="flex justify-between items-start gap-4 flex-wrap">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  {title}
+                  <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 text-sm font-semibold">
+                    {pointsText}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="mt-1">{description}</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2 flex-wrap items-center">
@@ -741,13 +786,15 @@ function SpecialBetTab({
             <CardDescription className="text-center font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pontuação Extra</CardDescription>
           </CardHeader>
           <CardContent className="text-center py-4 space-y-2">
-            <div className="text-display text-4xl sm:text-5xl text-primary font-bold">+10 pts</div>
+            <div className="text-display text-4xl sm:text-5xl text-primary font-bold">{pointsText}</div>
             <div className="text-xs text-muted-foreground mt-2">
               Pontos adicionados ao ranking geral para quem acertar esta aposta especial.
             </div>
-            <div className="text-[10px] text-muted-foreground italic">
-              * Finalistas: 5 pts se acertar 1 time, 10 pts se acertar os 2.
-            </div>
+            {title.includes("Finalistas") && (
+              <div className="text-[10px] text-muted-foreground italic">
+                * 5 pts se acertar 1 time, 10 pts se acertar os 2.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -772,9 +819,10 @@ interface BetsListProps {
   renderValue: (a: any) => React.ReactNode;
   isAcertou?: (a: any) => boolean | null | undefined;
   acertouBadge?: (a: any) => React.ReactNode;
+  loggedUserId?: string;
 }
 
-function BetsList({ bets = [], nomeMap, renderValue, isAcertou, acertouBadge }: BetsListProps) {
+function BetsList({ bets = [], nomeMap, renderValue, isAcertou, acertouBadge, loggedUserId }: BetsListProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -787,10 +835,11 @@ function BetsList({ bets = [], nomeMap, renderValue, isAcertou, acertouBadge }: 
           <ul className="divide-y divide-border">
             {bets.map((a: any) => {
               const acertou = isAcertou ? isAcertou(a) === true : false;
+              const isMe = loggedUserId && a.usuario_id === loggedUserId;
               return (
-                <li key={a.id} className="flex justify-between items-center py-2 text-sm">
-                  <span className={`font-medium ${acertou ? "text-success font-bold" : ""}`}>
-                    {nomeMap.get(a.usuario_id) ?? "—"}
+                <li key={a.id} className={`flex justify-between items-center py-2 px-2 text-sm rounded-md transition-colors ${isMe ? "bg-primary/5 border border-primary/20" : ""}`}>
+                  <span className={`font-medium ${acertou ? "text-success font-bold" : ""} ${isMe ? "text-primary font-semibold" : ""}`}>
+                    {nomeMap.get(a.usuario_id) ?? "—"} {isMe && <span className="text-[10px] text-primary font-semibold">(Você)</span>}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className={acertou ? "text-success font-bold" : ""}>

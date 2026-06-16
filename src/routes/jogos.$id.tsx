@@ -2,7 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import confetti from "canvas-confetti";
-import { supabase, callFn, flag, countdown, FASES_LABEL, getIdentidade } from "@/lib/bolao";
+import { supabase, callFn, flag, countdown, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
 import { pollIntervalForStatus } from "@/lib/realtime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -303,6 +303,9 @@ function Page() {
             >
               {enviar.isPending ? "Enviando..." : "Registrar palpite"}
             </Button>
+            <p className="text-center text-[11px] text-muted-foreground leading-normal mt-2">
+              💡 <strong>Regras de pontuação:</strong> Acertar placar exato = <strong>3 pts</strong> | Acertar vencedor ou empate = <strong>1 pt</strong>
+            </p>
           </CardContent>
         </Card>
       )}
@@ -329,17 +332,43 @@ function Page() {
           ) : (
             <ul className="divide-y divide-border">
               {palpites!.map((p: { id: string; usuario_id: string; gols_casa?: number; gols_fora?: number; acertou?: boolean }) => {
-                const acertou = p.acertou === true;
                 const nome = nomeMap.get(p.usuario_id) ?? "—";
+                let pointsText = "";
+                let badgeColor = "";
+                let isCalculated = false;
+
+                if (p.gols_casa != null && p.gols_fora != null && jogo.placar_casa != null && jogo.placar_fora != null) {
+                  isCalculated = true;
+                  const res = calcularPontosPalpite(p.gols_casa, p.gols_fora, jogo.placar_casa, jogo.placar_fora);
+                  if (res.acertouPlacar) {
+                    pointsText = "🎯 +3";
+                    badgeColor = "bg-success text-success-foreground font-bold";
+                  } else if (res.acertouResultado) {
+                    pointsText = "⚽ +1";
+                    badgeColor = "bg-primary/20 text-primary border border-primary/30";
+                  } else {
+                    pointsText = "❌ 0";
+                    badgeColor = "bg-secondary text-muted-foreground";
+                  }
+                }
+
                 return (
-                  <li key={p.id} className={`flex justify-between items-center py-3 ${acertou ? "text-success font-bold" : ""}`}>
-                    <span className="font-medium">{nome}</span>
-                    <span className="text-display text-xl">
-                      {revelado
-                        ? (p.gols_casa != null ? `${p.gols_casa} : ${p.gols_fora}` : "—")
-                        : "🔒"}
-                      {acertou && " ✓"}
+                  <li key={p.id} className="flex justify-between items-center py-2.5 border-b border-border/30 last:border-0 hover:bg-secondary/10 px-2 rounded-md transition-colors">
+                    <span className="font-medium">
+                      {nome} {p.usuario_id === identidade?.id ? <span className="text-xs text-primary font-semibold">(Você)</span> : ""}
                     </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold bg-secondary/35 px-2 py-0.5 rounded text-sm">
+                        {p.gols_casa} × {p.gols_fora}
+                      </span>
+                      {isCalculated ? (
+                        <Badge className={`${badgeColor} text-[10px] py-0.5 px-1.5 shrink-0`}>
+                          {pointsText}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px] italic">Aguardando</span>
+                      )}
+                    </div>
                   </li>
                 );
               })}
