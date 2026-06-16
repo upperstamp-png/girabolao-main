@@ -1,9 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase, flag, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { EnableWebPushBanner } from "@/components/notifications/EnableWebPushBanner";
+import { GoalToastContainer } from "@/components/GoalToast";
+import {
+  detectGoals, markInitialLoadDone, playGoalSound, vibrateOnGoal,
+  type GoalEvent,
+} from "@/lib/goalEvents";
 import {
   Tv2, Play, ExternalLink, ChevronRight, Pencil,
   CheckCircle2, Zap, ListChecks, Newspaper, Timer,
@@ -159,6 +164,17 @@ function SectionHeading({ icon, label, to }: { icon: React.ReactNode; label: str
 // ─────────────────────────────────────────────────────────────────────────────
 function Index() {
   const identidade = getIdentidade();
+  const queryClient = useQueryClient();
+
+  // ── Goal Events State ────────────────────────────────────────────────────
+  const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([]);
+  const [homeFlash, setHomeFlash] = useState(false);
+  const [awayFlash, setAwayFlash] = useState(false);
+  const initialLoadRef = useRef(false);
+
+  const dismissGoal = useCallback((ts: number) => {
+    setGoalEvents(prev => prev.filter(e => e.timestamp !== ts));
+  }, []);
 
   // ── Queries ──────────────────────────────────────────────────────────────
 
@@ -270,6 +286,106 @@ function Index() {
   // Live game
   const liveGame = (aoVivo?.length ?? 0) > 0 ? aoVivo![0] : null;
 
+  // ── Supabase Realtime subscription for live games ──────────────────────
+  useEffect(() => {
+    // Mark initial load after first data fetch completes
+    if (aoVivo && !initialLoadRef.current) {
+      // Seed the score cache with current scores without triggering toasts
+      for (const g of aoVivo) {
+        detectGoals(g); // Seeds cache — no events because initialLoadDone is false
+      }
+      markInitialLoadDone();
+      initialLoadRef.current = true;
+    }
+  }, [aoVivo]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const channel = supabase
+      .channel("live-scores-home")
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bolao_jogos",
+        },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+
+          // Invalidate query cache so UI re-renders with fresh data
+          queryClient.invalidateQueries({ queryKey: ["jogos-ao-vivo"] });
+          queryClient.invalidateQueries({ queryKey: ["jogos-all-ranking"] });
+
+          // Detect goals
+          if (row.status === "ao_vivo" && initialLoadRef.current) {
+            const goals = detectGoals({
+              id: row.id,
+              placar_casa: row.placar_casa,
+              placar_fora: row.placar_fora,
+              time_casa: row.time_casa,
+              time_fora: row.time_fora,
+              minuto_jogo: row.minuto_jogo,
+            });
+
+            if (goals.length > 0) {
+              // Sound + vibration
+              playGoalSound();
+              vibrateOnGoal();
+
+              // Flash score animation
+              for (const g of goals) {
+                if (g.side === "home") {
+                  setHomeFlash(true);
+                  setTimeout(() => setHomeFlash(false), 1000);
+                } else {
+                  setAwayFlash(true);
+                  setTimeout(() => setAwayFlash(false), 1000);
+                }
+              }
+
+              // Add to toast queue
+              setGoalEvents(prev => [...prev, ...goals]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // ── Also detect goals from polling fallback ──────────────────────────────
+  const prevAoVivoRef = useRef<string>("");
+  useEffect(() => {
+    if (!aoVivo || !initialLoadRef.current) return;
+    const key = JSON.stringify(aoVivo.map((g: any) => ({ id: g.id, h: g.placar_casa, a: g.placar_fora })));
+    if (key === prevAoVivoRef.current) return;
+    prevAoVivoRef.current = key;
+
+    for (const g of aoVivo) {
+      const goals = detectGoals(g);
+      if (goals.length > 0) {
+        playGoalSound();
+        vibrateOnGoal();
+        for (const gl of goals) {
+          if (gl.side === "home") {
+            setHomeFlash(true);
+            setTimeout(() => setHomeFlash(false), 1000);
+          } else {
+            setAwayFlash(true);
+            setTimeout(() => setAwayFlash(false), 1000);
+          }
+        }
+        setGoalEvents(prev => [...prev, ...goals]);
+      }
+    }
+  }, [aoVivo]);
+
   // Top 4 for mini ranking (with "..." separator if user is outside top 4)
   const top4Display = useMemo(() => {
     if (rankingData.length === 0) return [];
@@ -283,6 +399,9 @@ function Index() {
 
   return (
     <div className="space-y-5 pb-10 animate-in max-w-2xl mx-auto">
+      {/* Goal Toast Portal */}
+      <GoalToastContainer events={goalEvents} onDismiss={dismissGoal} />
+
       <EnableWebPushBanner />
 
       {/* ── 1 · Jogo ao Vivo ───────────────────────────────────────────────── */}
@@ -312,9 +431,13 @@ function Index() {
                   </div>
                   <div className="flex items-center px-4 py-2 bg-black/95 border-x border-white/10">
                     <span className="font-mono text-xl font-bold text-primary tabular-nums">
-                      {liveGame.placar_casa ?? 0}
+                      <span className={homeFlash ? "score-goal-flash inline-block" : "inline-block"}>
+                        {liveGame.placar_casa ?? 0}
+                      </span>
                       <span className="text-muted-foreground mx-1.5 text-lg">:</span>
-                      {liveGame.placar_fora ?? 0}
+                      <span className={awayFlash ? "score-goal-flash inline-block" : "inline-block"}>
+                        {liveGame.placar_fora ?? 0}
+                      </span>
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-2 bg-black/85">

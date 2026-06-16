@@ -13,18 +13,23 @@ self.addEventListener("push", (event) => {
   try {
     const payload = event.data.json();
     const title = payload.title || "Bolão Copa 2026";
+    const isGoal = payload.type === "goal";
+
     const options = {
       body: payload.body || "",
       icon: "/favicon.ico", // fallback favicon
       badge: "/favicon.ico",
       data: {
         url: payload.url || "/",
-        notification_id: payload.notification_id
+        notification_id: payload.notification_id,
+        type: payload.type || "general",
       },
       tag: payload.tag || payload.notification_id || "general_push",
       renotify: true,
-      requireInteraction: true, // a notificação fica visível até o usuário interagir
-      vibrate: [200, 100, 200]
+      requireInteraction: isGoal, // gol fica visível até o usuário interagir
+      vibrate: isGoal
+        ? [200, 100, 200, 100, 400]  // padrão forte para gol
+        : [200, 100, 200],            // padrão normal
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
