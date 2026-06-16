@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { callFn, getIdentidade, setIdentidade, type Identidade } from "@/lib/bolao";
-import { isPushSupported, getNotificationPermissionState, subscribeToPush, unsubscribeFromPush } from "@/lib/webPush";
+import { isPushSupported, getNotificationPermissionState, subscribeToPush, unsubscribeFromPush, isIOSStandalone } from "@/lib/webPush";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -110,6 +110,13 @@ function Nav() {
   const location = useLocation();
   const [identidade] = useState<Identidade | null>(() => getIdentidade());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isIosPwa, setIsIosPwa] = useState(false);
+
+  useEffect(() => {
+    if (isIOSStandalone()) {
+      setIsIosPwa(true);
+    }
+  }, []);
 
   const isActive = (to: string, exact = false) =>
     exact ? location.pathname === to : location.pathname.startsWith(to);
@@ -119,7 +126,7 @@ function Nav() {
   const linkActive = `${linkBase} text-primary bg-primary/10 font-semibold`;
 
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border">
+    <header className={`sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border ${isIosPwa ? "pt-[20px]" : ""}`}>
       {/* Main bar */}
       <div className="mx-auto max-w-6xl flex items-center justify-between px-3 h-14 gap-2">
         {/* Logo */}
