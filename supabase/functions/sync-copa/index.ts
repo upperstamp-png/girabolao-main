@@ -536,14 +536,18 @@ async function syncFromCopaApi(supabase: Supa) {
       .from("bolao_jogos")
       .update({
         status: mappedStatus,
-        placar_casa: placarCasa,
-        placar_fora: placarFora,
+        placar_casa: mappedStatus === "pendente" ? null : placarCasa,
+        placar_fora: mappedStatus === "pendente" ? null : placarFora,
         minuto_jogo: minutoJogo,
         fonte_sync: "apijogoscopa2026",
         e_brasil: isBrasil,
         valor_entrada: isBrasil ? 10 : 5,
       })
       .eq("id", gameDb.id);
+
+    if (mappedStatus === "pendente") {
+      await supabase.from("bolao_jogo_eventos").delete().eq("jogo_id", gameDb.id);
+    }
 
     if (!updErr) {
       updatedCount++;
