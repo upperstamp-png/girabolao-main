@@ -508,7 +508,12 @@ async function syncFromCopaApi(supabase: Supa) {
     // Map status
     let mappedStatus = "pendente";
     if (pm.status === "LIVE" || pm.status === "HALF_TIME") {
-      mappedStatus = "ao_vivo";
+      const scheduledTime = new Date(gameDb.data_hora).getTime();
+      if (Date.now() >= scheduledTime) {
+        mappedStatus = "ao_vivo";
+      } else {
+        mappedStatus = "pendente";
+      }
     } else if (pm.status === "FULL_TIME") {
       mappedStatus = "encerrado";
     }
@@ -836,12 +841,38 @@ Deno.serve(async (req) => {
     }
 
     // ---- 6. Real-Time API (apijogoscopa2026) ----
+    let shouldCallCopaApi = false;
     try {
-      log("INFO", "Running syncFromCopaApi...");
-      const copaApiReport = await syncFromCopaApi(supabase);
-      report.apijogoscopa2026 = copaApiReport;
+      const { data: allJogos } = await supabase
+        .from("bolao_jogos")
+        .select("status, data_hora");
+
+      shouldCallCopaApi = (allJogos ?? []).some((j) => {
+        if (j.status === "ao_vivo") return true;
+        if (j.status === "pendente") {
+          const startTime = new Date(j.data_hora).getTime();
+          const elapsedMs = Date.now() - startTime;
+          const fourHoursMs = 4 * 3600000;
+          return elapsedMs >= 0 && elapsedMs <= fourHoursMs;
+        }
+        return false;
+      });
     } catch (e) {
-      log("WARN", "apijogoscopa2026 sync falhou", (e as Error).message);
+      log("WARN", "Failed checking active games for Copa API", (e as Error).message);
+      shouldCallCopaApi = true;
+    }
+
+    if (shouldCallCopaApi) {
+      try {
+        log("INFO", "Running syncFromCopaApi...");
+        const copaApiReport = await syncFromCopaApi(supabase);
+        report.apijogoscopa2026 = copaApiReport;
+      } catch (e) {
+        log("WARN", "apijogoscopa2026 sync falhou", (e as Error).message);
+      }
+    } else {
+      log("INFO", "Skipping syncFromCopaApi (no active live or pending starting games)");
+      report.apijogoscopa2026 = { skipped: true };
     }
 
     // ---- Handle phase transitions disabled (special bets always open) ----
