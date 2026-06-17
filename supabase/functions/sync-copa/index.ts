@@ -443,7 +443,10 @@ async function syncFromCopaApi(supabase: Supa) {
       apiPartidas = dbPartidas || [];
     }
 
-    const { data: dbEventos, error: eErr } = await supabase.from("eventos").select("*");
+    const { data: dbEventos, error: eErr } = await supabase
+      .from("eventos")
+      .select("*")
+      .order("created_at", { ascending: true });
     if (eErr) {
       log("ERROR", `Failed to query 'eventos' table: ${eErr.message}`);
     } else {
@@ -469,8 +472,25 @@ async function syncFromCopaApi(supabase: Supa) {
       continue;
     }
 
-    // Filter events for this match
-    const matchEvents = apiEventos.filter(e => e.partida_id === pm.id);
+    // Filter and sort events chronologically (oldest first)
+    const matchEvents = apiEventos
+      .filter(e => e.partida_id === pm.id)
+      .sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        if (timeA !== timeB) {
+          return timeA - timeB;
+        }
+        const parseMinute = (mStr: string) => {
+          if (!mStr) return 0;
+          const cleaned = mStr.replace(/'/g, "").trim();
+          const parts = cleaned.split("+");
+          const base = parseInt(parts[0], 10) || 0;
+          const extra = parseInt(parts[1], 10) || 0;
+          return base + extra;
+        };
+        return parseMinute(a.minuto) - parseMinute(b.minuto);
+      });
 
     // Get latest score
     let placarCasa = 0;

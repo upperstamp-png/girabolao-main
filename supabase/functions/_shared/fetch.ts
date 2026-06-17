@@ -78,6 +78,10 @@ const PT_TO_EN_TEAMS: Record<string, string> = {
   "Cabo Verde": "Cape Verde Islands",
   "República Tcheca": "Czechia",
   "Tchequia": "Czechia",
+  "Congo DR": "Congo DR",
+  "Congo": "Congo DR",
+  "RDC": "Congo DR",
+  "República Democrática do Congo": "Congo DR",
 };
 
 export function normalizeTeamName(name: string): string {
