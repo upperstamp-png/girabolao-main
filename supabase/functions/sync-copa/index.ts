@@ -550,9 +550,8 @@ async function syncFromCopaApi(supabase: Supa) {
       })
       .eq("id", gameDb.id);
 
-    if (mappedStatus === "pendente") {
-      await supabase.from("bolao_jogo_eventos").delete().eq("jogo_id", gameDb.id);
-    }
+    // Clean all existing events for this game to avoid duplicate or mock events
+    await supabase.from("bolao_jogo_eventos").delete().eq("jogo_id", gameDb.id);
 
     if (!updErr) {
       updatedCount++;
@@ -600,7 +599,7 @@ async function syncFromCopaApi(supabase: Supa) {
       }
 
       if (!player && pe.descricao) {
-        const mCard = pe.descricao.match(/para o\s+jogador\s+([^\s]+)/i);
+        const mCard = pe.descricao.match(/para\s+([^,.]+?)(?:\s+(?:por|após|após\s+o|de|em|no|na)\b|[,.]|$)/i);
         if (mCard) player = mCard[1].trim();
       }
 
@@ -849,13 +848,10 @@ Deno.serve(async (req) => {
 
       shouldCallCopaApi = (allJogos ?? []).some((j) => {
         if (j.status === "ao_vivo") return true;
-        if (j.status === "pendente") {
-          const startTime = new Date(j.data_hora).getTime();
-          const elapsedMs = Date.now() - startTime;
-          const fourHoursMs = 4 * 3600000;
-          return elapsedMs >= 0 && elapsedMs <= fourHoursMs;
-        }
-        return false;
+        const startTime = new Date(j.data_hora).getTime();
+        const elapsedMs = Date.now() - startTime;
+        // Sync any match that started in the last 24 hours (even if ended) or starts in the next 4 hours
+        return elapsedMs >= -4 * 3600000 && elapsedMs <= 24 * 3600000;
       });
     } catch (e) {
       log("WARN", "Failed checking active games for Copa API", (e as Error).message);
