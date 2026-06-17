@@ -75,7 +75,7 @@ function YouTubePlayer({
       >
         {/* Banner image background */}
         <img
-          src="/portugal_congo_banner.png"
+          src="/cazetv_live_thumbnail.jpg"
           alt="Portugal vs Congo DR Ao Vivo"
           className="absolute inset-0 w-full h-full object-cover scale-100 group-hover:scale-103 transition-transform duration-700 ease-out"
         />
