@@ -463,7 +463,7 @@ async function syncFromCopaApi(supabase: Supa) {
     // Find the corresponding game in bolao_jogos
     const { data: gameDb, error: gameErr } = await supabase
       .from("bolao_jogos")
-      .select("id, status, placar_casa, placar_fora, minuto_jogo, fase")
+      .select("id, status, placar_casa, placar_fora, minuto_jogo, fase, data_hora")
       .eq("time_casa", timeCasa)
       .eq("time_fora", timeFora)
       .maybeSingle();
