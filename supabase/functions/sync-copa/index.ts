@@ -409,6 +409,238 @@ async function persistLiveStats(supabase: Supa, live: ApiFootball.LiveStats[]) {
   return n;
 }
 
+async function syncFromCopaApi(supabase: Supa) {
+  let apiPartidas: any[] = [];
+  let apiEventos: any[] = [];
+  let updatedCount = 0;
+  let eventsInserted = 0;
+
+  const apiUrl = Deno.env.get("COPA_API_URL") || "https://api-seven-rho-53.vercel.app";
+  if (apiUrl) {
+    try {
+      log("INFO", `Fetching matches from API URL: ${apiUrl}`);
+      const resMatches = await fetchWithTimeout(`${apiUrl}/api/partidas`, {}, 10000);
+      if (resMatches.ok) {
+        apiPartidas = await resMatches.json();
+      }
+      
+      const resEventos = await fetchWithTimeout(`${apiUrl}/api/eventos?limit=100`, {}, 10000);
+      if (resEventos.ok) {
+        apiEventos = await resEventos.json();
+      }
+    } catch (e) {
+      log("WARN", `Failed to fetch from COPA_API_URL: ${(e as Error).message}. Falling back to DB tables.`);
+    }
+  }
+
+  if (!apiPartidas.length) {
+    // Fetch directly from the tables
+    log("INFO", "Querying database 'partidas' and 'eventos' tables directly.");
+    const { data: dbPartidas, error: pErr } = await supabase.from("partidas").select("*");
+    if (pErr) {
+      log("ERROR", `Failed to query 'partidas' table: ${pErr.message}`);
+    } else {
+      apiPartidas = dbPartidas || [];
+    }
+
+    const { data: dbEventos, error: eErr } = await supabase.from("eventos").select("*");
+    if (eErr) {
+      log("ERROR", `Failed to query 'eventos' table: ${eErr.message}`);
+    } else {
+      apiEventos = dbEventos || [];
+    }
+  }
+
+  log("INFO", `Syncing ${apiPartidas.length} matches and ${apiEventos.length} events from real-time API`);
+
+  for (const pm of apiPartidas) {
+    const timeCasa = normalizeTeamName(pm.mandante);
+    const timeFora = normalizeTeamName(pm.visitante);
+
+    // Find the corresponding game in bolao_jogos
+    const { data: gameDb, error: gameErr } = await supabase
+      .from("bolao_jogos")
+      .select("id, status, placar_casa, placar_fora, minuto_jogo, fase")
+      .eq("time_casa", timeCasa)
+      .eq("time_fora", timeFora)
+      .maybeSingle();
+
+    if (gameErr || !gameDb) {
+      continue;
+    }
+
+    // Filter events for this match
+    const matchEvents = apiEventos.filter(e => e.partida_id === pm.id);
+
+    // Get latest score
+    let placarCasa = 0;
+    let placarFora = 0;
+    if (matchEvents.length > 0) {
+      const lastScoreEvent = [...matchEvents]
+        .reverse()
+        .find(e => e.placar_mandante !== null && e.placar_visitante !== null);
+      if (lastScoreEvent) {
+        placarCasa = lastScoreEvent.placar_mandante;
+        placarFora = lastScoreEvent.placar_visitante;
+      }
+    }
+
+    // Map status
+    let mappedStatus = "pendente";
+    if (pm.status === "LIVE" || pm.status === "HALF_TIME") {
+      mappedStatus = "ao_vivo";
+    } else if (pm.status === "FULL_TIME") {
+      mappedStatus = "encerrado";
+    }
+
+    // Parse minuto_jogo
+    let minutoJogo = null;
+    if (pm.status === "HALF_TIME") {
+      minutoJogo = 45;
+    } else if (pm.status === "FULL_TIME") {
+      minutoJogo = 90;
+    } else if (matchEvents.length > 0) {
+      // Find latest event with a valid minuto field
+      const lastMinEvent = [...matchEvents].reverse().find(e => e.minuto);
+      if (lastMinEvent) {
+        const parsedMin = parseInt(lastMinEvent.minuto);
+        if (!isNaN(parsedMin)) {
+          minutoJogo = parsedMin;
+        }
+      }
+    }
+
+    // Update match in bolao_jogos
+    const isBrasil = timeCasa === "Brazil" || timeFora === "Brazil";
+    const { error: updErr } = await supabase
+      .from("bolao_jogos")
+      .update({
+        status: mappedStatus,
+        placar_casa: placarCasa,
+        placar_fora: placarFora,
+        minuto_jogo: minutoJogo,
+        fonte_sync: "apijogoscopa2026",
+        e_brasil: isBrasil,
+        valor_entrada: isBrasil ? 10 : 5,
+      })
+      .eq("id", gameDb.id);
+
+    if (!updErr) {
+      updatedCount++;
+    }
+
+    // Sync events
+    let lastMandanteScore = 0;
+    let lastVisitanteScore = 0;
+
+    for (const pe of matchEvents) {
+      const currentMandanteScore = pe.placar_mandante ?? 0;
+      const currentVisitanteScore = pe.placar_visitante ?? 0;
+
+      // Map event type
+      let mappedTipo = "Other";
+      if (pe.tipo === "GOAL") mappedTipo = "Goal";
+      else if (pe.tipo === "YELLOW_CARD" || pe.tipo === "RED_CARD") mappedTipo = "Card";
+      else if (pe.tipo === "SUBSTITUTION") mappedTipo = "subst";
+
+      // Parse minute to integer
+      const minuto = parseInt(pe.minuto) || 0;
+
+      // Determine team and player
+      let eventTeam: string | null = null;
+      let player: string | null = null;
+
+      if (pe.tipo === "GOAL") {
+        if (currentMandanteScore > lastMandanteScore) {
+          eventTeam = timeCasa;
+        } else if (currentVisitanteScore > lastVisitanteScore) {
+          eventTeam = timeFora;
+        }
+        // Parse player name from description
+        const m = pe.descricao?.match(/Gol de\s+([^!]+)/i);
+        player = m ? m[1].trim() : null;
+      }
+
+      if (!eventTeam && pe.descricao) {
+        const descLower = pe.descricao.toLowerCase();
+        if (descLower.includes(pm.mandante.toLowerCase()) || descLower.includes(timeCasa.toLowerCase())) {
+          eventTeam = timeCasa;
+        } else if (descLower.includes(pm.visitante.toLowerCase()) || descLower.includes(timeFora.toLowerCase())) {
+          eventTeam = timeFora;
+        }
+      }
+
+      if (!player && pe.descricao) {
+        const mCard = pe.descricao.match(/para o\s+jogador\s+([^\s]+)/i);
+        if (mCard) player = mCard[1].trim();
+      }
+
+      // Check if event already exists
+      const { data: existingEvent } = await supabase
+        .from("bolao_jogo_eventos")
+        .select("id")
+        .eq("jogo_id", gameDb.id)
+        .eq("minuto", minuto)
+        .eq("tipo", mappedTipo)
+        .eq("jogador", player ?? "")
+        .maybeSingle();
+
+      if (!existingEvent) {
+        const { error: insErr } = await supabase
+          .from("bolao_jogo_eventos")
+          .insert({
+            jogo_id: gameDb.id,
+            minuto,
+            tipo: mappedTipo,
+            time: eventTeam,
+            jogador: player,
+            detalhe: {
+              descricao: pe.descricao,
+              hash_evento: pe.hash_evento,
+              placar_mandante: currentMandanteScore,
+              placar_visitante: currentVisitanteScore,
+              minuto_raw: pe.minuto
+            },
+            fonte: "apijogoscopa2026",
+          });
+
+        if (!insErr) {
+          eventsInserted++;
+        }
+      }
+
+      lastMandanteScore = currentMandanteScore;
+      lastVisitanteScore = currentVisitanteScore;
+    }
+
+    // Also persist to bolao_chaveamentos if not groups stage
+    if (gameDb.fase !== "grupos") {
+      const vencedor =
+        placarCasa !== placarFora
+          ? placarCasa > placarFora
+            ? timeCasa
+            : timeFora
+          : null;
+      
+      await supabase.from("bolao_chaveamentos").upsert(
+        {
+          fase: gameDb.fase,
+          time1: timeCasa,
+          time2: timeFora,
+          placar_time1: placarCasa,
+          placar_time2: placarFora,
+          vencedor,
+          jogo_id: gameDb.id,
+          data_hora: pm.data_jogo,
+        },
+        { onConflict: "jogo_id" },
+      );
+    }
+  }
+
+  return { matches_updated: updatedCount, events_inserted: eventsInserted };
+}
+
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -465,22 +697,62 @@ Deno.serve(async (req) => {
     report.jogos = { total: jogos.length, upserts, errors, fonte: fonteJogos };
 
     // ---- 3. Classificacao e elencos (Football-Data) ----
+    let standingsAge = Infinity;
+    let squadsAge = Infinity;
     try {
-      const standings = await FootballData.fetchStandings();
-      const nStand = await persistStandings(supabase, standings);
-      report.standings = nStand;
-      await logSync(supabase, "football-data", "ok", nStand, { tipo: "standings" }, 0);
-    } catch (e) {
-      log("WARN", "Standings", (e as Error).message);
-    }
+      const { data: lastStand } = await supabase
+        .from("bolao_sync_log")
+        .select("criado_em")
+        .eq("fonte", "football-data")
+        .eq("status", "ok")
+        .eq("detalhes->>tipo", "standings")
+        .order("criado_em", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastStand) {
+        standingsAge = Date.now() - new Date(lastStand.criado_em).getTime();
+      }
+    } catch (_) {}
 
     try {
-      const squads = await FootballData.fetchSquads();
-      const nSq = await persistSquads(supabase, squads);
-      report.squads = nSq;
-      await logSync(supabase, "football-data", "ok", nSq, { tipo: "squads" }, 0);
-    } catch (e) {
-      log("WARN", "Squads", (e as Error).message);
+      const { data: lastSquad } = await supabase
+        .from("bolao_sync_log")
+        .select("criado_em")
+        .eq("fonte", "football-data")
+        .eq("status", "ok")
+        .eq("detalhes->>tipo", "squads")
+        .order("criado_em", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastSquad) {
+        squadsAge = Date.now() - new Date(lastSquad.criado_em).getTime();
+      }
+    } catch (_) {}
+
+    if (standingsAge > 12 * 3600000) {
+      try {
+        const standings = await FootballData.fetchStandings();
+        const nStand = await persistStandings(supabase, standings);
+        report.standings = nStand;
+        await logSync(supabase, "football-data", "ok", nStand, { tipo: "standings" }, 0);
+      } catch (e) {
+        log("WARN", "Standings", (e as Error).message);
+      }
+    } else {
+      log("INFO", "Standings sync skipped (fresh enough)");
+    }
+
+    if (squadsAge > 24 * 3600000) {
+      try {
+        const squads = await FootballData.fetchSquads();
+        const nSq = await persistSquads(supabase, squads);
+        report.squads = nSq;
+        await logSync(supabase, "football-data", "ok", nSq, { tipo: "squads" }, 0);
+      } catch (e) {
+        log("WARN", "Squads", (e as Error).message);
+      }
+    } else {
+      log("INFO", "Squads sync skipped (fresh enough)");
     }
 
     // ---- 4. TheSportsDB (midia — a cada 6h ou se nunca sincronizou) ----
@@ -537,6 +809,15 @@ Deno.serve(async (req) => {
       } catch (e) {
         log("WARN", "StatsBomb", (e as Error).message);
       }
+    }
+
+    // ---- 6. Real-Time API (apijogoscopa2026) ----
+    try {
+      log("INFO", "Running syncFromCopaApi...");
+      const copaApiReport = await syncFromCopaApi(supabase);
+      report.apijogoscopa2026 = copaApiReport;
+    } catch (e) {
+      log("WARN", "apijogoscopa2026 sync falhou", (e as Error).message);
     }
 
     // ---- Handle phase transitions disabled (special bets always open) ----
