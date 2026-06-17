@@ -67,7 +67,7 @@ function YouTubePlayer({
   if (isPortugalMatch) {
     return (
       <a
-        href={YT_LIVE_URL}
+        href="https://www.youtube.com/watch?v=HpzKFDctbNw"
         target="_blank"
         rel="noopener noreferrer"
         className="relative block w-full aspect-video overflow-hidden cursor-pointer group bg-zinc-950 border border-zinc-850 rounded-2xl hover:border-red-500/50 hover:shadow-[0_0_35px_rgba(239,68,68,0.25)] transition-all duration-300 shadow-2xl"
