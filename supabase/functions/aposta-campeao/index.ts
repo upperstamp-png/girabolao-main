@@ -1,10 +1,13 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
+import { validateAndSubmitBet } from "../_shared/bets/index.ts";
+import { BetType } from "../_shared/bets/types.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
+
   const supabase = admin();
   try {
     const body = await req.json();
@@ -30,30 +33,29 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
+    // ✅ NOVA LÓGICA: Usar validateAndSubmitBet centralizado
+    const result = await validateAndSubmitBet(
+      supabase,
+      "campeao" as BetType,
+      { team_id: time },
+      v.id
+    );
+
+    if (!result.success) {
+      return json({ error: result.message }, result.error === "UNAUTHORIZED" ? 401 : 400);
+    }
+    // Disparar push de notificação
     const { data: existing } = await supabase
       .from("bolao_apostas_campeao")
-      .select("id, time_campeao, bloqueado_em")
+      .select("id, bloqueado_em")
       .eq("usuario_id", v.id)
       .maybeSingle();
-    if (existing && existing.bloqueado_em) {
-      return json({ error: "Aposta de campeão já bloqueada para este usuário" }, 400);
-    }
 
-    if (existing) {
-      const { error } = await supabase
-        .from("bolao_apostas_campeao")
-        .update({ time_campeao: time })
-        .eq("id", existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("bolao_apostas_campeao")
-        .insert({ usuario_id: v.id, time_campeao: time });
-      if (error) throw error;
-    }
-
-    // Disparar push de notificação
-    const verb = existing ? "alterou sua" : "definiu uma nova";
+    const verb = existing && existing.bloqueado_em
+      ? "alterou sua"
+      : existing
+      ? "atualizou sua"
+      : "definiu uma nova";
     await notifyAllUsers(null, {
       title: "🥇 Aposta em Campeã da Copa!",
       body: `${nome} ${verb} aposta para Campeã da Copa em: ${time}`,
@@ -67,3 +69,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+

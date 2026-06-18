@@ -1,10 +1,13 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
+import { validateAndSubmitBet } from "../_shared/bets/index.ts";
+import { BetType } from "../_shared/bets/types.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
+
   const supabase = admin();
   try {
     const body = await req.json();
@@ -45,31 +48,29 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    // Artilheiro: permitir alteração se não estiver bloqueado
+    // ✅ NOVA LÓGICA: Usar validateAndSubmitBet centralizado
+    const result = await validateAndSubmitBet(
+      supabase,
+      "artilheiro" as BetType,
+      { player_id: jogador_id },
+      v.id
+    );
+
+    if (!result.success) {
+      return json({ error: result.message }, result.error === "UNAUTHORIZED" ? 401 : 400);
+    }
+    // Disparar push de notificação
     const { data: existing } = await supabase
       .from("bolao_apostas_artilheiro")
-      .select("id, jogador_apostado, bloqueado_em")
+      .select("id, bloqueado_em")
       .eq("usuario_id", v.id)
       .maybeSingle();
-    if (existing && existing.bloqueado_em) {
-      return json({ error: "Aposta de artilheiro já bloqueada para este usuário" }, 400);
-    }
+    const actionVerb = existing && existing.bloqueado_em
+      ? "alterou sua aposta para"
+      : existing
+      ? "atualizou sua aposta para"
+      : "apostou em";
 
-    if (existing) {
-      const { error } = await supabase
-        .from("bolao_apostas_artilheiro")
-        .update({ jogador_apostado: jogadorNome, jogador_id: jogador_id })
-        .eq("id", existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from("bolao_apostas_artilheiro")
-        .insert({ usuario_id: v.id, jogador_apostado: jogadorNome, jogador_id: jogador_id });
-      if (error) throw error;
-    }
-
-    // Disparar push de notificação
-    const actionVerb = existing ? "alterou sua aposta para" : "apostou em";
     await notifyAllUsers(null, {
       title: "🏆 Aposta em Artilheiro da Copa!",
       body: `${nome} ${actionVerb} ${jogadorNome} para Artilheiro da Copa`,
@@ -83,3 +84,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+

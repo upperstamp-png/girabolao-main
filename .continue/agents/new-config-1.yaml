@@ -1,0 +1,14 @@
+name: Qwen Local
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Qwen80B
+    provider: openai
+    model: Qwen/Qwen3-Next-80B-A3B-Instruct-FP8
+    apiBase: http://100.75.10.57:8000/v1
+    apiKey: dummy
+    roles:
+      - chat
+      - edit
+      - apply

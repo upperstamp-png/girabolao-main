@@ -1,10 +1,13 @@
 import { json, preflight } from "../_shared/cors.ts";
 import { admin, validarUsuario, verificarBolaoAberto } from "../_shared/supabase.ts";
 import { notifyAllUsers } from "../_shared/push.ts";
+import { validateAndSubmitBet } from "../_shared/bets/index.ts";
+import { BetType } from "../_shared/bets/types.ts";
 
 Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
+
   const supabase = admin();
   try {
     const body = await req.json();
@@ -32,30 +35,29 @@ Deno.serve(async (req) => {
       return json({ error: statusBolao.error }, 400);
     }
 
-    // Validate unique selection and ensure edits are allowed
+    // ✅ NOVA LÓGICA: Usar validateAndSubmitBet centralizado
+    const result = await validateAndSubmitBet(
+      supabase,
+      "finalistas" as BetType,
+      { finalist_1: time1, finalist_2: time2 },
+      v.id
+    );
+
+    if (!result.success) {
+      return json({ error: result.message }, result.error === "UNAUTHORIZED" ? 401 : 400);
+    }
+    // Disparar push de notificação
     const { data: existing } = await supabase
       .from("bolao_apostas_finalistas")
-      .select("id, time1, time2, bloqueado_em")
+      .select("id, bloqueado_em")
       .eq("usuario_id", v.id)
       .maybeSingle();
-    if (existing && existing.bloqueado_em) {
-      return json({ error: "Apostas de finalistas já bloqueadas para este usuário" }, 400);
-    }
 
-    const payload = { usuario_id: v.id, time1, time2 };
-    if (existing) {
-      const { error } = await supabase
-        .from("bolao_apostas_finalistas")
-        .update({ time1, time2 })
-        .eq("id", existing.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase.from("bolao_apostas_finalistas").insert(payload);
-      if (error) throw error;
-    }
-
-    // Disparar push de notificação
-    const verb = existing ? "alterou sua" : "definiu uma nova";
+    const verb = existing && existing.bloqueado_em
+      ? "alterou sua"
+      : existing
+      ? "atualizou sua"
+      : "definiu uma nova";
     await notifyAllUsers(null, {
       title: "⚔️ Aposta em Finalistas da Copa!",
       body: `${nome} ${verb} aposta para os finalistas da Copa: ${time1} x ${time2}`,
@@ -69,3 +71,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+
