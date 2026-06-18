@@ -77,7 +77,18 @@ const user_agent =
       );
     }
 
-    // Bloquear se já existe palpite (bloqueio definitivo após aposta)
+    // Regra de travamento: 15 minutos após o horário oficial do jogo
+    const now = new Date();
+    const dataInicio = new Date(jogo.data_hora);
+    const limiteAposta = new Date(dataInicio.getTime() + 15 * 60 * 1000);
+    if (now > limiteAposta) {
+      return json(
+        { error: "Palpites encerrados — limite de 15 minutos após o início da partida expirado." },
+        400,
+      );
+    }
+
+    // Verificar se já existe palpite
     const { data: palpiteAntigo } = await supabase
       .from("bolao_palpites")
       .select("gols_casa, gols_fora, confirmado_em")
@@ -85,43 +96,59 @@ const user_agent =
       .eq("jogo_id", jogo_id)
       .maybeSingle();
 
+    let error;
+    let acaoHistorico: "criar" | "alterar";
+    let golsCasaAntigo: number | null = null;
+    let golsForaAntigo: number | null = null;
+
     if (palpiteAntigo) {
-      return json(
-        { error: "Você já confirmou seu palpite para este jogo e não pode alterá-lo." },
-        400,
-      );
+      // Se já existe palpite, verificar se é diferente
+      if (palpiteAntigo.gols_casa === gols_casa && palpiteAntigo.gols_fora === gols_fora) {
+        return json({ ok: true, unchanged: true });
+      }
+
+      // Atualizar palpite existente (dentro da janela de 15 min)
+      golsCasaAntigo = palpiteAntigo.gols_casa;
+      golsForaAntigo = palpiteAntigo.gols_fora;
+      acaoHistorico = "alterar";
+
+      const result = await supabase
+        .from("bolao_palpites")
+        .update({
+          gols_casa,
+          gols_fora,
+          confirmado_em: now.toISOString(),
+          ip_usuario
+        })
+        .eq("usuario_id", v.id)
+        .eq("jogo_id", jogo_id);
+      error = result.error;
+    } else {
+      // Criar novo palpite
+      acaoHistorico = "criar";
+
+      const result = await supabase
+        .from("bolao_palpites")
+        .insert({
+          usuario_id: v.id,
+          jogo_id,
+          gols_casa,
+          gols_fora,
+          confirmado_em: now.toISOString(),
+          ip_usuario
+        });
+      error = result.error;
     }
 
-    // Regra de travamento: 15 minutos após o horário oficial do jogo
-    const dataInicio = new Date(jogo.data_hora);
-    const limiteAposta = new Date(dataInicio.getTime() + 15 * 60 * 1000);
-    if (new Date() > limiteAposta) {
-      return json(
-        { error: "Palpites encerrados — limite de 15 minutos após o início da partida expirado." },
-        400,
-      );
-    }
-
-    // Salvar palpite (usando insert, pois não permitimos edição se já existir)
-    const { error } = await supabase
-      .from("bolao_palpites")
-      .insert({
-        usuario_id: v.id,
-        jogo_id,
-        gols_casa,
-        gols_fora,
-        confirmado_em: new Date().toISOString(),
-        ip_usuario
-      });
     if (error) throw error;
 
     // Registrar no histórico de alterações
     const { error: histErr } = await supabase.from("bolao_historico_alteracoes").insert({
       usuario_id: v.id,
       jogo_id,
-      acao: "criar",
-      gols_casa_antigo: null,
-      gols_fora_antigo: null,
+      acao: acaoHistorico,
+      gols_casa_antigo: golsCasaAntigo,
+      gols_fora_antigo: golsForaAntigo,
       gols_casa_novo: gols_casa,
       gols_fora_novo: gols_fora,
     });
@@ -131,14 +158,14 @@ const user_agent =
 
     log(
       "INFO",
-      `Palpite registrado: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`,
+      `Palpite ${acaoHistorico === "criar" ? "registrado" : "alterado"}: ${nome} → ${jogo.time_casa} ${gols_casa}x${gols_fora} ${jogo.time_fora}`,
       { jogo_id },
     );
 
     // Disparar push de notificação
-    const actionVerb = "registrou um";
+    const actionVerb = acaoHistorico === "criar" ? "registrou um" : "alterou seu";
     await notifyAllUsers(null, {
-      title: "⚽ Novo Palpite Registrado!",
+      title: acaoHistorico === "criar" ? "⚽ Novo Palpite Registrado!" : "✏️ Palpite Alterado!",
       body: `${nome} ${actionVerb} palpite para ${jogo.time_casa} x ${jogo.time_fora}: ${gols_casa} x ${gols_fora}`,
       url: `/jogos/${jogo_id}`,
       tag: `palpite_${v.id}_${jogo_id}`,
