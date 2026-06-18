@@ -1,5 +1,5 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { BetType, BetPayload, BetResponse } from './types';
+import { SupabaseClient } from 'npm:@supabase/supabase-js';
+import { BetType, BetPayload, BetResponse } from './types.ts';
 
 export async function validateAndSubmitBet<
   T extends BetType,

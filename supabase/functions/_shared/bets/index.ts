@@ -1,2 +1,2 @@
-export * from './types';
-export * from './validateAndSubmit';
+export * from './types.ts';
+export * from './validateAndSubmit.ts';
