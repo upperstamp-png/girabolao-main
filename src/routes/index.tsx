@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase, flag, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
 import { RulesModal } from "@/components/RulesModal";
+import { Button } from "@/components/ui/button";
 import { EnableWebPushBanner } from "@/components/notifications/EnableWebPushBanner";
 import { GoalToastContainer } from "@/components/GoalToast";
 import {
@@ -347,7 +348,7 @@ function Index() {
         let pontos = 0;
         const uPalpites = (palpites ?? []).filter((p) => p.usuario_id === u.id);
         for (const p of uPalpites) {
-          const g = gamesMap.get(p.jogo_id);
+          const g = gamesMap.get(p.jogo_id as string);
           if (g && g.placar_casa != null && g.placar_fora != null) {
             const rC: number = g.placar_casa;
             const rF: number = g.placar_fora;

@@ -1,92 +1,63 @@
-# Bolão Copa do Mundo 2026
+# Auditoria Final — Bolão Copa 2026
 
-Sistema completo em TanStack Start + Supabase (Lovable Cloud) com Edge Functions e cron automático. **Sem login** — usuários são identificados apenas pelo nome cadastrado (até 10). Como a doc pede, palpites ficam ocultos até o prazo de cada jogo/modalidade.
+O escopo desta solicitação é enorme (15 áreas distintas, incluindo migração de banco, realtime, chat, notificações, central de notícias, painel admin, segurança, reset de dados e relatório de QA). Tentar entregar tudo numa única leva geraria horas de trabalho não revisável e altíssimo risco de regressão. Proponho dividir em **6 fases entregáveis**, cada uma testável isoladamente. Você aprova fase por fase.
 
-> Observação de segurança: "sem login" significa que qualquer pessoa com o link pode palpitar em nome de qualquer participante cadastrado. Apropriado para um bolão privado entre amigos; vou adicionar um **PIN simples de 4 dígitos opcional por participante** para evitar trolagem entre o próprio grupo.
+Antes de começar, **3 decisões** precisam de confirmação — sem elas as fases mudam de forma:
 
----
-
-## 1. Banco de dados (Supabase)
-
-Tabelas novas no schema `public` (prefixadas com `bolao_` para não conflitar com tabelas existentes):
-
-- `bolao_usuarios` — id, nome (único), pin_hash (opcional)
-- `bolao_jogos` — espelho dos jogos da API (api_jogo_id, times, placar, fase, e_brasil, valor_entrada, status, data_hora, acumulado)
-- `bolao_palpites` — Modalidade A (placar). UNIQUE (usuario_id, jogo_id)
-- `bolao_apostas_artilheiro` — Modalidade B. UNIQUE por usuário
-- `bolao_apostas_finalistas` — Modalidade C. UNIQUE por usuário
-- `bolao_config_artilheiro` / `bolao_config_finalistas` — singletons de status, valores reais e acumulado
-- `bolao_premios` — histórico de premiações (modalidade, referencia_id, usuario_id, valor, status)
-
-RLS ligado em todas, com GRANTs para `anon` e `service_role`. Como não há auth, as políticas serão:
-
-- SELECT público liberado **com filtro** (palpites/apostas só retornam linhas após o prazo expirar — usando uma view ou função `security definer` que esconde gols/jogador/times até `data_hora <= now()` ou status da modalidade ≠ aberta).
-- INSERT/UPDATE bloqueados via RLS para `anon`; toda escrita passa por **Edge Functions** com service role, que validam: nome existe, PIN bate (se houver), prazo ainda aberto, dados válidos.
-
-## 2. Edge Functions
-
-Todas em `supabase/functions/`:
-
-- `sync-copa` — busca `worldcup26.ir/get/games` (com fallback openfootball), faz upsert em `bolao_jogos`, marca `e_brasil`, define `valor_entrada` (10 BR / 5 outros), atualiza placares e status. Detecta abertura das oitavas e marca `bolao_config_finalistas.status = 'aberta'`.
-- `apurar-jogo` — para cada jogo encerrado: marca palpites acertou=true/false, calcula prêmio (participantes × valor_entrada + acumulado), insere em `bolao_premios` ou rola o acumulado para o próximo jogo.
-- `apurar-artilheiro` / `apurar-finalistas` — chamadas pelo admin com o resultado oficial; distribuem o pool ou acumulam.
-- `palpite-placar`, `aposta-artilheiro`, `aposta-finalistas` — recebem nome + PIN + dados, validam prazo, gravam.
-- `usuarios` — cria/remove participante (limite 10), valida unicidade, define PIN opcional.
-
-## 3. Cron (pg_cron)
-
-Dois jobs via `pg_cron` + `pg_net` chamando `sync-copa` e `apurar-jogo`:
-
-- `sync-copa`: a cada 5 minutos
-- `apurar-jogo`: a cada 10 minutos
-
-Configurados via SQL com a anon key como `apikey` header.
-
-## 4. Frontend (TanStack Start)
-
-Rotas em `src/routes/`:
-
-```
-/                         → landing + cards de status das 3 modalidades + próximos jogos
-/participantes            → cadastro (até 10) + PIN opcional
-/jogos                    → lista filtrável por fase
-/jogos/$id                → palpite de placar + countdown + revelação pós-prazo
-/artilheiro               → aposta da Modalidade B
-/finalistas               → aposta da Modalidade C (com aviso "abre nas oitavas")
-/ranking                  → tabela geral + acumulados
-/admin                    → apurar artilheiro/finalistas manualmente, botão sync, ver resumo financeiro
-```
-
-Cada rota define `head()` com title/description próprios. Layout raiz com header de navegação.
-
-Para identificar o usuário no navegador: ao selecionar nome + PIN na tela de palpite, guarda no `localStorage` como atalho (não é auth — toda validação real é server-side na edge function).
-
-## 5. Design
-
-Tema esportivo da Copa: verde/amarelo/azul com sotaques, tipografia condensada para placares (Bebas Neue ou similar) + Inter no corpo. Cards com gradiente sutil, bandeiras dos países nos jogos, countdown em destaque, confete (canvas-confetti) quando um palpite acerta. Dark mode por padrão.
-
-## 6. Detalhes técnicos
-
-- **API da Copa**: chamada server-side dentro de `sync-copa` (evita CORS e expõe a URL só do backend). Fallback automático para `openfootball/worldcup.json` se a principal falhar.
-- **Cálculo de prêmio (placar)**: `participantes_que_palpitaram × valor_entrada + acumulado_anterior`. Se ninguém acertou → o `acumulado` rola para o próximo jogo. Se múltiplos acertaram → dividido igualmente.
-- **Artilheiro**: critério de desempate da doc (menos assistências; se ainda empate → nulo, acumula).
-- **Finalistas**: acerto = ambos os times, ordem não importa. Consolação opcional (1 de 2) gravada mas sem premiação (apenas exibida).
-- **Ocultar palpites**: view `bolao_palpites_publica` que só revela `gols_casa/gols_fora` se `jogo.data_hora <= now()`. Mesmo padrão para artilheiro/finalistas (revela só após `status='apurada'`).
-- **Validação Zod** em todas as edge functions.
-
-## 7. Cronograma de entrega (tudo numa leva)
-
-1. Migração SQL (tabelas + view pública + grants + RLS + cron)
-2. Edge functions (8 funções)
-3. Deploy edge functions + setup pg_cron
-4. Frontend: rotas, componentes, design system
-5. Admin + ranking + resumo financeiro
-
-Ao final faço sync inicial para popular jogos da Copa 2026.
+1. **Reset oficial (item 14)** — apagar TODOS os palpites, apostas, prêmios, pontuações, ranking e jogos com `data_hora < 2026-06-18`? Mantém usuários, PINs, configs, elenco e seleções. **Operação irreversível.**
+2. **Travamento de 15 min após início (item 4)** — isso **contradiz a regra atual** (palpite bloqueia no início oficial do jogo). Confirma trocar para "início + 15min" em TODOS os jogos? Afeta `palpite-placar`, view pública e UI de countdown.
+3. **Realtime** — usar **Supabase Realtime** (já disponível, sem custo extra) para jogos ao vivo / ranking / chat / notificações, com polling como fallback? Alternativa seria SSE via server route (mais trabalho, sem ganho real aqui).
 
 ---
 
-**Confirma para eu começar?** Se quiser, posso também:
+## Fase 1 — Fundamentos (horários + reset + regras de aposta)
+- Migration: garantir todas as colunas `*_em` / `data_hora` em `timestamptz` (UTC). Auditar e converter qualquer coluna `timestamp` sem TZ.
+- Frontend: criar `src/lib/datetime.ts` com `formatBR(date)` usando `Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' })`. Substituir TODOS os `toLocaleString` / `format` espalhados (jogos, home, ranking, chat, notificações, admin).
+- Migration: alterar trigger de bloqueio de palpite para `now() > data_hora + interval '15 minutes'` (se confirmado item 2).
+- Edge fn `palpite-placar`: idem na validação server-side. Registrar `ip` (já vem em `req.headers`) + `user_agent` no insert.
+- Migration de reset (se confirmado item 1): `DELETE` em `bolao_palpites`, `bolao_apostas_*`, `bolao_premios`, `bolao_jogo_eventos`, `bolao_jogo_estatisticas`, `bolao_auditoria_jogos`, `bolao_chaveamentos`, `bolao_classificacao_grupos`, `bolao_jogos WHERE data_hora < '2026-06-18'`. Zerar `pontos`/`acertos_*` em `bolao_usuarios`. Reabrir configs.
 
-- Trocar PIN por senha-mestre única do grupo (mais simples)
-- Adicionar canal de Realtime para revelar placar/palpites ao vivo sem refresh
+## Fase 2 — Realtime + Home inteligente
+- Habilitar Realtime via migration: `ALTER PUBLICATION supabase_realtime ADD TABLE bolao_jogos, bolao_jogo_eventos, bolao_usuarios, bolao_notificacoes, bolao_chat_mensagens;`
+- Hook `useRealtimeTable<T>(table, filter)` em `src/lib/realtime.ts` — assina dentro de `useEffect`, cleanup com `removeChannel`.
+- Refatorar `src/routes/index.tsx`:
+  - Seção "🔴 AO VIVO" no topo (jogos com `status='ao_vivo'`) com tempo decorrido + placar + últimos eventos.
+  - "⏭️ Próximos" (3 jogos futuros mais próximos, ordenados por `data_hora`).
+  - "✅ Últimos Resultados" (3 jogos `status='apurado'`).
+- Substituir `useQuery` + polling onde Realtime cobre.
+
+## Fase 3 — Pontuação oficial + Ranking
+- A função `atualizar_ranking_geral` JÁ implementa a maioria dos pontos pedidos (placar exato 10, resultado 5, gols próximos +2, goleada +5, zebra +10, campeão +50, artilheiro +30, vice +25). Verificar:
+  - Diferença "gols próximos" — atualmente `≤1` em casa E fora; o pedido é "diferença máxima de 1 gol" → manter como está e confirmar leitura.
+  - Garantir trigger em `bolao_jogos` (`AFTER UPDATE WHEN status IN ('encerrado','apurado')`) chamando `atualizar_ranking_geral` — listar e validar.
+- Página `/ranking` (já existe): adicionar colunas faltantes (acertos exatos, resultado, zebras, goleadas, campeão, artilheiro, vice). Realtime na tabela `bolao_usuarios`.
+
+## Fase 4 — Chat completo
+- Tabela `bolao_chat_mensagens` já existe. Tabela `bolao_chat_reacoes` já existe. Adicionar `fixada boolean default false` se faltar.
+- Nova rota `src/routes/chat.tsx`: lista mensagens com Realtime, composer, responder, reagir, fixar (admin), indicador "digitando" (Realtime broadcast channel).
+- Canais: `geral` (padrão). "Por bolão" não se aplica — temos um único bolão. Esclarecer se quer canais por seleção / por grupo.
+
+## Fase 5 — Notificações + Notícias + Admin
+- Notificações: tabela e triggers JÁ existem (jogo iniciado, gol, cartão, ultrapassagem, chat). Falta UI: dropdown no header com badge de não-lidas, lista paginada, marcar como lida. Realtime em `bolao_notificacoes WHERE usuario_id IS NULL OR usuario_id=<me>`.
+- Notícias: `bolao_noticias` + `sync-noticias` já existem. Garantir cron a cada 1h. Página `/noticias` (já existe) — validar filtros por categoria.
+- Admin: rota `/admin` já existe. Adicionar abas faltantes (logs `bolao_automacoes_log` + `bolao_sync_log`, gerenciar regras, broadcast).
+
+## Fase 6 — Segurança, performance, validação
+- Adicionar índices: `bolao_jogos(status, data_hora)`, `bolao_palpites(usuario_id, jogo_id)`, `bolao_notificacoes(usuario_id, lida, criado_em)`.
+- Rate limit nas edge fns sensíveis (palpite/aposta/chat) — tabela `bolao_rate_limit` ou usar `bolao_analytics` com check de janela 60s.
+- Zod em TODAS as edge fns (auditar — algumas usam validação manual).
+- Checklist final: rodar `supabase--linter`, `bun run build`, testes em `src/tests/`, browser--screenshot das telas principais.
+- Relatório `RELATORIO_AUDITORIA.md` em `/mnt/documents/`.
+
+---
+
+## Itens fora de escopo / a esclarecer
+- **JWT / Refresh Token / CSRF (item 13)**: o sistema é **sem auth** (PIN de 4 dígitos por nome). Implementar JWT exige redesenhar o login. Mantenho rate limit + sanitização + RLS reforçada, e sinalizo no relatório que JWT real exige migração para Supabase Auth (decisão sua).
+- **WebSocket próprio**: Supabase Realtime já é WS por baixo. Não vou implementar um servidor WS paralelo.
+- **Chat "por bolão"**: só existe 1 bolão. Vou implementar canais por tema (geral / zoeira / análises) — confirma?
+
+**Responda:**
+1. Reset confirmado? (sim/não)
+2. Travamento "+15 min" confirmado? (sim/não)
+3. Realtime via Supabase OK? (sim/não)
+4. Começo pela **Fase 1**?

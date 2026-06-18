@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, test, expect } from "bun:test";
 
 // Simulação da lógica de Sorteio (Fisher-Yates) e exclusividade de palpites

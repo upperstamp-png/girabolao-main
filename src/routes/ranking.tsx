@@ -324,10 +324,10 @@ function Page() {
         // Pontos das apostas especiais (only count when showing all phases)
         const includeSpecials = faseFilter === "todos";
 
-        const acertouArt = !!(apostasArt ?? []).find((a) => a.usuario_id === u.id)?.acertou;
+        const acertouArt = !!(apostasArt ?? []).find((a: any) => a.usuario_id === u.id)?.acertou;
         const pontosArt = includeSpecials && acertouArt ? 10 : 0;
 
-        const apostaFin = (apostasFin ?? []).find((a) => a.usuario_id === u.id);
+        const apostaFin = (apostasFin ?? []).find((a: any) => a.usuario_id === u.id);
         let pontosFin = 0;
         let acertouFin = false;
         if (includeSpecials && apostaFin) {
@@ -339,13 +339,13 @@ function Page() {
           }
         }
 
-        const acertouCam = !!(apostasCam ?? []).find((a) => a.usuario_id === u.id)?.acertou;
+        const acertouCam = !!(apostasCam ?? []).find((a: any) => a.usuario_id === u.id)?.acertou;
         const pontosCam = includeSpecials && acertouCam ? 10 : 0;
 
-        const acertouZeb = !!(apostasZeb ?? []).find((a) => a.usuario_id === u.id)?.acertou;
+        const acertouZeb = !!(apostasZeb ?? []).find((a: any) => a.usuario_id === u.id)?.acertou;
         const pontosZeb = includeSpecials && acertouZeb ? 10 : 0;
 
-        const acertouGol = !!(apostasGol ?? []).find((a) => a.usuario_id === u.id)?.acertou;
+        const acertouGol = !!(apostasGol ?? []).find((a: any) => a.usuario_id === u.id)?.acertou;
         const pontosGol = includeSpecials && acertouGol ? 10 : 0;
 
         const pontosEspeciais = pontosArt + pontosFin + pontosCam + pontosZeb + pontosGol;

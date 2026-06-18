@@ -119,7 +119,7 @@ function Page() {
       let pontos = 0;
       const userPalpites = (palpites ?? []).filter((p) => p.usuario_id === u.id);
       for (const p of userPalpites) {
-        const g = gamesMap.get(p.jogo_id);
+        const g = gamesMap.get(p.jogo_id as string);
         if (g && g.placar_casa != null && g.placar_fora != null) {
           pontos += calcularPontosPalpite(
             p.gols_casa,
@@ -433,7 +433,7 @@ function Page() {
                             if (p && j.placar_casa != null && j.placar_fora != null) {
                               const rCasa: number = j.placar_casa;
                               const rFora: number = j.placar_fora;
-                              const res = pontuarPalpite(p.gols_casa, p.gols_fora, rCasa, rFora);
+                              const res = pontuarPalpite(p.gols_casa as number, p.gols_fora as number, rCasa, rFora);
                               if (res.acertouPlacar)
                                 badge = {
                                   text: "🎯 +3",
@@ -599,7 +599,7 @@ function Page() {
                               ) {
                                 const rCasa: number = jogoEscolhidoObj.placar_casa;
                                 const rFora: number = jogoEscolhidoObj.placar_fora;
-                                const res = pontuarPalpite(p.gols_casa, p.gols_fora, rCasa, rFora);
+                                const res = pontuarPalpite(p.gols_casa as number, p.gols_fora as number, rCasa, rFora);
                                 if (res.acertouPlacar)
                                   badge = {
                                     text: "🎯 +3",

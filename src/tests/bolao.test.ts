@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, test, expect, mock, beforeAll } from "bun:test";
 
 mock.module("@/integrations/supabase/client", () => ({

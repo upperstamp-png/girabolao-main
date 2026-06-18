@@ -125,7 +125,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-const NAV_LINKS = [
+const NAV_LINKS: { to: string; label: string; exact?: boolean }[] = [
   { to: "/", label: "🏠 Início", exact: true },
   { to: "/jogos", label: "⚽ Jogos" },
   { to: "/palpites-participantes", label: "📋 Palpites" },
@@ -134,16 +134,17 @@ const NAV_LINKS = [
   { to: "/noticias", label: "📰 Notícias" },
   { to: "/participantes", label: "👥 Participantes" },
   { to: "/admin", label: "⚙️ Admin" },
-] as const;
+];
 
 function Nav() {
   const location = useLocation();
-  const [identidade] = useState<Identidade | null>(() => getIdentidade());
+  const [identidade, setIdentidadeStateNav] = useState<Identidade | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isIosPwa, setIsIosPwa] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
+    setIdentidadeStateNav(getIdentidade());
     if (isIOSStandalone()) {
       setIsIosPwa(true);
     }
@@ -324,13 +325,19 @@ function RootComponent() {
 }
 
 function AuthGate({ children }: { children: ReactNode }) {
-  const [identidade, setIdentidadeState] = useState<Identidade | null>(() => getIdentidade());
-  const [nome, setNome] = useState(() => getIdentidade()?.nome ?? "");
-  const [pin, setPin] = useState(() => getIdentidade()?.pin ?? "");
+  const [hydrated, setHydrated] = useState(false);
+  const [identidade, setIdentidadeState] = useState<Identidade | null>(null);
+  const [nome, setNome] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
+    const id = getIdentidade();
+    setIdentidadeState(id);
+    setNome(id?.nome ?? "");
+    setPin(id?.pin ?? "");
+    setHydrated(true);
     callFn("usuarios", { action: "init_defaults" }).catch(() => {});
   }, []);
 
@@ -362,6 +369,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
   }
 
+  if (!hydrated) return null;
   if (identidade?.nome && identidade?.pin) return <>{children}</>;
 
   return (

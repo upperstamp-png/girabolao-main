@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, test, expect, mock } from "bun:test";
 import {
   normalizeTeamName,

@@ -20,8 +20,15 @@ Deno.serve(async (req) => {
     const jogo_id = String(body.jogo_id ?? "");
     const gols_casa = Number(body.gols_casa);
     const gols_fora = Number(body.gols_fora);
-    const ip_usuario = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "unknown";
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip_usuario =
+  forwarded?.split(",")[0]?.trim() ||
+  req.headers.get("cf-connecting-ip") ||
+  req.headers.get("x-real-ip") ||
+  "unknown";
 
+const user_agent =
+  req.headers.get("user-agent") || "unknown";
     // Validações básicas
     if (!jogo_id) return json({ error: "Jogo obrigatório" }, 400);
     if (

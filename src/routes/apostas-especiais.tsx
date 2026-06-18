@@ -201,51 +201,37 @@ function Page() {
   const { data: rawCfgArt } = useQuery({
     queryKey: ["cfg-art"],
     queryFn: async () =>
-      (await supabase.from("bolao_config_artilheiro").select("*").eq("id", 1).maybeSingle())
-        .data || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 },
+      (await supabase.from("bolao_config_artilheiro").select("*").eq("id", 1).maybeSingle()).data,
   });
-  const cfgArt = rawCfgArt || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
+  const cfgArt: any = rawCfgArt || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
 
   const { data: rawCfgFin } = useQuery({
     queryKey: ["cfg-fin"],
     queryFn: async () =>
-      (await supabase.from("bolao_config_finalistas").select("*").eq("id", 1).maybeSingle())
-        .data || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 },
+      (await supabase.from("bolao_config_finalistas").select("*").eq("id", 1).maybeSingle()).data,
   });
-  const cfgFin = rawCfgFin || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
+  const cfgFin: any = rawCfgFin || { status: "fechada", prazo_fim: null, acumulado_anterior: 0 };
 
   const { data: rawCfgCam } = useQuery({
     queryKey: ["cfg-cam"],
     queryFn: async () =>
-      (await supabase.from("bolao_config_campeao").select("*").eq("id", 1).maybeSingle()).data || {
-        status: "aberta",
-        prazo_fim: null,
-        acumulado_anterior: 0,
-      },
+      (await supabase.from("bolao_config_campeao").select("*").eq("id", 1).maybeSingle()).data,
   });
-  const cfgCam = rawCfgCam || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
+  const cfgCam: any = rawCfgCam || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
 
   const { data: rawCfgZeb } = useQuery({
     queryKey: ["cfg-zeb"],
     queryFn: async () =>
-      (await supabase.from("bolao_config_zebra").select("*").eq("id", 1).maybeSingle()).data || {
-        status: "aberta",
-        prazo_fim: null,
-        acumulado_anterior: 0,
-      },
+      (await supabase.from("bolao_config_zebra").select("*").eq("id", 1).maybeSingle()).data,
   });
-  const cfgZeb = rawCfgZeb || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
+  const cfgZeb: any = rawCfgZeb || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
 
   const { data: rawCfgGol } = useQuery({
     queryKey: ["cfg-gol"],
     queryFn: async () =>
-      (await supabase.from("bolao_config_goleada").select("*").eq("id", 1).maybeSingle()).data || {
-        status: "aberta",
-        prazo_fim: null,
-        acumulado_anterior: 0,
-      },
+      (await supabase.from("bolao_config_goleada").select("*").eq("id", 1).maybeSingle()).data,
   });
-  const cfgGol = rawCfgGol || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
+  const cfgGol: any = rawCfgGol || { status: "aberta", prazo_fim: null, acumulado_anterior: 0 };
 
   // Bets lists
   const { data: apostasArt } = useQuery({
@@ -533,7 +519,7 @@ function Page() {
             }
             bets={
               <BetsList
-                bets={apostasArt}
+                bets={apostasArt ?? []}
                 nomeMap={nomeMap}
                 renderValue={(a) => <span>{a.jogador_apostado}</span>}
                 isAcertou={(a) => a.acertou}
@@ -646,7 +632,7 @@ function Page() {
             }
             bets={
               <BetsList
-                bets={apostasFin}
+                bets={apostasFin ?? []}
                 nomeMap={nomeMap}
                 renderValue={(a) => (
                   <span>
@@ -747,7 +733,7 @@ function Page() {
             }
             bets={
               <BetsList
-                bets={apostasCam}
+                bets={apostasCam ?? []}
                 nomeMap={nomeMap}
                 renderValue={(a) => (
                   <span>
@@ -838,7 +824,7 @@ function Page() {
             }
             bets={
               <BetsList
-                bets={apostasZeb}
+                bets={apostasZeb ?? []}
                 nomeMap={nomeMap}
                 renderValue={(a) => (
                   <span>
@@ -993,7 +979,7 @@ function Page() {
             }
             bets={
               <BetsList
-                bets={apostasGol}
+                bets={apostasGol ?? []}
                 nomeMap={nomeMap}
                 renderValue={(a) => (
                   <span>
@@ -1075,7 +1061,7 @@ function SpecialBetTab({
         <CardContent className="pt-4 space-y-4">
           <div className="flex gap-2 flex-wrap items-center">
             <Badge
-              variant={isAberta ? "success" : "secondary"}
+              variant={isAberta ? "default" : "secondary"}
               className="capitalize text-[10px] py-0.5 px-2"
             >
               {isAberta ? "🔓 Aberto" : "🔒 Fechado"}

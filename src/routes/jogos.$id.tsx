@@ -275,7 +275,7 @@ function Page() {
   }, [allGames, allUserPalpites, id]);
 
   const comPalpite = useMemo(
-    () => new Set((palpites ?? []).map((p: { usuario_id: string }) => p.usuario_id)),
+    () => new Set((palpites ?? []).map((p: any) => p.usuario_id as string)),
     [palpites],
   );
 
@@ -322,8 +322,8 @@ function Page() {
   useEffect(() => {
     if (!jogo || !identidade || !palpites) return;
     if (jogo.status !== "encerrado" && jogo.status !== "apurado") return;
-    const meu = palpites.find(
-      (p: { usuario_id: string; acertou?: boolean }) => p.usuario_id === identidade.id,
+    const meu = (palpites as any[]).find(
+      (p: any) => p.usuario_id === identidade.id,
     );
     if (meu?.acertou) confetti({ particleCount: 200, spread: 80, origin: { y: 0.4 } });
   }, [jogo?.status, palpites, identidade?.id]);
@@ -662,14 +662,8 @@ function Page() {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {palpites!.map(
-                (p: {
-                  id: string;
-                  usuario_id: string;
-                  gols_casa?: number;
-                  gols_fora?: number;
-                  acertou?: boolean;
-                }) => {
+              {(palpites as any[]).map(
+                (p: any) => {
                   const nome = nomeMap.get(p.usuario_id) ?? "—";
                   const isMe = p.usuario_id === identidade?.id;
                   const gcExibido = isMe && meuPalpiteRaw ? meuPalpiteRaw.gols_casa : p.gols_casa;
