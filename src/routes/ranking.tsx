@@ -76,6 +76,7 @@ function Page() {
       ctx.fillStyle = "#484F58";
       ctx.font = "11px 'Inter', sans-serif";
       const dateStr = new Date().toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
         day: "2-digit",
         month: "short",
         year: "numeric",

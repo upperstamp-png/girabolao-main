@@ -759,11 +759,13 @@ function Index() {
                   {FASES_LABEL[nextGame.fase as keyof typeof FASES_LABEL] ?? nextGame.fase}
                   {" · "}
                   {new Date(nextGame.data_hora).toLocaleDateString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
                     day: "2-digit",
                     month: "2-digit",
                   })}
                   {" · "}
                   {new Date(nextGame.data_hora).toLocaleTimeString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -937,6 +939,7 @@ function Index() {
                   </p>
                   <p className="text-[10px]" style={{ color: "#484F58" }}>
                     {new Date(n.publicado_em).toLocaleDateString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
                       day: "2-digit",
                       month: "2-digit",
                       hour: "2-digit",

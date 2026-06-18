@@ -53,6 +53,7 @@ async function generateCardBlob(data: ShareCardData): Promise<Blob> {
   ctx.fillStyle = "#484F58";
   ctx.font = "10px 'Inter', sans-serif";
   const dateStr = new Date(data.dataHora).toLocaleDateString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "short",
     year: "numeric",

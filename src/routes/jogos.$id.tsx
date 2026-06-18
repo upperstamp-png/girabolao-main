@@ -368,7 +368,7 @@ function Page() {
       <Card className="bg-pitch shadow-card border-2 border-border">
         <CardContent className="py-6 sm:py-8 text-center px-4">
           <div className="text-xs text-muted-foreground mb-3">
-            {FASES_LABEL[jogo.fase]} • {new Date(jogo.data_hora).toLocaleString("pt-BR")}
+            {FASES_LABEL[jogo.fase]} • {new Date(jogo.data_hora).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
           </div>
           <div className="flex items-center justify-center gap-3 sm:gap-8">
             <div className="text-center flex-1">

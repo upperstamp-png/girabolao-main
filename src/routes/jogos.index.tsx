@@ -72,8 +72,8 @@ function Page() {
     const map = new Map<string, typeof filtrados>();
     for (const j of filtrados) {
       const date = new Date(j.data_hora);
-      const weekday = date.toLocaleDateString("pt-BR", { weekday: "long" });
-      const dayMonth = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+      const weekday = date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long" });
+      const dayMonth = date.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long" });
       const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1) + ", " + dayMonth;
       if (!map.has(capitalized)) map.set(capitalized, []);
       map.get(capitalized)!.push(j);
@@ -229,6 +229,7 @@ function Page() {
                               <span className="truncate uppercase">{FASES_LABEL[j.fase]}</span>
                               <span className="shrink-0 font-bold ml-2 text-foreground">
                                 {new Date(j.data_hora).toLocaleString("pt-BR", {
+                                  timeZone: "America/Sao_Paulo",
                                   hour: "2-digit",
                                   minute: "2-digit",
                                 })}{" "}
