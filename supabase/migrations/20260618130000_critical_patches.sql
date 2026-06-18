@@ -282,10 +282,10 @@ BEGIN
   SELECT artilheiro_real INTO art_real FROM public.bolao_config_artilheiro WHERE id = 1 AND status = 'apurada';
   SELECT zebra_real INTO zeb_real FROM public.bolao_config_zebra WHERE id = 1 AND status = 'apurada';
 
-  -- Vice = finalista que NÃO é o campeão real
+  -- Vice = finalista que NÃO é o campeão real (usa colunas *_real)
   SELECT CASE
-           WHEN time1 = camp_real THEN time2
-           WHEN time2 = camp_real THEN time1
+           WHEN finalista1_real = camp_real THEN finalista2_real
+           WHEN finalista2_real = camp_real THEN finalista1_real
            ELSE NULL
          END
     INTO vice_real
