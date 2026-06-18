@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Calendar, Award, ShieldAlert, Zap } from "lucide-react";
+import { useState } from "react";
 
 interface RulesModalProps {
   open: boolean;
@@ -8,6 +9,8 @@ interface RulesModalProps {
 }
 
 export function RulesModal({ open, onOpenChange }: RulesModalProps) {
+  const [value, setValue] = useState("prazos"); // Estado controlado
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl bg-card border border-border shadow-glow max-h-[85vh] overflow-y-auto">
@@ -17,7 +20,7 @@ export function RulesModal({ open, onOpenChange }: RulesModalProps) {
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="prazos" className="w-full mt-4">
+        <Tabs value={value} onValueChange={setValue} className="w-full mt-4">
           <TabsList className="grid grid-cols-4 bg-secondary/30 p-1 rounded-xl">
             <TabsTrigger value="prazos" className="text-xs font-semibold">
               <Calendar className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Prazos
@@ -60,25 +63,41 @@ export function RulesModal({ open, onOpenChange }: RulesModalProps) {
             </div>
           </TabsContent>
 
-          {/* TAB 2: Critérios de Pontuação */}
+          {/* TAB 2: Critérios de Pontuação — CORRIGIDO */}
           <TabsContent value="pontos" className="space-y-4 pt-4 text-sm leading-relaxed">
             <div>
               <h3 className="font-display font-bold text-base text-foreground mb-2">🎯 Critérios de Pontuação Padrão</h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="p-3 border border-border bg-secondary/15 rounded-xl space-y-1">
                   <div className="font-bold text-primary flex items-center gap-1 text-sm">
-                    🎯 Placar Exato (+3 pts)
+                    🎯 Placar Exato (+10 pts)
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Você ganha <strong>3 pontos</strong> se acertar o resultado e a quantidade exata de gols de ambos os times (ex: palpite 2x1, jogo 2x1).
+                    Você ganha <strong>10 pontos</strong> se acertar o resultado e a quantidade exata de gols de ambos os times (ex: palpite 2x1, jogo 2x1).
                   </p>
                 </div>
                 <div className="p-3 border border-border bg-secondary/15 rounded-xl space-y-1">
                   <div className="font-bold text-foreground flex items-center gap-1 text-sm">
-                    ⚽ Resultado do Jogo (+1 pt)
+                    ⚽ Resultado Correto (+5 pts)
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    Você ganha <strong>1 ponto</strong> se acertar o vencedor ou empate, mas errar a contagem exata de gols (ex: palpite 2x0, jogo 3x1).
+                    Você ganha <strong>5 pontos</strong> se acertar o vencedor ou empate, mesmo sem acertar o placar exato (ex: palpite 2x0, jogo 3x1).
+                  </p>
+                </div>
+                <div className="p-3 border border-border bg-secondary/15 rounded-xl space-y-1">
+                  <div className="font-bold text-foreground flex items-center gap-1 text-sm">
+                    📏 Gols Próximos (+2 pts)
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Se você acertar o resultado (vencedor/empate) e os gols estiverem dentro de ±1 (ex: palpite 2x1, jogo 3x2), ganha <strong>2 pontos extras</strong> → total de <strong>7 pontos</strong>.
+                  </p>
+                </div>
+                <div className="p-3 border border-border bg-secondary/15 rounded-xl space-y-1">
+                  <div className="font-bold text-primary flex items-center gap-1 text-sm">
+                    🔥 Goleada (+5 pts bônus)
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Se o jogo terminar com diferença de 4+ gols (ex: 4x0, 5x1) e você acertar o vencedor, ganha <strong>+5 pontos extras</strong> → total de <strong>10 pontos</strong> (5 por resultado + 5 por goleada).
                   </p>
                 </div>
               </div>
@@ -129,8 +148,8 @@ export function RulesModal({ open, onOpenChange }: RulesModalProps) {
                 Caso dois ou mais participantes empatem na pontuação geral do ranking do bolão, a ordem de colocação na classificação geral será definida pelos seguintes critérios sucessivos:
               </p>
               <ol className="list-decimal pl-5 space-y-2 text-xs sm:text-sm text-muted-foreground">
-                <li>Maior número de acertos de <strong>Placar Exato (3 pontos)</strong>.</li>
-                <li>Maior número de acertos de <strong>Resultado (1 ponto)</strong>.</li>
+                <li>Maior número de acertos de <strong>Placar Exato (10 pontos)</strong>.</li>
+                <li>Maior número de acertos de <strong>Resultado (5 pontos)</strong>.</li>
                 <li>Maior pontuação acumulada em <strong>Apostas Especiais</strong>.</li>
                 <li>Ordem do sorteio do bolão (participante sorteado na frente leva vantagem).</li>
               </ol>
