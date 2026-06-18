@@ -38,24 +38,24 @@ export function RulesModal({ open, onOpenChange }: RulesModalProps) {
             <div>
               <h3 className="font-display font-bold text-base text-foreground mb-1.5">⏰ Prazo Limite de Apostas</h3>
               <p className="text-muted-foreground text-xs sm:text-sm">
-                Os palpites para cada jogo podem ser registrados ou modificados até **exatamente 15 minutos após o horário oficial de início da partida**. 
+                Os palpites para cada jogo podem ser registrados ou modificados até **exatamente 15 minutos após o horário oficial de início da partida**.
                 Após essa tolerância de 15 minutos, o sistema bloqueia automaticamente novos palpites no backend e no frontend.
               </p>
             </div>
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-              <h4 className="font-bold text-destructive text-xs sm:text-sm flex items-center gap-1.5 mb-1">
-                🔒 Bloqueio Definitivo pós-Confirmação
+            <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
+              <h4 className="font-bold text-primary text-xs sm:text-sm flex items-center gap-1.5 mb-1">
+                ✏️ Alterações Permitidas
               </h4>
               <p className="text-muted-foreground text-xs">
-                Para evitar manipulações e garantir competitividade, <strong>assim que você salvar e confirmar seu palpite pela primeira vez, ele se tornará definitivo</strong>. 
-                Não será permitido editar, alterar ou excluir o palpite sob nenhuma hipótese após essa confirmação inicial.
+                Você pode <strong>alterar seu palpite a qualquer momento dentro da janela de 15 minutos</strong> após o início do jogo.
+                Isso permite que você ajuste sua aposta conforme vê o começo da partida.
               </p>
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-foreground mb-1.5">👁️ Privacidade de Resultados</h3>
+              <h3 className="font-display font-bold text-base text-foreground mb-1.5">👁️ Palpites Públicos</h3>
               <p className="text-muted-foreground text-xs sm:text-sm">
-                Os palpites de todos os participantes são mantidos <strong>confidenciais (ocultos)</strong> até que a tolerância de 15 minutos pós-kickoff expire. 
-                Isso impede que participantes copiem palpites alheios com base no andamento inicial do jogo.
+                Todos os palpites de todos os participantes são <strong>visíveis para todos</strong> desde o momento em que são registrados.
+                Isso garante transparência e permite que todos acompanhem as apostas dos demais participantes.
               </p>
             </div>
           </TabsContent>

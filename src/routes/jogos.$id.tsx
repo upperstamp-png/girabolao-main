@@ -299,6 +299,12 @@ function Page() {
     return false;
   }, [jogo, config]);
 
+  // Can edit existing bet within 15-minute window
+  const podeEditar = useMemo(() => {
+    if (!jogo || prazoExpirado) return false;
+    return !!meuPalpiteRaw;
+  }, [jogo, prazoExpirado, meuPalpiteRaw]);
+
   // Status message to show the user
   const mensagemBloqueio = useMemo(() => {
     if (!jogo) return null;
@@ -487,9 +493,11 @@ function Page() {
             {meuPalpiteRaw && (
               <Badge
                 variant="outline"
-                className="bg-success/15 text-success border-success/30 text-[10px] py-0.5 px-2 font-bold"
+                className={podeEditar
+                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30 text-[10px] py-0.5 px-2 font-bold"
+                  : "bg-success/15 text-success border-success/30 text-[10px] py-0.5 px-2 font-bold"}
               >
-                ✓ Confirmado
+                {podeEditar ? "✎ Pode alterar" : "✓ Confirmado"}
               </Badge>
             )}
           </CardHeader>
@@ -500,13 +508,13 @@ function Page() {
                 label={`${flag(jogo.time_casa)} ${jogo.time_casa}`}
                 value={gc}
                 onChange={setGc}
-                disabled={!!meuPalpiteRaw}
+                disabled={!!meuPalpiteRaw && !podeEditar}
               />
               <GolInput
                 label={`${flag(jogo.time_fora)} ${jogo.time_fora}`}
                 value={gf}
                 onChange={setGf}
-                disabled={!!meuPalpiteRaw}
+                disabled={!!meuPalpiteRaw && !podeEditar}
               />
             </div>
             <div className="text-center text-display text-3xl text-muted-foreground py-1">
@@ -515,15 +523,17 @@ function Page() {
 
             <Button
               onClick={() => enviar.mutate()}
-              disabled={!identidade?.nome || enviar.isPending || !!meuPalpiteRaw}
+              disabled={!identidade?.nome || enviar.isPending || (!!meuPalpiteRaw && !podeEditar)}
               className="w-full btn-touch"
               size="lg"
             >
               {enviar.isPending
                 ? "Enviando..."
-                : meuPalpiteRaw
-                  ? "Aposta Confirmada e Salva ✓"
-                  : "Registrar palpite"}
+                : podeEditar
+                  ? "Alterar palpite"
+                  : meuPalpiteRaw
+                    ? "Aposta Confirmada e Salva ✓"
+                    : "Registrar palpite"}
             </Button>
 
             {/* Multi-game navigation */}
@@ -566,6 +576,11 @@ function Page() {
               💡 <strong>Regras de pontuação:</strong> Acertar placar exato = <strong>3 pts</strong>{" "}
               | Acertar vencedor ou empate = <strong>1 pt</strong>
             </p>
+            {podeEditar && (
+              <p className="text-center text-[11px] text-amber-500 leading-normal">
+                ⏱️ Você pode alterar seu palpite até 15 minutos após o início do jogo.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
