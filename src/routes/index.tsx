@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase, flag, FASES_LABEL, getIdentidade, calcularPontosPalpite } from "@/lib/bolao";
 import { POLL } from "@/lib/realtime";
+import { RulesModal } from "@/components/RulesModal";
 import { EnableWebPushBanner } from "@/components/notifications/EnableWebPushBanner";
 import { GoalToastContainer } from "@/components/GoalToast";
 import {
@@ -29,6 +30,7 @@ import {
   Megaphone,
   Play,
   Tv2,
+  BookOpen,
 } from "lucide-react";
 import { SkeletonCard } from "@/components/SkeletonCard";
 
@@ -222,6 +224,7 @@ function Index() {
   const [goalEvents, setGoalEvents] = useState<GoalEvent[]>([]);
   const [homeFlash, setHomeFlash] = useState(false);
   const [awayFlash, setAwayFlash] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const initialLoadRef = useRef(false);
 
   const dismissGoal = useCallback((ts: number) => {
@@ -644,6 +647,24 @@ function Index() {
 
       <EnableWebPushBanner />
 
+      {/* Regras do Bolão Quick Card */}
+      <section className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Regras do Bolão</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Confira os prazos, pontuações, desempates e bônus da Copa.
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => setRulesOpen(true)} size="sm" variant="outline" className="text-xs font-semibold shrink-0">
+          Ler regras
+        </Button>
+      </section>
+
       {/* Mural de Avisos (Broadcasts) */}
       {broadcasts && broadcasts.length > 0 && (
         <div className="space-y-2">
@@ -998,6 +1019,7 @@ function Index() {
           ))}
         </div>
       </section>
+      <RulesModal open={rulesOpen} onOpenChange={setRulesOpen} />
     </div>
   );
 }

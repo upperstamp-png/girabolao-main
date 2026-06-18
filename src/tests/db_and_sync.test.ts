@@ -311,24 +311,7 @@ function simularSalvarPalpite(
   novo: SimPalpite,
   usuarioNomeMap: Record<string, string>,
 ): { ok: boolean; error?: string } {
-  if (config.exclusividade_placar) {
-    const duplicado = palpites.find(
-      (p) =>
-        p.jogo_id === novo.jogo_id &&
-        p.gols_casa === novo.gols_casa &&
-        p.gols_fora === novo.gols_fora &&
-        p.usuario_id !== novo.usuario_id,
-    );
-    if (duplicado) {
-      const outroNome = usuarioNomeMap[duplicado.usuario_id] ?? "outro participante";
-      return {
-        ok: false,
-        error: `Placar ${novo.gols_casa}x${novo.gols_fora} já foi escolhido por ${outroNome}.`,
-      };
-    }
-  }
-
-  // Update or insert
+  // A exclusividade foi completamente desativada/removida, permitindo apostas duplicadas incondicionalmente
   const idx = palpites.findIndex(
     (p) => p.jogo_id === novo.jogo_id && p.usuario_id === novo.usuario_id,
   );
@@ -340,14 +323,32 @@ function simularSalvarPalpite(
   return { ok: true };
 }
 
-describe("Bolão Copa 2026 — Prediction Exclusividade", () => {
+// Lógica de bloqueio após confirmação inicial do palpite
+function simularSalvarPalpiteComBloqueioConfirmacao(
+  palpites: SimPalpite[],
+  novo: SimPalpite,
+): { ok: boolean; error?: string } {
+  const jaExiste = palpites.some(
+    (p) => p.jogo_id === novo.jogo_id && p.usuario_id === novo.usuario_id,
+  );
+  if (jaExiste) {
+    return {
+      ok: false,
+      error: "Você já confirmou seu palpite para este jogo e não pode alterá-lo.",
+    };
+  }
+  palpites.push(novo);
+  return { ok: true };
+}
+
+describe("Bolão Copa 2026 — Prediction Exclusividade & Lock", () => {
   const users: Record<string, string> = {
     "u-igor": "Igor",
     "u-natan": "Natan",
     "u-alison": "Alison",
   };
 
-  test("blocks duplicate score for same game when exclusividade is active", () => {
+  test("allows duplicate score for same game even if exclusividade is active", () => {
     const palpites: SimPalpite[] = [
       { id: "p1", usuario_id: "u-igor", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 },
     ];
@@ -356,9 +357,8 @@ describe("Bolão Copa 2026 — Prediction Exclusividade", () => {
     const novo = { id: "p2", usuario_id: "u-natan", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 };
     const res = simularSalvarPalpite(palpites, config, novo, users);
 
-    expect(res.ok).toBe(false);
-    expect(res.error).toBe("Placar 2x1 já foi escolhido por Igor.");
-    expect(palpites.length).toBe(1);
+    expect(res.ok).toBe(true);
+    expect(palpites.length).toBe(2);
   });
 
   test("allows same score for different games", () => {
@@ -374,7 +374,7 @@ describe("Bolão Copa 2026 — Prediction Exclusividade", () => {
     expect(palpites.length).toBe(2);
   });
 
-  test("allows user to update their own score to the same value", () => {
+  test("allows user to update score in simulation before confirmation block is applied", () => {
     const palpites: SimPalpite[] = [
       { id: "p1", usuario_id: "u-igor", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 },
     ];
@@ -386,17 +386,22 @@ describe("Bolão Copa 2026 — Prediction Exclusividade", () => {
     expect(res.ok).toBe(true);
   });
 
-  test("allows duplicate score for same game when exclusividade is inactive", () => {
+  test("allows initial bet placement in locking system", () => {
+    const palpites: SimPalpite[] = [];
+    const novo = { id: "p1", usuario_id: "u-igor", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 };
+    const res = simularSalvarPalpiteComBloqueioConfirmacao(palpites, novo);
+    expect(res.ok).toBe(true);
+    expect(palpites.length).toBe(1);
+  });
+
+  test("rejects subsequent updates/edits to the confirmed bet", () => {
     const palpites: SimPalpite[] = [
       { id: "p1", usuario_id: "u-igor", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 },
     ];
-    const config = { exclusividade_placar: false };
-
-    const novo = { id: "p2", usuario_id: "u-natan", jogo_id: "g-1", gols_casa: 2, gols_fora: 1 };
-    const res = simularSalvarPalpite(palpites, config, novo, users);
-
-    expect(res.ok).toBe(true);
-    expect(palpites.length).toBe(2);
+    const novo = { id: "p1", usuario_id: "u-igor", jogo_id: "g-1", gols_casa: 3, gols_fora: 2 };
+    const res = simularSalvarPalpiteComBloqueioConfirmacao(palpites, novo);
+    expect(res.ok).toBe(false);
+    expect(res.error).toBe("Você já confirmou seu palpite para este jogo e não pode alterá-lo.");
   });
 });
 

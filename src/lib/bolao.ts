@@ -189,16 +189,46 @@ export function calcularPontosPalpite(
 
   const acertouPlacar = golsCasaPalpite === golsCasaReal && golsForaPalpite === golsForaReal;
   if (acertouPlacar) {
-    return { pontos: 3, acertouPlacar: true, acertouResultado: false };
+    return { pontos: 10, acertouPlacar: true, acertouResultado: false };
   }
 
   const outcomeReal = Math.sign(golsCasaReal - golsForaReal);
   const outcomePalp = Math.sign(golsCasaPalpite - golsForaPalpite);
   const acertouResultado = outcomeReal === outcomePalp;
 
+  const diffCasa = Math.abs(golsCasaPalpite - golsCasaReal);
+  const diffFora = Math.abs(golsForaPalpite - golsForaReal);
+  const golsProximos = diffCasa <= 1 && diffFora <= 1;
+
+  let pontos = 0;
   if (acertouResultado) {
-    return { pontos: 1, acertouPlacar: false, acertouResultado: true };
+    pontos = 5;
+    if (golsProximos) pontos += 2;
+  } else if (golsProximos) {
+    pontos = 2;
   }
 
-  return { pontos: 0, acertouPlacar: false, acertouResultado: false };
+  return { pontos, acertouPlacar: false, acertouResultado };
 }
+
+/** Formata data/hora para o fuso oficial de Brasília (America/Sao_Paulo) */
+export function formatBrasilia(
+  dateStr: string | Date | null | undefined,
+  options: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }
+): string {
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      ...options
+    });
+  } catch (e) {
+    return String(dateStr);
+  }
+}
+

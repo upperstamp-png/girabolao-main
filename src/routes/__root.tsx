@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase, callFn, getIdentidade, setIdentidade, type Identidade } from "@/lib/bolao";
+import { RulesModal } from "@/components/RulesModal";
 import {
   isPushSupported,
   getNotificationPermissionState,
@@ -140,6 +141,7 @@ function Nav() {
   const [identidade] = useState<Identidade | null>(() => getIdentidade());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isIosPwa, setIsIosPwa] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
     if (isIOSStandalone()) {
@@ -177,6 +179,12 @@ function Nav() {
               {label}
             </Link>
           ))}
+          <button
+            onClick={() => setRulesOpen(true)}
+            className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-colors"
+          >
+            📖 Regras
+          </button>
         </nav>
 
         {/* Right side */}
@@ -224,6 +232,15 @@ function Nav() {
               {label}
             </Link>
           ))}
+          <button
+            onClick={() => {
+              setIsMenuOpen(false);
+              setRulesOpen(true);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md btn-touch text-left"
+          >
+            <span>📖 Regras</span>
+          </button>
           {/* Theme toggle — mobile */}
           <div className="border-t border-border mt-2 pt-2 flex">
             <ThemeToggle />
@@ -245,6 +262,7 @@ function Nav() {
           </div>
         </nav>
       </div>
+      <RulesModal open={rulesOpen} onOpenChange={setRulesOpen} />
     </header>
   );
 }
@@ -310,6 +328,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   const [nome, setNome] = useState(() => getIdentidade()?.nome ?? "");
   const [pin, setPin] = useState(() => getIdentidade()?.pin ?? "");
   const [loading, setLoading] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   useEffect(() => {
     callFn("usuarios", { action: "init_defaults" }).catch(() => {});
@@ -383,11 +402,18 @@ function AuthGate({ children }: { children: ReactNode }) {
           <Button className="w-full btn-touch" onClick={entrar} disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </Button>
+          <button
+            onClick={() => setRulesOpen(true)}
+            className="w-full text-center text-xs text-primary font-semibold hover:underline mt-1"
+          >
+            📖 Ver Regras do Bolão
+          </button>
           <p className="text-center text-xs text-muted-foreground">
             PIN inicial dos cadastrados: 1234. Troque em Participantes.
           </p>
         </CardContent>
       </Card>
+      <RulesModal open={rulesOpen} onOpenChange={setRulesOpen} />
     </main>
   );
 }

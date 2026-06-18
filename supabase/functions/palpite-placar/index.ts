@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
     const jogo_id = String(body.jogo_id ?? "");
     const gols_casa = Number(body.gols_casa);
     const gols_fora = Number(body.gols_fora);
+    const ip_usuario = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "unknown";
 
     // Validações básicas
     if (!jogo_id) return json({ error: "Jogo obrigatório" }, 400);
@@ -69,70 +70,51 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Permitir apenas durante o primeiro tempo (até 45 min) — bloquear no intervalo ou segundo tempo
-    if (jogo.status === "ao_vivo" && jogo.minuto_jogo != null && jogo.minuto_jogo >= 45) {
-      return json(
-        { error: "Palpites encerrados — o intervalo já passou (limite: 1º tempo)." },
-        400,
-      );
-    }
-
-    // Verificar se a exclusividade está ativada e se já existe palpite duplicado
-    const { data: cfg } = await supabase
-      .from("bolao_config")
-      .select("exclusividade_placar")
-      .eq("id", 1)
-      .single();
-
-    if (cfg?.exclusividade_placar) {
-      const { data: duplicado } = await supabase
-        .from("bolao_palpites")
-        .select("usuario_id")
-        .eq("jogo_id", jogo_id)
-        .eq("gols_casa", gols_casa)
-        .eq("gols_fora", gols_fora)
-        .neq("usuario_id", v.id)
-        .maybeSingle();
-
-      if (duplicado) {
-        const { data: outroUsuario } = await supabase
-          .from("bolao_usuarios")
-          .select("nome")
-          .eq("id", duplicado.usuario_id)
-          .maybeSingle();
-        const outroNome = outroUsuario?.nome ?? "outro participante";
-        return json(
-          { error: `Placar ${gols_casa}x${gols_fora} já foi escolhido por ${outroNome}.` },
-          400,
-        );
-      }
-    }
-
-    // Buscar palpite antigo antes do upsert para registrar auditoria
+    // Bloquear se já existe palpite (bloqueio definitivo após aposta)
     const { data: palpiteAntigo } = await supabase
       .from("bolao_palpites")
-      .select("gols_casa, gols_fora")
+      .select("gols_casa, gols_fora, confirmado_em")
       .eq("usuario_id", v.id)
       .eq("jogo_id", jogo_id)
       .maybeSingle();
 
-    // Salvar palpite (upsert — permite alterar antes do jogo)
+    if (palpiteAntigo) {
+      return json(
+        { error: "Você já confirmou seu palpite para este jogo e não pode alterá-lo." },
+        400,
+      );
+    }
+
+    // Regra de travamento: 15 minutos após o horário oficial do jogo
+    const dataInicio = new Date(jogo.data_hora);
+    const limiteAposta = new Date(dataInicio.getTime() + 15 * 60 * 1000);
+    if (new Date() > limiteAposta) {
+      return json(
+        { error: "Palpites encerrados — limite de 15 minutos após o início da partida expirado." },
+        400,
+      );
+    }
+
+    // Salvar palpite (usando insert, pois não permitimos edição se já existir)
     const { error } = await supabase
       .from("bolao_palpites")
-      .upsert(
-        { usuario_id: v.id, jogo_id, gols_casa, gols_fora },
-        { onConflict: "usuario_id,jogo_id" },
-      );
+      .insert({
+        usuario_id: v.id,
+        jogo_id,
+        gols_casa,
+        gols_fora,
+        confirmado_em: new Date().toISOString(),
+        ip_usuario
+      });
     if (error) throw error;
 
     // Registrar no histórico de alterações
-    const acao = palpiteAntigo ? "alterar" : "criar";
     const { error: histErr } = await supabase.from("bolao_historico_alteracoes").insert({
       usuario_id: v.id,
       jogo_id,
-      acao,
-      gols_casa_antigo: palpiteAntigo ? palpiteAntigo.gols_casa : null,
-      gols_fora_antigo: palpiteAntigo ? palpiteAntigo.gols_fora : null,
+      acao: "criar",
+      gols_casa_antigo: null,
+      gols_fora_antigo: null,
       gols_casa_novo: gols_casa,
       gols_fora_novo: gols_fora,
     });
@@ -147,7 +129,7 @@ Deno.serve(async (req) => {
     );
 
     // Disparar push de notificação
-    const actionVerb = palpiteAntigo ? "alterou seu" : "registrou um";
+    const actionVerb = "registrou um";
     await notifyAllUsers(null, {
       title: "⚽ Novo Palpite Registrado!",
       body: `${nome} ${actionVerb} palpite para ${jogo.time_casa} x ${jogo.time_fora}: ${gols_casa} x ${gols_fora}`,

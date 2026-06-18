@@ -154,8 +154,11 @@ function Page() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {games.map((j) => {
                     const palpite = userPalpites?.find((p) => p.jogo_id === j.id);
-                    const future = new Date(j.data_hora) > new Date();
-                    const pendingPalpite = future && !palpite;
+                    const kickoffTime = new Date(j.data_hora).getTime();
+                    const limitTime = kickoffTime + 15 * 60 * 1000;
+                    const isGameLocked = new Date().getTime() > limitTime || j.bloqueado_manual || j.status === "encerrado" || j.status === "apurado";
+                    const canBet = !isGameLocked;
+                    const pendingPalpite = canBet && !palpite;
 
                     // Scoreboard color depending on result state
                     let scoreColorClass = "text-muted-foreground";
@@ -246,10 +249,10 @@ function Page() {
                                 </div>
                               ) : (
                                 <div className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-1 font-mono">
-                                  {future ? (
+                                  {canBet ? (
                                     <>
                                       <Clock className="h-3 w-3" />
-                                      {countdown(j.data_hora)}
+                                      {countdown(new Date(limitTime).toISOString())}
                                     </>
                                   ) : (
                                     "—"
@@ -284,10 +287,10 @@ function Page() {
                                 )}
 
                                 {/* Countdown de fechamento de palpites */}
-                                {future && !palpite && (
+                                {canBet && !palpite && (
                                   <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono text-[9px] py-0 px-1.5 h-4.5 font-semibold gap-1">
                                     <Clock className="h-2.5 w-2.5" /> Fecha em{" "}
-                                    {countdown(j.data_hora)}
+                                    {countdown(new Date(limitTime).toISOString())}
                                   </Badge>
                                 )}
 
