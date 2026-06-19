@@ -118,7 +118,7 @@ async function persistJogos(supabase: Supa, jogos: JogoSync[]) {
   for (const j of jogos) {
     try {
       const e_brasil = j.time_casa === "Brazil" || j.time_fora === "Brazil";
-      const status = mapStatus(j.status_raw);
+      let status = mapStatus(j.status_raw);
       const fase = mapFase(j.round);
 
       let grupoId: string | null = null;
@@ -160,6 +160,17 @@ async function persistJogos(supabase: Supa, jogos: JogoSync[]) {
         parsedDate = new Date();
       }
       dataHora = parsedDate.toISOString();
+
+      // Time-window protection: only allow a match to be "ao_vivo" if the current time matches its kickoff time window.
+      if (status === "ao_vivo") {
+        const matchTime = parsedDate.getTime();
+        const now = Date.now();
+        if (now < matchTime) {
+          status = "pendente";
+        } else if (now > matchTime + 3.5 * 3600000) {
+          status = "encerrado";
+        }
+      }
 
       const { error } = await supabase.from("bolao_jogos").upsert(
         {
@@ -509,8 +520,13 @@ async function syncFromCopaApi(supabase: Supa) {
     let mappedStatus = "pendente";
     if (pm.status === "LIVE" || pm.status === "HALF_TIME") {
       const scheduledTime = new Date(gameDb.data_hora).getTime();
-      if (Date.now() >= scheduledTime) {
-        mappedStatus = "ao_vivo";
+      const now = Date.now();
+      if (now >= scheduledTime) {
+        if (now > scheduledTime + 3.5 * 3600000) {
+          mappedStatus = "encerrado";
+        } else {
+          mappedStatus = "ao_vivo";
+        }
       } else {
         mappedStatus = "pendente";
       }

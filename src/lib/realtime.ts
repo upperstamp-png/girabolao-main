@@ -8,7 +8,27 @@ export const POLL = {
   SLOW: 30_000,
 } as const;
 
-export function pollIntervalForStatus(status?: string | null): number {
-  if (status === "ao_vivo") return POLL.LIVE;
-  return POLL.NORMAL;
+/**
+ * Determina o intervalo de polling com base no estado real do jogo da API FIFA 2026.
+ * Usa os campos: finished (boolean) e time_elapsed (number | null)
+ */
+export function pollIntervalForStatus(game: { finished: boolean; time_elapsed: number | null }): number {
+  const isLive = !game.finished && game.time_elapsed !== null;
+  return isLive ? POLL.LIVE : POLL.NORMAL;
+}
+
+/**
+ * Determina se um jogo está ao vivo (para exibição UI).
+ */
+export function isGameLive(game: { finished: boolean; time_elapsed: number | null }): boolean {
+  return !game.finished && game.time_elapsed !== null;
+}
+
+/**
+ * Converte o status da API para texto legível para o usuário.
+ */
+export function formatGameStatus(game: { finished: boolean; time_elapsed: number | null }): string {
+  if (game.finished) return "ENCERRADO";
+  if (game.time_elapsed === null) return "AGENDADO";
+  return `AO VIVO - ${game.time_elapsed}'`;
 }

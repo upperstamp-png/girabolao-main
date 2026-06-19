@@ -63,9 +63,21 @@ function YouTubePlayer({
 }) {
   if (!liveGame) return null;
 
+  const getThumbnail = () => {
+    const tc = (liveGame.time_casa || "").toLowerCase();
+    const tf = (liveGame.time_fora || "").toLowerCase();
+    if (
+      (tc.includes("portugal") && tf.includes("congo")) ||
+      (tc.includes("congo") && tf.includes("portugal"))
+    ) {
+      return "/portugal_congo_banner.png";
+    }
+    return "/cazetv_live_thumbnail.jpg";
+  };
+
   return (
     <a
-      href="https://www.youtube.com/watch?v=HpzKFDctbNw"
+      href={liveGame.youtube_id ? `https://www.youtube.com/watch?v=${liveGame.youtube_id}` : YT_LIVE_URL}
       target="_blank"
       rel="noopener noreferrer"
       className="relative block w-full aspect-video overflow-hidden cursor-pointer group bg-zinc-950 border border-zinc-850 rounded-2xl hover:border-red-500/50 hover:shadow-[0_0_35px_rgba(239,68,68,0.25)] transition-all duration-300 shadow-2xl"
@@ -73,9 +85,9 @@ function YouTubePlayer({
     >
       {/* Banner image background */}
       <img
-        src="https://img.youtube.com/vi/HpzKFDctbNw/maxresdefault.jpg"
+        src={getThumbnail()}
         onError={(e) => {
-          e.currentTarget.src = "https://img.youtube.com/vi/HpzKFDctbNw/hqdefault.jpg";
+          e.currentTarget.src = "/cazetv_live_thumbnail.jpg";
         }}
         alt={`${liveGame.time_casa} vs ${liveGame.time_fora} Ao Vivo`}
         className="absolute inset-0 w-full h-full object-cover scale-100 group-hover:scale-103 transition-transform duration-700 ease-out"
@@ -387,8 +399,16 @@ function Index() {
     );
   }, [nextGame, identidade, palpites]);
 
-  // Live game
-  const liveGame = (aoVivo?.length ?? 0) > 0 ? aoVivo![0] : null;
+  // Live game (filtered by active play window as a safeguard)
+  const activeLiveGames = useMemo(() => {
+    return (aoVivo ?? []).filter((g: any) => {
+      const matchTime = new Date(g.data_hora).getTime();
+      const now = Date.now();
+      return now >= matchTime && now <= matchTime + 3.5 * 3600000;
+    });
+  }, [aoVivo]);
+
+  const liveGame = activeLiveGames.length > 0 ? activeLiveGames[0] : null;
 
   // ── Supabase Realtime subscription for live games ──────────────────────
   useEffect(() => {

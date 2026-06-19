@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copa do Mundo FIFA 2026 - Ao Vivo</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1a3a1a, #0d220d);
+      color: white;
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .dashboard {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+      max-width: 600px;
+    }
+    .team {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    .flag {
+      width: 60px;
+      height: 40px;
+      margin: 0 1rem;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .score {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
+      color: #0f0;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    .time {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #ff3333;
+      animation: pulse 1s infinite;
+    }
+    .status {
+      font-size: 1.5rem;
+      margin-top: 1rem;
+      color: #0f0;
+    }
+    .loading {
+      font-size: 1.5rem;
+      color: #aaa;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <h1>⚽ Copa do Mundo FIFA 2026</h1>
+    <div class="team">
+      <div class="flag" id="home-flag" style="background-image: url('https://flagcdn.com/w80/ca.png');"></div>
+      <div class="score" id="score">-- x --</div>
+      <div class="flag" id="away-flag" style="background-image: url('https://flagcdn.com/w80/qa.png');"></div>
+    </div>
+    <div class="time" id="time">--'</div>
+    <div class="status" id="status">AGUARDANDO JOGO AO VIVO...</div>
+    <div class="loading" id="loading">Atualizando...</div>
+  </div>
+
+  <script>
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMzQ3NmMxNWE5YjM0NGQyYmI1NjZjMCIsImlhdCI6MTc4MTgyMzIwOSwiZXhwIjoxNzg5MDgwODA5fQ.YPi4BW6IeGea6umPwD8zd2Gu8SSCXkYSSJZi3hlADo8";
+    const headers = { 'Authorization': 'Bearer ' + token };
+
+    const scoreEl = document.getElementById('score');
+    const timeEl = document.getElementById('time');
+    const statusEl = document.getElementById('status');
+    const loadingEl = document.getElementById('loading');
+    const homeFlagEl = document.getElementById('home-flag');
+    const awayFlagEl = document.getElementById('away-flag');
+
+    async function fetchLiveGame() {
+      try {
+        loadingEl.textContent = 'Atualizando...';
+        const response = await fetch('https://worldcup26.ir/get/games', { headers });
+        const data = await response.json();
+
+        const liveGame = data.games.find(game => 
+          game.finished === "FALSE" && game.time_elapsed !== "notstarted"
+        );
+
+        if (liveGame) {
+          const homeTeam = await fetchTeam(liveGame.home_team_id);
+          const awayTeam = await fetchTeam(liveGame.away_team_id);
+
+          scoreEl.textContent = `${liveGame.home_score} x ${liveGame.away_score}`;
+          timeEl.textContent = `${liveGame.time_elapsed}'`;
+          statusEl.textContent = 'AO VIVO';
+          homeFlagEl.style.backgroundImage = \`url(https://flagcdn.com/w80/\${homeTeam.fifa_code.toLowerCase()}.png)\`;
+          awayFlagEl.style.backgroundImage = \`url(https://flagcdn.com/w80/\${awayTeam.fifa_code.toLowerCase()}.png)\`;
+          loadingEl.textContent = '';
+        } else {
+          scoreEl.textContent = '-- x --';
+          timeEl.textContent = '--\'';
+          statusEl.textContent = 'NENHUM JOGO AO VIVO NO MOMENTO';
+          loadingEl.textContent = '';
+        }
+      } catch (err) {
+        console.error(err);
+        loadingEl.textContent = 'Erro de conexão. Tentando novamente...';
+      }
+    }
+
+    async function fetchTeam(teamId) {
+      const response = await fetch('https://worldcup26.ir/get/teams', { headers });
+      const data = await response.json();
+      return data.teams.find(team => team.id === teamId);
+    }
+
+    // Iniciar
+    fetchLiveGame();
+    setInterval(fetchLiveGame, 5000);
+  </script>
+</body>
+</html>
